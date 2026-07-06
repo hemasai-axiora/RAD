@@ -26,3 +26,5 @@ coverage/
 dist/
 build/
 .phpunit.cache/
+playwright-report/
+test-results/

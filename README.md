@@ -107,6 +107,32 @@ Check migration status:
 php bin/migrate.php --status
 ```
 
+### Six-Month Demo Dataset
+
+For end-to-end testing and demos, load a large six-month sample dataset:
+
+```bash
+php bin/seed_6_month_demo_data.php --fresh
+```
+
+This creates 2 Admins, 2 HR users, 2 Analysts, 10 Managers, and 90 Employees, plus teams, attendance, location/travel summaries, leads, tasks, follow-ups, communications, meetings, invoices, targets, notifications, dashboard preferences, dashboard templates, and manager edit requests.
+
+Default demo password:
+
+```text
+Raptor@12345
+```
+
+Sample accounts:
+
+```text
+admin1@raptor.test
+hr1@raptor.test
+analyst1@raptor.test
+manager1@raptor.test
+employee1@raptor.test
+```
+
 ### Run Locally
 
 With PHP installed locally:
@@ -155,6 +181,24 @@ The retention cron is intentionally non-destructive under the current governance
 - Admin-only approval is required for manager data edit/archive requests.
 
 Review [docs/SECURITY_CHECKLIST.md](docs/SECURITY_CHECKLIST.md) before production launch.
+
+## Testing
+
+Manual end-to-end coverage is documented in [docs/END_TO_END_TEST_PLAN.md](docs/END_TO_END_TEST_PLAN.md).
+
+Playwright automation is included under [tests/e2e](tests/e2e). Install and run:
+
+```bash
+npm install
+npx playwright install
+npm run test:e2e
+```
+
+Use a custom app URL:
+
+```bash
+RAPTOR_BASE_URL=http://localhost:8080/public npm run test:e2e
+```
 
 ## Launch Checklist
 
