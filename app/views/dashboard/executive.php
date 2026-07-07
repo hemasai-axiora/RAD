@@ -161,6 +161,86 @@
     </div>
 </div>
 
+<!-- Row 5: Social Media Analytics Metrics -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <h4 class="text-white mb-2 mt-3"><i class="fa-solid fa-share-nodes text-primary me-2"></i>Social Media Account Analytics</h4>
+    </div>
+    
+    <!-- Social Metrics cards -->
+    <div class="col-md-3">
+        <div class="pulse-card">
+            <div class="text-secondary small mb-1">Today's Social Updates</div>
+            <h3 class="text-white mb-0 fw-bold" id="social-today-updates">--</h3>
+            <span class="small text-secondary">Updates logged today</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="pulse-card">
+            <div class="text-secondary small mb-1">Pending Updates</div>
+            <h3 class="text-white mb-0 fw-bold" id="social-pending-updates">--</h3>
+            <span class="small text-secondary">Accounts needing updates</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="pulse-card">
+            <div class="text-secondary small mb-1">Most Active Platform</div>
+            <h3 class="text-white mb-0 fw-bold text-truncate" id="social-active-platform" style="font-size: 1.5rem; max-width: 200px;">--</h3>
+            <span class="small text-secondary">Highest engagement</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="pulse-card">
+            <div class="text-secondary small mb-1">Avg Engagement Rate</div>
+            <h3 class="text-white mb-0 fw-bold" id="social-avg-er">--</h3>
+            <span class="small text-secondary">Platform average</span>
+        </div>
+    </div>
+
+    <!-- Platform-wise & Account-wise Analytics Tables -->
+    <div class="col-xl-6">
+        <div class="pulse-card h-100">
+            <div class="card-title">Platform-wise Engagement</div>
+            <div class="table-responsive mt-3">
+                <table class="table table-hover text-white align-middle mb-0" style="font-size:0.875rem;">
+                    <thead>
+                        <tr class="text-secondary" style="border-bottom: 1px solid var(--border-color);">
+                            <th>Platform</th>
+                            <th class="text-center">Likes</th>
+                            <th class="text-center">Views</th>
+                            <th class="text-center">Avg ER</th>
+                        </tr>
+                    </thead>
+                    <tbody id="platform-analytics-tbody">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-6">
+        <div class="pulse-card h-100">
+            <div class="card-title">Top Social Accounts</div>
+            <div class="table-responsive mt-3">
+                <table class="table table-hover text-white align-middle mb-0" style="font-size:0.875rem;">
+                    <thead>
+                        <tr class="text-secondary" style="border-bottom: 1px solid var(--border-color);">
+                            <th>Profile Name</th>
+                            <th>Platform</th>
+                            <th class="text-center">Likes</th>
+                            <th class="text-center">ER</th>
+                        </tr>
+                    </thead>
+                    <tbody id="account-analytics-tbody">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Inline script to load and initialize dashboards -->
 <script>
 $(document).ready(function() {
@@ -257,6 +337,53 @@ $(document).ready(function() {
 
             // 7. AI Insights
             $('#ai-insights-list').html(data.ai_summary);
+
+            // 8. Load Social Media Analytics
+            if (data.social_metrics) {
+                $('#social-today-updates').text(data.social_metrics.today_updates);
+                $('#social-pending-updates').text(data.social_metrics.pending_updates);
+                $('#social-active-platform').text(data.social_metrics.top_platform);
+                $('#social-avg-er').text(data.social_metrics.average_engagement_rate + '%');
+            }
+
+            let platformHtml = '';
+            if (data.platform_analytics && data.platform_analytics.length > 0) {
+                data.platform_analytics.forEach(p => {
+                    const likes = p.likes ? Number(p.likes).toLocaleString() : '0';
+                    const views = p.views ? Number(p.views).toLocaleString() : '0';
+                    const er = p.engagement_rate ? parseFloat(p.engagement_rate).toFixed(2) + '%' : '0.00%';
+                    platformHtml += `
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td><i class="${p.icon} text-primary me-2"></i>${p.name}</td>
+                            <td class="text-center font-weight-bold">${likes}</td>
+                            <td class="text-center text-secondary">${views}</td>
+                            <td class="text-center"><span class="badge bg-secondary bg-opacity-10 text-white">${er}</span></td>
+                        </tr>
+                    `;
+                });
+            } else {
+                platformHtml = '<tr><td colspan="4" class="text-center text-secondary py-3">No platform analytics logged.</td></tr>';
+            }
+            $('#platform-analytics-tbody').html(platformHtml);
+
+            let accountHtml = '';
+            if (data.account_analytics && data.account_analytics.length > 0) {
+                data.account_analytics.slice(0, 5).forEach(a => {
+                    const likes = a.likes ? Number(a.likes).toLocaleString() : '0';
+                    const er = a.engagement_rate ? parseFloat(a.engagement_rate).toFixed(2) + '%' : '0.00%';
+                    accountHtml += `
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td class="fw-semibold">${a.profile_name}</td>
+                            <td><span class="small"><i class="${a.platform_icon} text-primary me-1"></i>${a.platform_name}</span></td>
+                            <td class="text-center font-weight-bold">${likes}</td>
+                            <td class="text-center"><span class="badge bg-secondary bg-opacity-10 text-white">${er}</span></td>
+                        </tr>
+                    `;
+                });
+            } else {
+                accountHtml = '<tr><td colspan="4" class="text-center text-secondary py-3">No account analytics logged.</td></tr>';
+            }
+            $('#account-analytics-tbody').html(accountHtml);
         });
     }
 

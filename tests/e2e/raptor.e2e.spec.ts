@@ -19,7 +19,17 @@ async function login(page: Page, email: string, password = PASSWORD) {
 }
 
 async function logout(page: Page) {
-  await page.locator('a[href*="auth/logout"]').first().click();
+  const viewport = page.viewportSize();
+  if (viewport && viewport.width < 992) {
+    const moreBtn = page.locator('#bottom-nav-more, #toggle-btn').filter({ visible: true }).first();
+    if (await moreBtn.count() > 0 && await moreBtn.isVisible()) {
+      await moreBtn.click();
+      await page.waitForTimeout(300); // wait for drawer transition
+    }
+  }
+  const logoutLink = page.locator('a[href*="auth/logout"]').first();
+  await logoutLink.scrollIntoViewIfNeeded();
+  await logoutLink.click({ force: true });
   await expect(page).toHaveURL(/auth\/login/);
 }
 
@@ -36,8 +46,8 @@ test.describe('Raptor CRM seeded smoke suite', () => {
 
     const toggle = page.locator('#theme-toggle, [title*="Theme"], [title*="theme"]').first();
     if (await toggle.count()) {
-      await toggle.click();
-      await expect(page.locator('html')).toHaveAttribute(/data-theme/, /dark|light/);
+      await toggle.click({ force: true });
+      await expect(page.locator('html')).toHaveAttribute('data-theme', /dark|light/);
     }
   });
 

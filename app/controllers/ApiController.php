@@ -117,6 +117,13 @@ class ApiController extends Controller {
         $gemini = new GeminiService();
         $aiSummary = $gemini->generateSummary($cid, $start, $end);
 
+        // 8. Social Media Analytics
+        require_once dirname(dirname(__FILE__)) . '/models/AnalyticsEntry.php';
+        $analyticsModel = new AnalyticsEntry();
+        $socialMetrics = $analyticsModel->getDashboardMetrics();
+        $platformAnalytics = $analyticsModel->getPlatformAnalytics();
+        $accountAnalytics = $analyticsModel->getAccountAnalytics();
+
         // Output consolidated package
         echo json_encode([
             'kpis' => [
@@ -131,7 +138,10 @@ class ApiController extends Controller {
             'trends' => $trends,
             'campaigns' => $campaignsList,
             'alerts' => $alerts,
-            'ai_summary' => $aiSummary
+            'ai_summary' => $aiSummary,
+            'social_metrics' => $socialMetrics,
+            'platform_analytics' => $platformAnalytics,
+            'account_analytics' => $accountAnalytics
         ]);
     }
 

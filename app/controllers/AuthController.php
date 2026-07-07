@@ -90,7 +90,9 @@ class AuthController extends Controller {
             $this->logActivity($_SESSION['user_id'], 'User logged out');
         }
         
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         $_SESSION = array();
         session_destroy();
         

@@ -113,6 +113,12 @@ class ReportsController extends Controller {
     private function reportHtml(array $result, bool $printReady = false): string {
         ob_start();
         $title = htmlspecialchars($result['title']);
+        
+        $logoPath = dirname(dirname(dirname(__FILE__))) . '/public/logo.png';
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+        }
         ?>
         <!doctype html>
         <html>
@@ -121,21 +127,35 @@ class ReportsController extends Controller {
             <title><?php echo $title; ?></title>
             <style>
                 body { font-family: Arial, sans-serif; color: #111827; margin: 24px; }
-                h1 { font-size: 20px; margin-bottom: 4px; }
-                .muted { color: #6b7280; font-size: 12px; margin-bottom: 18px; }
-                table { border-collapse: collapse; width: 100%; font-size: 12px; }
-                th, td { border: 1px solid #d1d5db; padding: 7px; text-align: left; vertical-align: top; }
-                th { background: #f3f4f6; }
+                .report-header { display: block; border-bottom: 2px solid #1F5FAE; padding-bottom: 10px; margin-bottom: 15px; }
+                .report-title-container { float: left; width: 70%; }
+                .report-logo-container { float: right; width: 25%; text-align: right; }
+                h1 { font-size: 20px; color: #1F5FAE; margin: 0; }
+                .muted { color: #6b7280; font-size: 11px; margin-top: 3px; }
+                table { border-collapse: collapse; width: 100%; font-size: 11px; clear: both; margin-top: 20px; }
+                th, td { border: 1px solid #d1d5db; padding: 6px; text-align: left; vertical-align: top; }
+                th { background: #f3f4f6; color: #111827; font-weight: bold; }
                 @media print { button { display: none; } body { margin: 12px; } }
             </style>
         </head>
         <body>
             <?php if ($printReady): ?><button onclick="window.print()">Print / Save PDF</button><?php endif; ?>
-            <h1><?php echo $title; ?></h1>
-            <div class="muted">
-                <?php echo htmlspecialchars($result['filters']['from']); ?> to
-                <?php echo htmlspecialchars($result['filters']['to']); ?> |
-                Generated <?php echo date('Y-m-d H:i'); ?>
+            
+            <div class="report-header">
+                <div class="report-title-container">
+                    <h1><?php echo $title; ?></h1>
+                    <div class="muted">
+                        <?php echo htmlspecialchars($result['filters']['from']); ?> to
+                        <?php echo htmlspecialchars($result['filters']['to']); ?> |
+                        Generated <?php echo date('Y-m-d H:i'); ?>
+                    </div>
+                </div>
+                <div class="report-logo-container">
+                    <?php if ($logoBase64): ?>
+                        <img src="<?php echo $logoBase64; ?>" style="height: 38px; width: auto; max-width: 100%; object-fit: contain;" alt="Raptor Logo">
+                    <?php endif; ?>
+                </div>
+                <div style="clear: both;"></div>
             </div>
             <table>
                 <thead><tr>

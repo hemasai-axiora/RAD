@@ -241,7 +241,7 @@ try {
     for ($i = 1; $i <= 5; $i++) {
         $branchIds[] = (int) insertRow($db, 'branches', [
             'name' => "Raptor Branch $i",
-            'address' => "$i00 Market Street, Demo City",
+            'address' => "{$i}00 Market Street, Demo City",
             'lat' => 12.9000000 + ($i / 100),
             'lng' => 77.5000000 + ($i / 100),
             'status' => 'active',

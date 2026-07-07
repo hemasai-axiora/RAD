@@ -13,9 +13,11 @@ class PerformanceController extends Controller {
 
         $this->performanceModel = $this->model('Performance');
     }
-
     public function index() {
-        $period = in_array($_GET['period'] ?? 'weekly', ['weekly', 'monthly'], true) ? $_GET['period'] : 'weekly';
+        $period = $_GET['period'] ?? 'weekly';
+        if (!in_array($period, ['weekly', 'monthly'], true)) {
+            $period = 'weekly';
+        }
         [$start, $end] = $this->performanceModel->periodRange($period, $_GET['start'] ?? null, $_GET['end'] ?? null);
 
         $data = [
@@ -44,7 +46,10 @@ class PerformanceController extends Controller {
             return;
         }
 
-        $period = in_array($_GET['period'] ?? 'weekly', ['weekly', 'monthly'], true) ? $_GET['period'] : 'weekly';
+        $period = $_GET['period'] ?? 'weekly';
+        if (!in_array($period, ['weekly', 'monthly'], true)) {
+            $period = 'weekly';
+        }
         $score = $this->performanceModel->getLatestForUser($userId, $period);
         $reviews = $score
             ? $this->performanceModel->getReviews($userId, $score->period, $score->start_date, $score->end_date)

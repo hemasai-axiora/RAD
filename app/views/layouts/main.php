@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($title) ? htmlspecialchars($title) : 'Raptor CRM'; ?></title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="<?php echo URLROOT; ?>/logo.png">
     <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 CSS -->
@@ -36,23 +38,23 @@
             --panel-dark: #ffffff;
             --surface-muted: #eef6ff;
             --surface-soft: #f8fbff;
-            --border-color: rgba(21, 94, 239, 0.12);
-            --border-strong: rgba(21, 94, 239, 0.22);
+            --border-color: rgba(31, 95, 174, 0.12);
+            --border-strong: rgba(31, 95, 174, 0.22);
 
             --text-primary: #0f172a;
             --text-secondary: #52647a;
             --text-muted: #7890a8;
 
-            --primary: #0d6efd;
-            --primary-strong: #0757d3;
-            --primary-soft: #e7f1ff;
-            --primary-glow: rgba(13, 110, 253, 0.14);
+            --primary: #1F5FAE;
+            --primary-strong: #174887;
+            --primary-soft: #ecf3fa;
+            --primary-glow: rgba(31, 95, 174, 0.14);
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
             --info: #06b6d4;
-            --shadow-soft: 0 12px 32px rgba(15, 82, 186, 0.08);
-            --shadow-hover: 0 18px 40px rgba(15, 82, 186, 0.13);
+            --shadow-soft: 0 12px 32px rgba(31, 95, 174, 0.08);
+            --shadow-hover: 0 18px 40px rgba(31, 95, 174, 0.13);
 
             --sidebar-width: 260px;
             --topbar-height: 70px;
@@ -71,10 +73,10 @@
             --text-secondary: #a8b3c7;
             --text-muted: #718096;
 
-            --primary: #38bdf8;
-            --primary-strong: #0ea5e9;
-            --primary-soft: rgba(56, 189, 248, 0.13);
-            --primary-glow: rgba(56, 189, 248, 0.18);
+            --primary: #4a8ddb;
+            --primary-strong: #1F5FAE;
+            --primary-soft: rgba(74, 141, 219, 0.13);
+            --primary-glow: rgba(74, 141, 219, 0.18);
             --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.22);
             --shadow-hover: 0 18px 42px rgba(0, 0, 0, 0.32);
         }
@@ -100,6 +102,7 @@
         #wrapper {
             display: flex;
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
         /* Sidebar Styling */
@@ -107,10 +110,11 @@
             width: var(--sidebar-width);
             background-color: var(--panel-dark);
             border-right: 1px solid var(--border-color);
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 100;
             display: flex;
             flex-direction: column;
+            overflow-y: auto;
         }
 
         #sidebar.collapsed {
@@ -118,10 +122,10 @@
         }
 
         .sidebar-brand {
-            height: var(--topbar-height);
+            height: auto;
             display: flex;
             align-items: center;
-            padding: 0 1.5rem;
+            padding: 1.25rem 1.5rem;
             border-bottom: 1px solid var(--border-color);
         }
 
@@ -141,40 +145,86 @@
 
         .sidebar-menu {
             list-style: none;
-            padding: 1.5rem 0.75rem;
+            padding: 1.25rem 0.5rem;
             margin: 0;
             flex-grow: 1;
         }
 
-        .menu-header {
-            color: var(--text-muted);
-            font-size: 0.75rem;
-            font-weight: 700;
+        /* Menu Section & Accordion Styling */
+        .menu-section {
+            margin-bottom: 0.35rem;
+            list-style: none;
+            padding: 0;
+        }
+
+        .menu-section-header {
+            display: flex;
+            align-items: center;
+            padding: 0.7rem 0.75rem;
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 0.5rem 0.75rem;
-            margin-top: 1rem;
-            margin-bottom: 0.5rem;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .menu-section-header:hover {
+            background-color: var(--primary-soft);
+            color: var(--text-primary);
+        }
+
+        .menu-section-header .section-icon {
+            margin-right: 0.75rem;
+            font-size: 1.05rem;
+            width: 20px;
+            text-align: center;
+            color: var(--primary);
+        }
+
+        .menu-section-header .section-text {
+            flex-grow: 1;
+        }
+
+        .menu-section-header .section-arrow {
+            font-size: 0.7rem;
+            transition: transform 0.2s ease;
+            color: var(--text-muted);
+        }
+
+        .menu-section.expanded .menu-section-header .section-arrow {
+            transform: rotate(90deg);
+        }
+
+        .menu-section-items {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+            display: none; /* Collapsed by default */
         }
 
         .menu-item a {
             display: flex;
             align-items: center;
-            padding: 0.75rem 1rem;
+            padding: 0.6rem 0.75rem 0.6rem 2.25rem;
             color: var(--text-secondary);
             text-decoration: none;
-            border-radius: 10px;
-            font-size: 0.9rem;
+            border-radius: 8px;
+            font-size: 0.88rem;
             font-weight: 500;
-            transition: all 0.3s ease;
-            margin-bottom: 0.25rem;
+            transition: all 0.2s ease;
+            margin-bottom: 0.15rem;
         }
 
         .menu-item a i {
-            margin-right: 0.85rem;
-            font-size: 1.1rem;
-            width: 20px;
+            margin-right: 0.75rem;
+            font-size: 1rem;
+            width: 18px;
             text-align: center;
+            opacity: 0.7;
         }
 
         .menu-item a:hover {
@@ -186,11 +236,12 @@
             color: var(--primary-strong);
             background: linear-gradient(90deg, var(--primary-soft) 0%, rgba(255,255,255,0) 100%);
             border-left: 3px solid var(--primary);
-            padding-left: calc(1rem - 3px);
+            padding-left: calc(2.25rem - 3px);
+            font-weight: 600;
         }
 
         .sidebar-footer {
-            padding: 1rem;
+            padding: 0.75rem;
             border-top: 1px solid var(--border-color);
             background-color: var(--surface-soft);
         }
@@ -302,16 +353,16 @@
         .pulse-card {
             background-color: var(--panel-dark);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: 14px;
             padding: 1.5rem;
             box-shadow: var(--shadow-soft);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
         }
 
         .pulse-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-4px);
             box-shadow: var(--shadow-hover);
         }
 
@@ -322,7 +373,7 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(90deg, var(--primary) 0%, #00b4d8 100%);
+            background: linear-gradient(90deg, var(--primary) 0%, #4a8ddb 100%);
         }
 
         .card-title {
@@ -471,6 +522,7 @@
                 bottom: 0;
                 margin-left: calc(-1 * var(--sidebar-width));
                 box-shadow: 4px 0 30px rgba(0,0,0,0.4);
+                overflow-y: auto;
             }
             #sidebar.mobile-open { margin-left: 0; }
             #sidebar.mobile-open + #sidebar-overlay,
@@ -519,6 +571,51 @@
         /* Desktop: never show mobile chrome */
         @media (min-width: 992px) {
             #bottom-nav, #sidebar-overlay { display: none !important; }
+
+            #sidebar.collapsed {
+                width: 70px !important;
+                margin-left: 0 !important;
+            }
+            #sidebar.collapsed .sidebar-brand {
+                align-items: center !important;
+                justify-content: center !important;
+                padding: 1.25rem 0 !important;
+            }
+            #sidebar.collapsed .sidebar-brand-text,
+            #sidebar.collapsed .sidebar-brand-desc,
+            #sidebar.collapsed .section-text,
+            #sidebar.collapsed .section-arrow,
+            #sidebar.collapsed .user-name,
+            #sidebar.collapsed .user-role,
+            #sidebar.collapsed .menu-item a span,
+            #sidebar.collapsed .sidebar-footer-text {
+                display: none !important;
+            }
+            #sidebar.collapsed .menu-section-header {
+                justify-content: center !important;
+                padding: 0.75rem 0 !important;
+            }
+            #sidebar.collapsed .menu-section-header .section-icon {
+                margin-right: 0 !important;
+                font-size: 1.25rem !important;
+            }
+            #sidebar.collapsed .menu-section-items {
+                display: none !important; /* Force collapse submenus when sidebar is collapsed */
+            }
+            #sidebar.collapsed .user-widget {
+                justify-content: center !important;
+            }
+            #sidebar.collapsed .user-avatar {
+                margin-right: 0 !important;
+            }
+            #sidebar.collapsed .menu-item a {
+                justify-content: center !important;
+                padding: 0.75rem 0 !important;
+            }
+            #sidebar.collapsed .menu-item a i {
+                margin-right: 0 !important;
+                font-size: 1.15rem !important;
+            }
         }
     </style>
 </head>
@@ -531,211 +628,317 @@
     <div id="wrapper">
         <!-- Sidebar Navigation -->
         <nav id="sidebar">
-            <div class="sidebar-brand">
-                <i class="fa-solid fa-chart-line sidebar-brand-icon"></i>
-                <span class="sidebar-brand-text">Raptor CRM</span>
+            <div class="sidebar-brand d-flex flex-column align-items-start justify-content-center" style="padding: 1.25rem 1.5rem; height: auto; border-bottom: 1px solid var(--border-color);">
+                <div class="d-flex align-items-center gap-2">
+                    <img src="<?php echo URLROOT; ?>/logo.png" alt="Raptor Logo" class="brand-logo-img" style="height: 32px; width: auto; object-fit: contain;">
+                    <span class="sidebar-brand-text text-white" style="font-size: 1.15rem; font-weight: 700; letter-spacing: -0.5px;">RAPTOR CRM</span>
+                </div>
+                <span class="sidebar-brand-desc text-secondary mt-1" style="font-size: 0.72rem; font-weight: 500;">Digital Marketing CRM</span>
             </div>
             
             <ul class="sidebar-menu">
-                <li class="menu-header">Dashboards</li>
-                <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'dashboard_module') ? 'active' : ''; ?>">
-                    <a href="index.php?route=dashboard/index">
-                        <i class="fa-solid fa-table-columns"></i>Dashboard Module
-                    </a>
-                </li>
-                <?php if (Policy::canCreateDashboardTemplate()): ?>
-                <li class="menu-item <?php echo ($data['title'] === 'Dashboard Templates | Raptor CRM') ? 'active' : ''; ?>">
-                    <a href="index.php?route=dashboard/templates">
-                        <i class="fa-solid fa-sliders"></i>Dashboard Templates
-                    </a>
-                </li>
-                <?php endif; ?>
-                <li class="menu-item <?php echo ($data['title'] === 'Reports Center | Raptor CRM') ? 'active' : ''; ?>">
-                    <a href="index.php?route=reports/index">
-                        <i class="fa-solid fa-chart-pie"></i>Reports Module
-                    </a>
-                </li>
-                
-                <!-- Executive Marketing Overview (Employer, Manager, Admin) -->
-                <?php if (in_array($_SESSION['user_role'], ['admin', 'manager', 'employer'])): ?>
-                <li class="menu-item <?php echo ($active_tab === 'executive') ? 'active' : ''; ?>">
-                    <a href="index.php?route=dashboard/executive">
-                        <i class="fa-solid fa-house-chimney"></i>Executive Overview
-                    </a>
-                </li>
-                <?php endif; ?>
-
-                <!-- Channel & Campaign Performance (Admin, Manager, Analyst) -->
-                <?php if (in_array($_SESSION['user_role'], ['admin', 'manager', 'analyst'])): ?>
-                <li class="menu-item <?php echo ($active_tab === 'channels') ? 'active' : ''; ?>">
-                    <a href="index.php?route=dashboard/channels">
-                        <i class="fa-solid fa-chart-simple"></i>Campaign Performance
-                    </a>
-                </li>
-                <?php endif; ?>
-
-                <!-- Customer Intelligence (Admin, Manager, Analyst) -->
-                <?php if (in_array($_SESSION['user_role'], ['admin', 'manager', 'analyst'])): ?>
-                <li class="menu-item <?php echo ($active_tab === 'customer') ? 'active' : ''; ?>">
-                    <a href="index.php?route=dashboard/customer">
-                        <i class="fa-solid fa-users-viewfinder"></i>Customer Intelligence
-                    </a>
-                </li>
-                <?php endif; ?>
-
-                <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'notifications') ? 'active' : ''; ?>">
-                    <a href="index.php?route=notifications/index">
-                        <i class="fa-solid fa-bell"></i>Notifications
-                    </a>
+                <!-- 1. Dashboard Accordion Group -->
+                <li class="menu-section" data-section="dashboard">
+                    <div class="menu-section-header">
+                        <i class="fa-solid fa-chart-line section-icon"></i>
+                        <span class="section-text">Dashboard</span>
+                        <i class="fa-solid fa-chevron-right section-arrow"></i>
+                    </div>
+                    <ul class="menu-section-items">
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'dashboard_module') ? 'active' : ''; ?>">
+                            <a href="index.php?route=dashboard/index">
+                                <i class="fa-solid fa-table-columns"></i><span>Dashboard Module</span>
+                            </a>
+                        </li>
+                        <?php if (Policy::canCreateDashboardTemplate()): ?>
+                        <li class="menu-item <?php echo ($data['title'] === 'Dashboard Templates | Raptor CRM') ? 'active' : ''; ?>">
+                            <a href="index.php?route=dashboard/templates">
+                                <i class="fa-solid fa-sliders"></i><span>Dashboard Templates</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <?php if (in_array($_SESSION['user_role'], ['admin', 'manager', 'employer'])): ?>
+                        <li class="menu-item <?php echo ($active_tab === 'executive') ? 'active' : ''; ?>">
+                            <a href="index.php?route=dashboard/executive">
+                                <i class="fa-solid fa-house-chimney"></i><span>Executive Overview</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <?php if (in_array($_SESSION['user_role'], ['admin', 'manager', 'analyst'])): ?>
+                        <li class="menu-item <?php echo ($active_tab === 'channels') ? 'active' : ''; ?>">
+                            <a href="index.php?route=dashboard/channels">
+                                <i class="fa-solid fa-chart-simple"></i><span>Campaign Performance</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <?php if (in_array($_SESSION['user_role'], ['admin', 'manager', 'analyst'])): ?>
+                        <li class="menu-item <?php echo ($active_tab === 'customer') ? 'active' : ''; ?>">
+                            <a href="index.php?route=dashboard/customer">
+                                <i class="fa-solid fa-users-viewfinder"></i><span>Customer Intelligence</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                    </ul>
                 </li>
 
-                <!-- My Day (self-service): sales-side + oversight roles -->
+                <!-- 2. My Day Accordion Group -->
                 <?php if (in_array($role, $salesRoles, true)): ?>
-                <li class="menu-header">My Day</li>
-                <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'attendance') ? 'active' : ''; ?>">
-                    <a href="index.php?route=attendance/index">
-                        <i class="fa-solid fa-fingerprint"></i>My Attendance
-                    </a>
+                <li class="menu-section" data-section="myday">
+                    <div class="menu-section-header">
+                        <i class="fa-solid fa-calendar-day section-icon"></i>
+                        <span class="section-text">My Day</span>
+                        <i class="fa-solid fa-chevron-right section-arrow"></i>
+                    </div>
+                    <ul class="menu-section-items">
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'attendance') ? 'active' : ''; ?>">
+                            <a href="index.php?route=attendance/index">
+                                <i class="fa-solid fa-fingerprint"></i><span>My Attendance</span>
+                            </a>
+                        </li>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'followups') ? 'active' : ''; ?>">
+                            <a href="index.php?route=followups/index">
+                                <i class="fa-solid fa-bell"></i><span>My Follow-ups</span>
+                            </a>
+                        </li>
+                        <?php if ($isEmployee || $role === 'team_leader'): ?>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'myroute') ? 'active' : ''; ?>">
+                            <a href="index.php?route=location/myday">
+                                <i class="fa-solid fa-route"></i><span>My Route</span>
+                            </a>
+                        </li>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'social_update') ? 'active' : ''; ?>">
+                            <a href="index.php?route=social/update">
+                                <i class="fa-brands fa-instagram"></i><span>Log Social Stats</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                    </ul>
                 </li>
-                <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'followups') ? 'active' : ''; ?>">
-                    <a href="index.php?route=followups/index">
-                        <i class="fa-solid fa-bell"></i>My Follow-ups
-                    </a>
-                </li>
-                <?php if ($isEmployee || $role === 'team_leader'): ?>
-                <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'myroute') ? 'active' : ''; ?>">
-                    <a href="index.php?route=location/myday">
-                        <i class="fa-solid fa-route"></i>My Route
-                    </a>
-                </li>
-                <?php endif; ?>
                 <?php endif; ?>
 
-                <!-- Monitoring (oversight roles) -->
+                <!-- 3. Monitoring Accordion Group -->
                 <?php if (in_array($_SESSION['user_role'], ['admin', 'manager', 'team_leader'])): ?>
-                <li class="menu-header">Monitoring</li>
-                <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'monitoring_dashboard') ? 'active' : ''; ?>">
-                    <a href="index.php?route=dashboard/monitoring">
-                        <i class="fa-solid fa-tower-observation"></i>Command Center
-                    </a>
-                </li>
-                <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'attendance_approvals') ? 'active' : ''; ?>">
-                    <a href="index.php?route=attendance/approvals">
-                        <i class="fa-solid fa-user-check"></i>Attendance Approvals
-                    </a>
-                </li>
-                <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'attendance_report') ? 'active' : ''; ?>">
-                    <a href="index.php?route=attendance/report">
-                        <i class="fa-solid fa-calendar-check"></i>Attendance Report
-                    </a>
+                <li class="menu-section" data-section="monitoring">
+                    <div class="menu-section-header">
+                        <i class="fa-solid fa-desktop section-icon"></i>
+                        <span class="section-text">Monitoring</span>
+                        <i class="fa-solid fa-chevron-right section-arrow"></i>
+                    </div>
+                    <ul class="menu-section-items">
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'monitoring_dashboard') ? 'active' : ''; ?>">
+                            <a href="index.php?route=dashboard/monitoring">
+                                <i class="fa-solid fa-tower-observation"></i><span>Command Center</span>
+                            </a>
+                        </li>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'attendance_approvals') ? 'active' : ''; ?>">
+                            <a href="index.php?route=attendance/approvals">
+                                <i class="fa-solid fa-user-check"></i><span>Attendance Approvals</span>
+                            </a>
+                        </li>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'attendance_report') ? 'active' : ''; ?>">
+                            <a href="index.php?route=attendance/report">
+                                <i class="fa-solid fa-calendar-check"></i><span>Attendance Report</span>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
                 <?php endif; ?>
 
-                <!-- Business Operations -->
+                <!-- 4. Operations Accordion Group -->
                 <?php if ($_SESSION['user_role'] !== 'employer'): ?>
-                <li class="menu-header">Operations</li>
+                <li class="menu-section" data-section="operations">
+                    <div class="menu-section-header">
+                        <i class="fa-solid fa-briefcase section-icon"></i>
+                        <span class="section-text">Operations</span>
+                        <i class="fa-solid fa-chevron-right section-arrow"></i>
+                    </div>
+                    <ul class="menu-section-items">
+                        <?php if (in_array($_SESSION['user_role'], ['admin', 'manager', 'analyst'])): ?>
+                        <li class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'] ?? '', 'clients/') !== false || (isset($_GET['route']) && strpos($_GET['route'], 'clients') !== false)) ? 'active' : ''; ?>">
+                            <a href="index.php?route=clients/index">
+                                <i class="fa-solid fa-briefcase"></i><span>Clients Directory</span>
+                            </a>
+                        </li>
+                        <li class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'] ?? '', 'campaigns/') !== false || (isset($_GET['route']) && strpos($_GET['route'], 'campaigns') !== false)) ? 'active' : ''; ?>">
+                            <a href="index.php?route=campaigns/index">
+                                <i class="fa-solid fa-bullhorn"></i><span>Campaign Registry</span>
+                            </a>
+                        </li>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'calendar') ? 'active' : ''; ?>">
+                            <a href="index.php?route=calendar/index">
+                                <i class="fa-solid fa-calendar-days"></i><span>Content Calendar</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
 
-                <?php /* Marketing-side operations: admin, manager, analyst */ ?>
-                <?php if (in_array($_SESSION['user_role'], ['admin', 'manager', 'analyst'])): ?>
-                <li class="menu-item">
-                    <a href="index.php?route=clients/index">
-                        <i class="fa-solid fa-briefcase"></i>Clients Directory
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="index.php?route=campaigns/index">
-                        <i class="fa-solid fa-bullhorn"></i>Campaign Registry
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="#">
-                        <i class="fa-solid fa-calendar-days"></i>Content Calendar
-                    </a>
+                        <?php if (in_array($role, $salesRoles, true)): ?>
+                        <li class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'] ?? '', 'leads/') !== false || (isset($_GET['route']) && strpos($_GET['route'], 'leads') !== false)) ? 'active' : ''; ?>">
+                            <a href="index.php?route=leads/index">
+                                <i class="fa-solid fa-address-book"></i><span>Leads Manager</span>
+                            </a>
+                        </li>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'communications') ? 'active' : ''; ?>">
+                            <a href="index.php?route=communications/index">
+                                <i class="fa-solid fa-comments"></i><span>Communications</span>
+                            </a>
+                        </li>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'meetings') ? 'active' : ''; ?>">
+                            <a href="index.php?route=meetings/index">
+                                <i class="fa-solid fa-handshake"></i><span>Meetings & Demos</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+
+                        <li class="menu-item <?php echo ($data['title'] === 'Task Board | Raptor CRM') ? 'active' : ''; ?>">
+                            <a href="index.php?route=tasks/index">
+                                <i class="fa-solid fa-list-check"></i><span>Task Board</span>
+                            </a>
+                        </li>
+                        <?php if (in_array($role, $salesRoles, true)): ?>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'targets') ? 'active' : ''; ?>">
+                            <a href="index.php?route=targets/index">
+                                <i class="fa-solid fa-bullseye"></i><span>Targets</span>
+                            </a>
+                        </li>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'performance') ? 'active' : ''; ?>">
+                            <a href="index.php?route=performance/index">
+                                <i class="fa-solid fa-ranking-star"></i><span>Performance</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                    </ul>
                 </li>
                 <?php endif; ?>
 
-                <?php /* Sales-side operations: admin, manager, team_leader, employee */ ?>
-                <?php if (in_array($role, $salesRoles, true)): ?>
-                <li class="menu-item">
-                    <a href="index.php?route=leads/index">
-                        <i class="fa-solid fa-address-book"></i>Leads Manager
-                    </a>
-                </li>
-                <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'communications') ? 'active' : ''; ?>">
-                    <a href="index.php?route=communications/index">
-                        <i class="fa-solid fa-comments"></i>Communications
-                    </a>
-                </li>
-                <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'meetings') ? 'active' : ''; ?>">
-                    <a href="index.php?route=meetings/index">
-                        <i class="fa-solid fa-handshake"></i>Meetings & Demos
-                    </a>
-                </li>
-                <?php endif; ?>
-
-                <li class="menu-item <?php echo ($data['title'] === 'Task Board | Raptor CRM') ? 'active' : ''; ?>">
-                    <a href="index.php?route=tasks/index">
-                        <i class="fa-solid fa-list-check"></i>Task Board
-                    </a>
-                </li>
-                <?php if (in_array($role, $salesRoles, true)): ?>
-                <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'targets') ? 'active' : ''; ?>">
-                    <a href="index.php?route=targets/index">
-                        <i class="fa-solid fa-bullseye"></i>Targets
-                    </a>
-                </li>
-                <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'performance') ? 'active' : ''; ?>">
-                    <a href="index.php?route=performance/index">
-                        <i class="fa-solid fa-ranking-star"></i>Performance
-                    </a>
-                </li>
-                <?php endif; ?>
-                <?php endif; ?>
-
-                <!-- Finance & Audit (Admin, Manager) -->
+                <!-- 5. Finance Accordion Group -->
                 <?php if (in_array($_SESSION['user_role'], ['admin', 'manager'])): ?>
-                <li class="menu-header">Finance</li>
-                <li class="menu-item <?php echo (strpos($data['title'], 'Invoice') !== false || $data['title'] === 'Billing Ledger | Raptor CRM') ? 'active' : ''; ?>">
-                    <a href="index.php?route=invoices/index">
-                        <i class="fa-solid fa-file-invoice-dollar"></i>Invoicing
-                    </a>
+                <li class="menu-section" data-section="finance">
+                    <div class="menu-section-header">
+                        <i class="fa-solid fa-file-invoice-dollar section-icon"></i>
+                        <span class="section-text">Finance</span>
+                        <i class="fa-solid fa-chevron-right section-arrow"></i>
+                    </div>
+                    <ul class="menu-section-items">
+                        <li class="menu-item <?php echo (strpos($data['title'], 'Invoice') !== false || $data['title'] === 'Billing Ledger | Raptor CRM') ? 'active' : ''; ?>">
+                            <a href="index.php?route=invoices/index">
+                                <i class="fa-solid fa-file-invoice-dollar"></i><span>Invoicing</span>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
                 <?php endif; ?>
 
-                <!-- System-level configuration (Admin, HR, Manager governance) -->
+                <!-- 6. Marketing Accordion Group -->
+                <li class="menu-section" data-section="marketing">
+                    <div class="menu-section-header">
+                        <i class="fa-solid fa-share-nodes section-icon"></i>
+                        <span class="section-text">Marketing</span>
+                        <i class="fa-solid fa-chevron-right section-arrow"></i>
+                    </div>
+                    <ul class="menu-section-items">
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'social_update') ? 'active' : ''; ?>">
+                            <a href="index.php?route=social/update">
+                                <i class="fa-solid fa-pen-to-square"></i><span>Update Social Stats</span>
+                            </a>
+                        </li>
+                        <?php if (in_array($_SESSION['user_role'], ['admin', 'manager'])): ?>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'social_manager') ? 'active' : ''; ?>">
+                            <a href="index.php?route=social/manager">
+                                <i class="fa-solid fa-user-gear"></i><span>Manager Performance</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <?php if ($_SESSION['user_role'] === 'admin'): ?>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'social_admin') ? 'active' : ''; ?>">
+                            <a href="index.php?route=social/admin">
+                                <i class="fa-solid fa-gears"></i><span>Social Configurations</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                    </ul>
+                </li>
+
+                <!-- 7. Reports Accordion Group -->
+                <li class="menu-section" data-section="reports">
+                    <div class="menu-section-header">
+                        <i class="fa-solid fa-chart-pie section-icon"></i>
+                        <span class="section-text">Reports</span>
+                        <i class="fa-solid fa-chevron-right section-arrow"></i>
+                    </div>
+                    <ul class="menu-section-items">
+                        <?php if (!Policy::isEmployee()): ?>
+                        <li class="menu-item <?php echo ($data['title'] === 'Reports Center | Raptor CRM') ? 'active' : ''; ?>">
+                            <a href="index.php?route=reports/index">
+                                <i class="fa-solid fa-folder-open"></i><span>Reports Module</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'social_history') ? 'active' : ''; ?>">
+                            <a href="index.php?route=social/history">
+                                <i class="fa-solid fa-clock-rotate-left"></i><span>Analytics History</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- 8. System Accordion Group -->
                 <?php if (in_array($role, ['admin', 'manager', 'team_leader', 'hr'], true)): ?>
-                <li class="menu-header">System</li>
-                <?php if (Policy::canManageEmployees()): ?>
-                <li class="menu-item <?php echo ($data['title'] === 'Employee Management | Raptor CRM') ? 'active' : ''; ?>">
-                    <a href="index.php?route=users/index">
-                        <i class="fa-solid fa-users"></i>Employee Management
-                    </a>
+                <li class="menu-section" data-section="system">
+                    <div class="menu-section-header">
+                        <i class="fa-solid fa-network-wired section-icon"></i>
+                        <span class="section-text">System</span>
+                        <i class="fa-solid fa-chevron-right section-arrow"></i>
+                    </div>
+                    <ul class="menu-section-items">
+                        <?php if (Policy::canManageEmployees()): ?>
+                        <li class="menu-item <?php echo ($data['title'] === 'Employee Management | Raptor CRM') ? 'active' : ''; ?>">
+                            <a href="index.php?route=users/index">
+                                <i class="fa-solid fa-users"></i><span>Employee Management</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <?php if (Policy::canApproveDataEdit() || Policy::canRequestDataEdit()): ?>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'edit_requests') ? 'active' : ''; ?>">
+                            <a href="index.php?route=editrequests/index">
+                                <i class="fa-solid fa-file-pen"></i><span>Data Edit Requests</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <?php if (in_array($role, ['admin', 'manager'], true)): ?>
+                        <li class="menu-item <?php echo ($data['title'] === 'Organization | Raptor CRM') ? 'active' : ''; ?>">
+                            <a href="index.php?route=teams/index">
+                                <i class="fa-solid fa-sitemap"></i><span>Organization</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                    </ul>
                 </li>
-                <?php endif; ?>
-                <?php if (Policy::canApproveDataEdit() || Policy::canRequestDataEdit()): ?>
-                <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'edit_requests') ? 'active' : ''; ?>">
-                    <a href="index.php?route=editrequests/index">
-                        <i class="fa-solid fa-file-pen"></i>Data Edit Requests
-                    </a>
-                </li>
-                <?php endif; ?>
-                <?php if (in_array($role, ['admin', 'manager'], true)): ?>
-                <li class="menu-item <?php echo ($data['title'] === 'Organization | Raptor CRM') ? 'active' : ''; ?>">
-                    <a href="index.php?route=teams/index">
-                        <i class="fa-solid fa-sitemap"></i>Organization
-                    </a>
-                </li>
-                <?php endif; ?>
                 <?php endif; ?>
 
-                <?php if ($_SESSION['user_role'] === 'admin'): ?>
-                <li class="menu-item <?php echo ($data['title'] === 'Global Settings | Raptor CRM') ? 'active' : ''; ?>">
-                    <a href="index.php?route=settings/index">
-                        <i class="fa-solid fa-sliders"></i>Global Settings
-                    </a>
+                <!-- 9. Settings Accordion Group -->
+                <li class="menu-section" data-section="settings">
+                    <div class="menu-section-header">
+                        <i class="fa-solid fa-sliders section-icon"></i>
+                        <span class="section-text">Settings</span>
+                        <i class="fa-solid fa-chevron-right section-arrow"></i>
+                    </div>
+                    <ul class="menu-section-items">
+                        <?php if ($_SESSION['user_role'] === 'admin'): ?>
+                        <li class="menu-item <?php echo ($data['title'] === 'Global Settings | Raptor CRM') ? 'active' : ''; ?>">
+                            <a href="index.php?route=settings/index">
+                                <i class="fa-solid fa-sliders"></i><span>Global Settings</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'notifications') ? 'active' : ''; ?>">
+                            <a href="index.php?route=notifications/index">
+                                <i class="fa-solid fa-bell"></i><span>Notifications</span>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
-                <?php endif; ?>
             </ul>
+
 
             <div class="sidebar-footer">
                 <div class="user-widget">
@@ -750,6 +953,9 @@
                         <i class="fa-solid fa-right-from-bracket"></i>
                     </a>
                 </div>
+                <div class="sidebar-footer-text text-center text-secondary small mt-3" style="font-size: 0.68rem; line-height: 1.4;">
+                    &copy; 2026 RAPTOR CRM<br>Powered by RAPTOR CRM
+                </div>
             </div>
         </nav>
 
@@ -757,35 +963,46 @@
         <div id="sidebar-overlay"></div>
 
         <!-- Main Content Area -->
-        <div id="content-wrapper">
+        <div id="content-wrapper" class="d-flex flex-column min-vh-100">
             <!-- Top Header Bar -->
             <header id="topbar">
-                <div class="topbar-left">
-                    <button class="btn-toggle-sidebar" id="toggle-btn">
+                <div class="topbar-left d-flex align-items-center">
+                    <button class="btn-toggle-sidebar" id="toggle-btn" title="Toggle Sidebar">
                         <i class="fa-solid fa-bars"></i>
                     </button>
-                    <h2 class="page-title"><?php echo isset($title) ? htmlspecialchars($title) : 'Dashboard'; ?></h2>
+                    <!-- Small header logo -->
+                    <div class="d-flex align-items-center gap-2 ms-2">
+                        <img src="<?php echo URLROOT; ?>/logo.png" alt="Logo" style="height: 28px; width: auto; object-fit: contain;">
+                        <span class="fw-bold d-none d-md-inline" style="font-size: 1.05rem; letter-spacing: -0.3px; color: var(--primary);">RAPTOR CRM</span>
+                    </div>
+                    <h2 class="page-title ms-3 border-start ps-3" style="font-size: 1rem; font-weight: 600; margin-bottom: 0; border-color: var(--border-strong) !important; color: var(--text-primary);"><?php echo isset($title) ? htmlspecialchars($title) : 'Dashboard'; ?></h2>
                 </div>
-
-                <button type="button" class="theme-toggle" id="theme-toggle" title="Toggle dark theme">
-                    <i class="fa-solid fa-moon"></i><span class="d-none d-xl-inline">Theme</span>
-                </button>
 
                 <div class="topbar-right">
                     <!-- Global Filters -->
-                    <select class="filter-select" id="client-selector">
+                    <select class="filter-select d-none d-lg-block" id="client-selector">
                         <option value="all">All Clients</option>
                         <option value="1">Axiora Tech</option>
                     </select>
-
-                    <input type="text" class="filter-select" id="date-range" placeholder="Select Date Range" value="Last 30 Days">
+                    <input type="text" class="filter-select d-none d-lg-block" id="date-range" placeholder="Date Range">
+                    <button type="button" class="theme-toggle" id="theme-toggle" title="Toggle Theme">
+                        <i class="fa-solid fa-moon"></i><span class="d-none d-xl-inline ms-1">Theme</span>
+                    </button>
                 </div>
             </header>
 
             <!-- Inner View Content -->
-            <main class="main-content">
+            <main class="main-content flex-grow-1">
                 <?php echo $content; ?>
             </main>
+
+            <!-- Sticky branded page footer -->
+            <footer class="footer py-3 border-top" style="border-color: var(--border-color) !important; background-color: var(--panel-dark);">
+                <div class="container-fluid d-flex justify-content-between align-items-center px-4" style="font-size: 0.8rem; color: var(--text-secondary);">
+                    <span>&copy; 2026 <strong>RAPTOR CRM</strong></span>
+                    <span>Powered by <strong>RAPTOR CRM</strong></span>
+                </div>
+            </footer>
         </div>
     </div>
 
@@ -837,15 +1054,65 @@
         $(document).ready(function() {
             var isMobile = function () { return window.matchMedia('(max-width: 991.98px)').matches; };
 
+            // Restore sidebar collapsed state from sessionStorage (desktop only)
+            if (!isMobile() && sessionStorage.getItem('sidebar_collapsed') === '1') {
+                $('#sidebar').addClass('collapsed');
+            }
+
             function openDrawer() { $('#sidebar').addClass('mobile-open'); $('body').addClass('drawer-open'); }
             function closeDrawer() { $('#sidebar').removeClass('mobile-open'); $('body').removeClass('drawer-open'); }
+
+            // Accordion Logic for Sidebar Category Drawers
+            $('.menu-section-header').on('click', function() {
+                if ($('#sidebar').hasClass('collapsed') && !isMobile()) {
+                    return;
+                }
+
+                var section = $(this).closest('.menu-section');
+                var isOpen = section.hasClass('expanded');
+
+                // Collapse all other sections (Accordion style)
+                $('.menu-section').not(section).removeClass('expanded').find('.menu-section-items').slideUp(200);
+
+                if (isOpen) {
+                    section.removeClass('expanded');
+                    section.find('.menu-section-items').slideUp(200);
+                } else {
+                    section.addClass('expanded');
+                    section.find('.menu-section-items').slideDown(200);
+                }
+            });
+
+            // Expand active section on load
+            var activeLink = $('.menu-section-items .menu-item.active');
+            if (activeLink.length > 0) {
+                var activeSection = activeLink.closest('.menu-section');
+                activeSection.addClass('expanded');
+                activeSection.find('.menu-section-items').show();
+            } else {
+                $('.menu-section[data-section="dashboard"]').addClass('expanded').find('.menu-section-items').show();
+            }
 
             // Topbar hamburger: on mobile open the drawer, on desktop collapse.
             $('#toggle-btn').on('click', function() {
                 if (isMobile()) {
                     $('#sidebar').hasClass('mobile-open') ? closeDrawer() : openDrawer();
                 } else {
-                    $('#sidebar').toggleClass('collapsed');
+                    var sidebar = $('#sidebar');
+                    sidebar.toggleClass('collapsed');
+                    if (sidebar.hasClass('collapsed')) {
+                        $('.menu-section-items').hide();
+                        sessionStorage.setItem('sidebar_collapsed', '1');
+                    } else {
+                        sessionStorage.setItem('sidebar_collapsed', '0');
+                        var activeSec = $('.menu-section-items .menu-item.active').closest('.menu-section');
+                        if (activeSec.length > 0) {
+                            activeSec.addClass('expanded');
+                            activeSec.find('.menu-section-items').show();
+                        } else {
+                            $('.menu-section[data-section="dashboard"]').addClass('expanded').find('.menu-section-items').show();
+                        }
+                    }
                 }
             });
 

@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $title; ?></title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="<?php echo URLROOT; ?>/logo.png">
     <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 CSS -->
@@ -22,13 +24,13 @@
             color-scheme: light;
             --page-bg: #f5f9ff;
             --card-bg: rgba(255, 255, 255, 0.88);
-            --glass-border: rgba(13, 110, 253, 0.14);
-            --accent-glow: linear-gradient(135deg, #0d6efd 0%, #00b4d8 100%);
+            --glass-border: rgba(31, 95, 174, 0.14);
+            --accent-glow: linear-gradient(135deg, #1F5FAE 0%, #174887 100%);
             --text-primary: #0f172a;
             --text-secondary: #52647a;
             --field-bg: #f8fbff;
-            --field-border: rgba(13, 110, 253, 0.16);
-            --shadow: 0 24px 70px rgba(13, 110, 253, 0.16);
+            --field-border: rgba(31, 95, 174, 0.16);
+            --shadow: 0 24px 70px rgba(31, 95, 174, 0.16);
         }
 
         html[data-theme="dark"] {
@@ -36,7 +38,7 @@
             --page-bg: #090f1d;
             --card-bg: rgba(17, 24, 39, 0.88);
             --glass-border: rgba(255, 255, 255, 0.08);
-            --accent-glow: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+            --accent-glow: linear-gradient(135deg, #4a8ddb 0%, #1F5FAE 100%);
             --text-primary: #f8fafc;
             --text-secondary: #a8b3c7;
             --field-bg: #111827;
@@ -130,9 +132,9 @@
 
         .form-control:focus {
             background: var(--field-bg);
-            border-color: #0d6efd;
+            border-color: #1F5FAE;
             color: var(--text-primary);
-            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.14);
+            box-shadow: 0 0 0 4px rgba(31, 95, 174, 0.14);
             outline: none;
         }
 
@@ -154,12 +156,12 @@
             width: 100%;
             margin-top: 1.5rem;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+            box-shadow: 0 4px 15px rgba(31, 95, 174, 0.3);
         }
 
         .btn-submit:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5);
+            box-shadow: 0 6px 20px rgba(31, 95, 174, 0.5);
             opacity: 0.95;
         }
 
@@ -173,7 +175,7 @@
         }
 
         .forgot-pass {
-            color: #0d6efd;
+            color: #1F5FAE;
             text-decoration: none;
             font-size: 0.875rem;
             font-weight: 500;
@@ -181,7 +183,7 @@
         }
 
         .forgot-pass:hover {
-            color: #0757d3;
+            color: #174887;
             text-decoration: underline;
         }
 
@@ -207,10 +209,10 @@
     <div class="blob blob-2"></div>
 
     <div class="login-card">
-        <div class="logo-area">
-            <i class="fa-solid fa-chart-line logo-icon"></i>
-            <div class="logo-text">RAPTOR CRM</div>
-            <div class="logo-sub">POWERED BY <span style="color:#0d6efd; font-weight:600;">AXIORA PULSE</span></div>
+        <div class="logo-area d-flex flex-column align-items-center mb-4">
+            <img src="<?php echo URLROOT; ?>/logo.png" alt="Raptor Logo" style="height: 70px; width: auto; object-fit: contain; margin-bottom: 0.75rem;">
+            <div class="logo-text text-white fw-bold" style="font-size: 1.5rem; letter-spacing: -0.5px;">RAPTOR CRM</div>
+            <div class="logo-sub text-secondary small" style="font-size: 0.8rem; margin-top: 0.15rem;">Digital Marketing CRM</div>
         </div>
 
         <form action="index.php?route=auth/login" method="POST">
