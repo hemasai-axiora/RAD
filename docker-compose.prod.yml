@@ -27,7 +27,7 @@ services:
       DB_USER: raptor_user
       DB_PASS: RaptorProd@2026!
       DB_NAME: raptor_crm_db
-      URLROOT: http://98.94.227.211
+      URLROOT: http://98.94.227.211/public
       APP_ENV: production
       SESSION_TIMEOUT: 1800
       STORAGE_PATH: /var/www/html/storage
