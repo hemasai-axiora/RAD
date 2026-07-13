@@ -22,7 +22,17 @@ define('DB_NAME', env('DB_NAME', 'raptor_crm_db'));
 
 // App Paths & URLs
 define('APPROOT', dirname(dirname(__FILE__)));
-define('URLROOT', env('URLROOT', 'http://localhost:8080/public'));
+
+if (isset($_SERVER['HTTP_HOST'])) {
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+    $script_name = $_SERVER['SCRIPT_NAME'] ?? '';
+    $dir = dirname($script_name);
+    $dir = ($dir === '\\' || $dir === '/') ? '' : $dir;
+    $detected_urlroot = $protocol . '://' . $_SERVER['HTTP_HOST'] . $dir;
+    define('URLROOT', env('URLROOT', $detected_urlroot));
+} else {
+    define('URLROOT', env('URLROOT', 'http://localhost:8080/public'));
+}
 define('SITENAME', env('SITENAME', 'Raptor CRM'));
 
 // Environment: 'development' shows errors, 'production' hides them.
