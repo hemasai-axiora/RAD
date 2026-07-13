@@ -2,7 +2,7 @@
 // Raptor CRM Routing Core App Class
 
 class App {
-    protected $currentController = 'DashboardController';
+    protected $currentController = 'HomeController';
     protected $currentMethod = 'index';
     protected $params = [];
 

@@ -108,6 +108,7 @@
         /* Sidebar Styling */
         #sidebar {
             width: var(--sidebar-width);
+            flex-shrink: 0;
             background-color: var(--panel-dark);
             border-right: 1px solid var(--border-color);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -288,13 +289,16 @@
         }
 
         #topbar {
-            height: var(--topbar-height);
+            min-height: var(--topbar-height);
+            height: auto;
             background-color: var(--panel-dark);
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 1.5rem;
+            padding: 0.5rem 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         .topbar-left {
@@ -326,6 +330,14 @@
             display: flex;
             align-items: center;
             gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 1199.98px) {
+            .topbar-right {
+                flex-grow: 1;
+                justify-content: flex-end;
+            }
         }
 
         .filter-select {
