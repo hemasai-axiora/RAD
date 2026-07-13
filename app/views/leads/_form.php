@@ -15,13 +15,13 @@
 <div class="row g-3">
     <div class="col-md-6">
         <label for="first_name" class="form-label text-secondary">First Name *</label>
-        <input type="text" name="first_name" id="first_name" class="form-control <?php echo (!empty($first_name_err)) ? 'is-invalid' : ''; ?>" value="<?php echo htmlspecialchars($first_name); ?>" required>
+        <input type="text" name="first_name" id="first_name" class="form-control <?php echo (!empty($first_name_err)) ? 'is-invalid' : ''; ?>" value="<?php echo htmlspecialchars($first_name); ?>" required pattern="[A-Za-z\s'\-]{2,50}" title="First name must be between 2 and 50 characters containing only letters, spaces, hyphens, or apostrophes.">
         <div class="invalid-feedback"><?php echo htmlspecialchars($first_name_err); ?></div>
     </div>
 
     <div class="col-md-6">
         <label for="last_name" class="form-label text-secondary">Last Name</label>
-        <input type="text" name="last_name" id="last_name" class="form-control" value="<?php echo htmlspecialchars($last_name); ?>">
+        <input type="text" name="last_name" id="last_name" class="form-control" value="<?php echo htmlspecialchars($last_name); ?>" pattern="[A-Za-z\s'\-]{0,50}" title="Last name must contain only letters, spaces, hyphens, or apostrophes.">
     </div>
 
     <div class="col-md-6">
@@ -139,7 +139,7 @@
 
     <div class="col-md-4">
         <label for="lead_value" class="form-label text-secondary">Expected Value ($)</label>
-        <input type="number" step="0.01" min="0" name="lead_value" id="lead_value" class="form-control" value="<?php echo htmlspecialchars($lead_value); ?>">
+        <input type="number" step="0.01" min="0.01" name="lead_value" id="lead_value" class="form-control" value="<?php echo htmlspecialchars($lead_value); ?>">
     </div>
 
     <div class="col-md-4">

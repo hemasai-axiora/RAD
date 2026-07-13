@@ -21,8 +21,8 @@ class MeetingsController extends Controller {
             'assigned_to_user_id' => $_GET['assigned_to_user_id'] ?? '',
             'type' => $_GET['type'] ?? '',
             'status' => $_GET['status'] ?? '',
-            'date_from' => $this->dateBoundary($_GET['date_from'] ?? date('Y-m-d'), '00:00:00'),
-            'date_to' => $this->dateBoundary($_GET['date_to'] ?? date('Y-m-d', strtotime('+7 days')), '23:59:59'),
+            'date_from' => $this->dateBoundary($_GET['date_from'] ?? date('Y-m-d', strtotime('-29 days')), '00:00:00'),
+            'date_to' => $this->dateBoundary($_GET['date_to'] ?? date('Y-m-d'), '23:59:59'),
         ];
         if (Policy::isEmployee()) {
             $filters['assigned_to_user_id'] = $_SESSION['user_id'];
@@ -61,10 +61,10 @@ class MeetingsController extends Controller {
             'assigned_to_user_id' => $assigned,
             'created_by_user_id' => $_SESSION['user_id'],
             'type' => $_POST['type'] ?? 'meeting',
-            'title' => trim($_POST['title'] ?? ''),
+            'title' => strip_tags(trim($_POST['title'] ?? '')),
             'scheduled_start' => $this->normalizeDatetime($_POST['scheduled_start'] ?? '') ?: date('Y-m-d H:i:s'),
             'scheduled_end' => $this->normalizeDatetime($_POST['scheduled_end'] ?? ''),
-            'location' => trim($_POST['location'] ?? ''),
+            'location' => strip_tags(trim($_POST['location'] ?? '')),
         ]);
 
         if ($id) {
@@ -114,8 +114,8 @@ class MeetingsController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
             if ($this->meetingModel->complete((int) $id, [
-                'outcome' => trim($_POST['outcome'] ?? ''),
-                'client_feedback' => trim($_POST['client_feedback'] ?? ''),
+                'outcome' => strip_tags(trim($_POST['outcome'] ?? '')),
+                'client_feedback' => strip_tags(trim($_POST['client_feedback'] ?? '')),
                 'next_follow_up_at' => $this->normalizeDatetime($_POST['next_follow_up_at'] ?? ''),
             ], $this->visibleUserIds())) {
                 $this->audit('Completed meeting/demo #' . (int) $id, 'meeting', (int) $id);

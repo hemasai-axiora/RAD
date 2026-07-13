@@ -37,6 +37,11 @@ define('SESSION_TIMEOUT', (int) env('SESSION_TIMEOUT', 1800)); // 30 minutes in 
 define('STORAGE_PATH', env('STORAGE_PATH', APPROOT . '/../storage'));
 define('MAX_UPLOAD_BYTES', (int) env('MAX_UPLOAD_BYTES', 5 * 1024 * 1024)); // 5 MB
 
+// S3-compatible cloud storage settings
+define('STORAGE_PROVIDER', env('STORAGE_PROVIDER', 'local')); // 'local' or 's3'
+define('S3_BUCKET', env('S3_BUCKET', 'app-frontend-hosting-dev-847013096108'));
+define('S3_REGION', env('S3_REGION', 'us-east-1'));
+
 // Error display driven by environment.
 if (APP_ENV === 'production') {
     error_reporting(0);

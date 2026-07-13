@@ -22,6 +22,28 @@ class FileController extends Controller {
             die('Invalid file key.');
         }
 
+        if (defined('STORAGE_PROVIDER') && STORAGE_PROVIDER === 's3') {
+            if (!Storage::exists($key)) {
+                http_response_code(404);
+                die('File not found.');
+            }
+            $ext = pathinfo($key, PATHINFO_EXTENSION);
+            $mime = [
+                'jpg'  => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png'  => 'image/png',
+                'webp' => 'image/webp',
+                'pdf'  => 'application/pdf',
+            ][$ext] ?? 'application/octet-stream';
+
+            header('Content-Type: ' . $mime);
+            header('Cache-Control: private, max-age=0, no-store');
+            header('X-Content-Type-Options: nosniff');
+            $bucket = S3_BUCKET;
+            passthru("aws s3 cp s3://" . $bucket . "/" . escapeshellarg($key) . " -");
+            exit();
+        }
+
         $path = Storage::path($key);
         if ($path === null) {
             http_response_code(404);

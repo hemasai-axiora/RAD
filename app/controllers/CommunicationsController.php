@@ -21,7 +21,7 @@ class CommunicationsController extends Controller {
             'user_id' => $_GET['user_id'] ?? '',
             'channel' => $_GET['channel'] ?? '',
             'direction' => $_GET['direction'] ?? '',
-            'date_from' => $this->dateBoundary($_GET['date_from'] ?? date('Y-m-d'), '00:00:00'),
+            'date_from' => $this->dateBoundary($_GET['date_from'] ?? date('Y-m-d', strtotime('-29 days')), '00:00:00'),
             'date_to' => $this->dateBoundary($_GET['date_to'] ?? date('Y-m-d'), '23:59:59'),
         ];
         if (Policy::isEmployee()) {
@@ -69,8 +69,8 @@ class CommunicationsController extends Controller {
             'channel' => $_POST['channel'] ?? 'call',
             'direction' => $_POST['direction'] ?? 'made',
             'duration_seconds' => (int) ($_POST['duration_minutes'] ?? 0) * 60,
-            'outcome' => trim($_POST['outcome'] ?? ''),
-            'note' => trim($_POST['note'] ?? ''),
+            'outcome' => strip_tags(trim($_POST['outcome'] ?? '')),
+            'note' => strip_tags(trim($_POST['note'] ?? '')),
             'proof_url' => $proofKey,
             'happened_at' => $this->normalizeDatetime($_POST['happened_at'] ?? '') ?: date('Y-m-d H:i:s'),
         ]);

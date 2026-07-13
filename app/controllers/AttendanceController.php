@@ -223,9 +223,9 @@ class AttendanceController extends Controller {
         }
 
         // Latitude/longitude are optional but strongly encouraged; store null if absent.
-        $lat = (isset($_POST['lat']) && $_POST['lat'] !== '') ? (float) $_POST['lat'] : null;
-        $lng = (isset($_POST['lng']) && $_POST['lng'] !== '') ? (float) $_POST['lng'] : null;
-        $acc = (isset($_POST['accuracy']) && $_POST['accuracy'] !== '') ? (int) $_POST['accuracy'] : null;
+        $lat = (isset($_POST['lat']) && is_numeric($_POST['lat'])) ? (float) $_POST['lat'] : null;
+        $lng = (isset($_POST['lng']) && is_numeric($_POST['lng'])) ? (float) $_POST['lng'] : null;
+        $acc = (isset($_POST['accuracy']) && is_numeric($_POST['accuracy'])) ? (int) $_POST['accuracy'] : null;
 
         return [
             'selfie_key' => $selfieKey,

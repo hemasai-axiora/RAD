@@ -19,4 +19,9 @@
 //   STORAGE_PATH=/var/raptor/storage
 //   MAX_UPLOAD_BYTES=5242880      # 5 MB
 //
+// Cloud Storage (if STORAGE_PROVIDER=s3)
+//   STORAGE_PROVIDER=s3           # local | s3
+//   S3_BUCKET=app-frontend-hosting-dev-847013096108
+//   S3_REGION=us-east-1
+//
 // This file is a reference only and is not loaded by the application.

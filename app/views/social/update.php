@@ -159,7 +159,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Map account grouping in JS
-    const groupedAccounts = <?php echo json_encode($groupedAccounts); ?>;
+    const groupedAccounts = <?php echo json_encode((object)$groupedAccounts); ?>;
     
     const platformSelect = document.getElementById('platform_id');
     const accountSelect = document.getElementById('account_id');

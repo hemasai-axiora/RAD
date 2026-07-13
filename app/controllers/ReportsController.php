@@ -41,7 +41,11 @@ class ReportsController extends Controller {
             'result' => $result,
         ];
 
-        $this->viewWithLayout('reports/result', 'main', $data);
+        if (isset($_GET['ajax']) || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest')) {
+            $this->view('reports/result_inner', $data);
+        } else {
+            $this->viewWithLayout('reports/result', 'main', $data);
+        }
     }
 
     public function export() {

@@ -241,22 +241,22 @@ class LeadsController extends Controller {
             'client_id' => $_POST['client_id'] ?? '',
             'assigned_to_user_id' => $assigned,
             'team_id' => $_POST['team_id'] ?? '',
-            'first_name' => trim($_POST['first_name'] ?? ''),
-            'last_name' => trim($_POST['last_name'] ?? ''),
-            'company_name' => trim($_POST['company_name'] ?? ''),
-            'email' => trim($_POST['email'] ?? ''),
-            'phone' => trim($_POST['phone'] ?? ''),
+            'first_name' => strip_tags(trim($_POST['first_name'] ?? '')),
+            'last_name' => strip_tags(trim($_POST['last_name'] ?? '')),
+            'company_name' => strip_tags(trim($_POST['company_name'] ?? '')),
+            'email' => strip_tags(trim($_POST['email'] ?? '')),
+            'phone' => strip_tags(trim($_POST['phone'] ?? '')),
             'status' => $_POST['status'] ?? 'new',
             'lead_quality' => $_POST['lead_quality'] ?? 'warm',
             'probability' => $_POST['probability'] ?? '0',
             'lead_value' => $_POST['lead_value'] ?? '0',
-            'lead_source' => trim($_POST['lead_source'] ?? ''),
-            'campaign_source' => trim($_POST['campaign_source'] ?? ''),
+            'lead_source' => strip_tags(trim($_POST['lead_source'] ?? '')),
+            'campaign_source' => strip_tags(trim($_POST['campaign_source'] ?? '')),
             'product_id' => $_POST['product_id'] ?? '',
-            'location' => trim($_POST['location'] ?? ''),
+            'location' => strip_tags(trim($_POST['location'] ?? '')),
             'priority' => $_POST['priority'] ?? 'medium',
             'next_follow_up_at' => $this->normalizeDatetime($_POST['next_follow_up_at'] ?? ''),
-            'lost_reason' => trim($_POST['lost_reason'] ?? ''),
+            'lost_reason' => strip_tags(trim($_POST['lost_reason'] ?? '')),
             'converted_at' => $this->normalizeDatetime($_POST['converted_at'] ?? ''),
         ];
     }
@@ -264,10 +264,22 @@ class LeadsController extends Controller {
     private function validateLeadData(array &$data): void {
         if (empty($data['first_name'])) {
             $data['first_name_err'] = 'First name is required';
+        } elseif (!preg_match("/^[A-Za-z\s'\-]{2,50}$/", $data['first_name'])) {
+            $data['first_name_err'] = 'First name must be between 2 and 50 characters, containing only letters, spaces, hyphens, or apostrophes.';
         }
+        
+        if (!empty($data['last_name']) && !preg_match("/^[A-Za-z\s'\-]{0,50}$/", $data['last_name'])) {
+            $data['first_name_err'] = 'Last name must contain only letters, spaces, hyphens, or apostrophes.';
+        }
+        
         if (empty($data['lead_source'])) {
             $data['source_err'] = 'Lead source is required';
         }
+        
+        if (isset($data['lead_value']) && (float)$data['lead_value'] <= 0) {
+            $data['source_err'] = 'Expected Value must be greater than zero.';
+        }
+
         if (!in_array($data['status'], Lead::STATUSES, true)) {
             $data['status'] = 'new';
         }

@@ -4,7 +4,7 @@
     <div class="col-12 col-xl-4">
         <div class="pulse-card">
             <h4 class="text-white mb-4"><i class="fa-solid fa-chart-column text-primary me-2"></i>Reports Center</h4>
-            <form method="get" action="index.php" class="row g-3">
+            <form id="report-filter-form" method="get" action="index.php" class="row g-3">
                 <input type="hidden" name="route" value="reports/run">
                 <div class="col-12">
                     <label class="form-label text-secondary">Report</label>
@@ -58,11 +58,11 @@
         </div>
     </div>
 
-    <div class="col-12 col-xl-8">
+    <div class="col-12 col-xl-8" id="report-results-container">
         <div class="row g-3">
             <?php foreach ($reports as $key => $label): ?>
                 <div class="col-md-6 col-xxl-4">
-                    <a class="text-decoration-none" href="index.php?route=reports/run&report_key=<?php echo urlencode($key); ?>&from=<?php echo urlencode($filters['from']); ?>&to=<?php echo urlencode($filters['to']); ?>">
+                    <a class="text-decoration-none report-card-link" href="index.php?route=reports/run&report_key=<?php echo urlencode($key); ?>&from=<?php echo urlencode($filters['from']); ?>&to=<?php echo urlencode($filters['to']); ?>">
                         <div class="pulse-card h-100">
                             <div class="d-flex align-items-start justify-content-between gap-3">
                                 <div>
@@ -78,3 +78,46 @@
         </div>
     </div>
 </div>
+
+<script>
+$(function() {
+    function loadReportAjax(url) {
+        const container = $('#report-results-container');
+        container.html('<div class="text-center text-secondary py-5"><i class="fa-solid fa-spinner fa-spin fa-2xl mb-3"></i><br>Running report...</div>');
+        
+        const ajaxUrl = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'ajax=1';
+        
+        $.get(ajaxUrl, function(html) {
+            container.html(html);
+            
+            // Re-intercept the back button inside the ajax content
+            container.find('a[href*="route=reports/index"]').on('click', function(e) {
+                e.preventDefault();
+                // Reload main page or restore cards by a quick reload
+                location.reload();
+            });
+        }).fail(function() {
+            container.html('<div class="alert alert-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i>Failed to run report. Please try again.</div>');
+        });
+    }
+
+    // Intercept form submit
+    $('#report-filter-form').on('submit', function(e) {
+        const activeBtn = $(document.activeElement);
+        if (activeBtn.is('[value="csv"]') || activeBtn.is('[value="pdf"]')) {
+            return;
+        }
+        
+        e.preventDefault();
+        const url = 'index.php?' + $(this).serialize();
+        loadReportAjax(url);
+    });
+
+    // Intercept report card links
+    $(document).on('click', '.report-card-link', function(e) {
+        e.preventDefault();
+        const url = $(this).attr('href');
+        loadReportAjax(url);
+    });
+});
+</script>

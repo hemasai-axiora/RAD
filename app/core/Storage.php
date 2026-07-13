@@ -65,6 +65,19 @@ class Storage {
         }
         @chmod($dest, 0640);
 
+        if (defined('STORAGE_PROVIDER') && STORAGE_PROVIDER === 's3') {
+            $bucket = S3_BUCKET;
+            $key = $sub . '/' . $name;
+            $cmd = "aws s3 cp " . escapeshellarg($dest) . " s3://" . $bucket . "/" . $key;
+            $output = [];
+            $retval = 0;
+            exec($cmd . " 2>&1", $output, $retval);
+            @unlink($dest);
+            if ($retval !== 0) {
+                throw new RuntimeException('Could not upload file to S3: ' . implode('; ', $output));
+            }
+        }
+
         return $sub . '/' . $name; // storage key
     }
 
@@ -94,7 +107,49 @@ class Storage {
             throw new RuntimeException('Could not save the image.');
         }
         @chmod($dest, 0640);
+
+        if (defined('STORAGE_PROVIDER') && STORAGE_PROVIDER === 's3') {
+            $bucket = S3_BUCKET;
+            $key = $sub . '/' . $name;
+            $cmd = "aws s3 cp " . escapeshellarg($dest) . " s3://" . $bucket . "/" . $key;
+            $output = [];
+            $retval = 0;
+            exec($cmd . " 2>&1", $output, $retval);
+            @unlink($dest);
+            if ($retval !== 0) {
+                throw new RuntimeException('Could not upload selfie to S3: ' . implode('; ', $output));
+            }
+        }
+
         return $sub . '/' . $name;
+    }
+
+    /** Check if a storage key exists in S3 or local disk. */
+    public static function exists(string $key): bool {
+        if (defined('STORAGE_PROVIDER') && STORAGE_PROVIDER === 's3') {
+            $bucket = S3_BUCKET;
+            $cmd = "aws s3api head-object --bucket " . escapeshellarg($bucket) . " --key " . escapeshellarg($key);
+            $output = [];
+            $retval = 0;
+            exec($cmd . " 2>&1", $output, $retval);
+            return $retval === 0;
+        }
+        return self::path($key) !== null;
+    }
+
+    /** Generate pre-signed URL for S3 or fallback to controlled local URL. */
+    public static function presign(string $key, int $expires = 3600): string {
+        if (defined('STORAGE_PROVIDER') && STORAGE_PROVIDER === 's3') {
+            $bucket = S3_BUCKET;
+            $cmd = "aws s3 presign s3://" . $bucket . "/" . $key . " --expires-in " . $expires;
+            $output = [];
+            $retval = 0;
+            exec($cmd, $output, $retval);
+            if ($retval === 0 && !empty($output)) {
+                return trim($output[0]);
+            }
+        }
+        return URLROOT . "/index.php?route=file/show&key=" . urlencode($key);
     }
 
     /** Absolute filesystem path for a stored key, or null if it escapes STORAGE_PATH / is missing. */

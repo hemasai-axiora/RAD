@@ -106,4 +106,13 @@ class User extends Model {
         $this->bind(':id', $id);
         return $this->execute();
     }
+
+    // Reset password by email
+    public function resetPassword($email, $password) {
+        $this->query('UPDATE users SET password = :pass WHERE email = :email');
+        $hashed = password_hash($password, PASSWORD_BCRYPT, ['cost' => 10]);
+        $this->bind(':pass', $hashed);
+        $this->bind(':email', $email);
+        return $this->execute();
+    }
 }

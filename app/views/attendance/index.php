@@ -176,8 +176,8 @@ $(function () {
                 coords.lng = pos.coords.longitude.toFixed(7);
                 coords.accuracy = Math.round(pos.coords.accuracy);
                 $('#geo-status').html('<i class="fa-solid fa-location-crosshairs me-1"></i>Location acquired (±' + coords.accuracy + 'm)');
-            }, function () {
-                $('#geo-status').html('<span class="text-warning">Location unavailable — enable GPS/permission.</span>');
+            }, function (err) {
+                $('#geo-status').html('<span class="text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i>Location access blocked. Please enable GPS and allow location access. <a href="#" onclick="location.reload(); return false;" class="badge bg-danger text-white ms-2">Retry</a></span>');
             }, { enableHighAccuracy: true, timeout: 10000 });
         } else {
             $('#geo-status').text('Geolocation not supported by this browser.');
@@ -190,10 +190,11 @@ $(function () {
                 document.getElementById('cam').srcObject = s;
                 $('#btn-capture').removeClass('d-none');
             })
-            .catch(function () {
+            .catch(function (err) {
                 msg('Camera permission denied or unavailable. A selfie is required.', false);
                 $('#btn-start').removeClass('d-none');
                 $('#capture-area').addClass('d-none');
+                $('#att-msg').html('<div class="alert alert-danger py-2 mt-3 text-center"><i class="fa-solid fa-video-slash me-2"></i>Camera access is blocked. Please check browser settings and allow camera access. <a href="#" onclick="location.reload(); return false;" class="alert-link text-decoration-underline ms-2">Reload &amp; Retry</a></div>');
             });
     });
 

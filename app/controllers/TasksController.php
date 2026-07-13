@@ -49,13 +49,13 @@ class TasksController extends Controller {
             $data = [
                 'assigned_to_user_id' => trim($_POST['assigned_to_user_id'] ?? ''),
                 'created_by_user_id' => $_SESSION['user_id'],
-                'title' => trim($_POST['title'] ?? ''),
-                'description' => trim($_POST['description'] ?? ''),
+                'title' => strip_tags(trim($_POST['title'] ?? '')),
+                'description' => strip_tags(trim($_POST['description'] ?? '')),
                 'start_date' => $this->normalizeDatetime($_POST['start_date'] ?? ''),
                 'priority' => trim($_POST['priority'] ?? 'medium'),
                 'deadline' => $this->normalizeDatetime($_POST['deadline'] ?? ''),
                 'estimated_hours' => $_POST['estimated_hours'] ?? 0,
-                'remarks' => trim($_POST['remarks'] ?? ''),
+                'remarks' => strip_tags(trim($_POST['remarks'] ?? '')),
                 'status' => 'pending',
             ];
 
@@ -90,7 +90,7 @@ class TasksController extends Controller {
             $ok = $this->taskModel->updateProgress((int) $id, [
                 'progress_percent' => $_POST['progress_percent'] ?? 0,
                 'actual_hours' => $_POST['actual_hours'] ?? 0,
-                'remarks' => trim($_POST['remarks'] ?? ''),
+                'remarks' => strip_tags(trim($_POST['remarks'] ?? '')),
             ], $this->visibleUserIds());
             if ($ok) {
                 $this->audit('Updated task #' . (int) $id . ' progress', 'task', (int) $id);
@@ -122,7 +122,7 @@ class TasksController extends Controller {
             $ok = $this->taskModel->completeWithProof(
                 (int) $id,
                 $proofKey,
-                trim($_POST['remarks'] ?? ''),
+                strip_tags(trim($_POST['remarks'] ?? '')),
                 (float) ($_POST['actual_hours'] ?? 0),
                 $this->visibleUserIds()
             );
@@ -141,7 +141,7 @@ class TasksController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
             $decision = $_POST['decision'] ?? 'rejected';
-            $remark = trim($_POST['review_remark'] ?? '');
+            $remark = strip_tags(trim($_POST['review_remark'] ?? ''));
             if ($this->taskModel->review((int) $id, $decision, (int) $_SESSION['user_id'], $remark, $this->visibleUserIds())) {
                 $this->audit('Reviewed task #' . (int) $id . ' as ' . $decision, 'task', (int) $id);
             }

@@ -418,6 +418,52 @@
             --bs-btn-hover-bg: var(--primary-strong);
             --bs-btn-hover-border-color: var(--primary-strong);
         }
+        /* Dark Theme High Contrast WCAG AA Overrides */
+        html[data-theme="dark"] .btn-primary {
+            color: #090f1d !important;
+            font-weight: 600;
+        }
+        html[data-theme="dark"] .text-primary {
+            color: #93c5fd !important;
+        }
+        html[data-theme="dark"] .text-success {
+            color: #86efac !important;
+        }
+        html[data-theme="dark"] .text-danger {
+            color: #fca5a5 !important;
+        }
+        html[data-theme="dark"] .text-warning {
+            color: #fde047 !important;
+        }
+        html[data-theme="dark"] .text-info {
+            color: #67e8f9 !important;
+        }
+        html[data-theme="dark"] .badge.bg-primary-subtle, html[data-theme="dark"] .badge.text-primary {
+            color: #93c5fd !important;
+            background-color: rgba(74, 141, 219, 0.2) !important;
+            border-color: rgba(74, 141, 219, 0.3) !important;
+        }
+        html[data-theme="dark"] .badge.bg-success-subtle, html[data-theme="dark"] .badge.text-success {
+            color: #86efac !important;
+            background-color: rgba(16, 185, 129, 0.2) !important;
+            border-color: rgba(16, 185, 129, 0.3) !important;
+        }
+        html[data-theme="dark"] .badge.bg-danger-subtle, html[data-theme="dark"] .badge.text-danger {
+            color: #fca5a5 !important;
+            background-color: rgba(239, 68, 68, 0.2) !important;
+            border-color: rgba(239, 68, 68, 0.3) !important;
+        }
+        html[data-theme="dark"] .badge.bg-warning-subtle, html[data-theme="dark"] .badge.text-warning {
+            color: #fde047 !important;
+            background-color: rgba(245, 158, 129, 0.2) !important;
+            border-color: rgba(245, 158, 129, 0.3) !important;
+        }
+        html[data-theme="dark"] .badge.bg-info-subtle, html[data-theme="dark"] .badge.text-info {
+            color: #67e8f9 !important;
+            background-color: rgba(6, 182, 212, 0.2) !important;
+            border-color: rgba(6, 182, 212, 0.3) !important;
+        }
+        
         .btn-outline-light, .btn-outline-secondary {
             --bs-btn-color: var(--primary);
             --bs-btn-border-color: var(--border-strong);
@@ -430,6 +476,42 @@
             border-color: var(--border-color) !important;
             color: var(--text-primary) !important;
             border-radius: 8px;
+        }
+        /* Prevent dropdown option truncation */
+        .form-select, select.form-select {
+            min-width: 140px !important;
+            width: 100% !important;
+        }
+        
+        /* Centering logo in collapsed sidebar */
+        #sidebar.collapsed .sidebar-brand {
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 1.25rem 0 !important;
+        }
+        #sidebar.collapsed .sidebar-brand div {
+            justify-content: center !important;
+            gap: 0 !important;
+        }
+        #sidebar.collapsed .user-widget a.text-danger {
+            display: none !important;
+        }
+        
+        /* Topbar spacing and truncation guards */
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            flex-grow: 1;
+        }
+        .page-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
         }
         .form-control:focus, .form-select:focus {
             border-color: var(--primary) !important;
@@ -629,9 +711,12 @@
         <!-- Sidebar Navigation -->
         <nav id="sidebar">
             <div class="sidebar-brand d-flex flex-column align-items-start justify-content-center" style="padding: 1.25rem 1.5rem; height: auto; border-bottom: 1px solid var(--border-color);">
-                <div class="d-flex align-items-center gap-2">
-                    <img src="<?php echo URLROOT; ?>/logo.png" alt="Raptor Logo" class="brand-logo-img" style="height: 32px; width: auto; object-fit: contain;">
-                    <span class="sidebar-brand-text text-white" style="font-size: 1.15rem; font-weight: 700; letter-spacing: -0.5px;">RAPTOR CRM</span>
+                <div class="d-flex align-items-center justify-content-between w-100">
+                    <div class="d-flex align-items-center gap-2">
+                        <img src="<?php echo URLROOT; ?>/logo.png" alt="Raptor Logo" class="brand-logo-img" style="height: 32px; width: auto; object-fit: contain;">
+                        <span class="sidebar-brand-text text-white" style="font-size: 1.15rem; font-weight: 700; letter-spacing: -0.5px;">RAPTOR CRM</span>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white d-lg-none" id="close-sidebar-btn" aria-label="Close" style="font-size: 0.8rem;"></button>
                 </div>
                 <span class="sidebar-brand-desc text-secondary mt-1" style="font-size: 0.72rem; font-weight: 500;">Digital Marketing CRM</span>
             </div>
@@ -1061,6 +1146,8 @@
 
             function openDrawer() { $('#sidebar').addClass('mobile-open'); $('body').addClass('drawer-open'); }
             function closeDrawer() { $('#sidebar').removeClass('mobile-open'); $('body').removeClass('drawer-open'); }
+
+            $('#close-sidebar-btn').on('click', closeDrawer);
 
             // Accordion Logic for Sidebar Category Drawers
             $('.menu-section-header').on('click', function() {

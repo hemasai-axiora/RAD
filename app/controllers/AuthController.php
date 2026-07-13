@@ -84,6 +84,108 @@ class AuthController extends Controller {
         $this->view('auth/login', $data);
     }
 
+    // Forgot Password Action
+    public function forgot() {
+        if ($this->isLoggedIn()) {
+            $this->redirectByRole($_SESSION['user_role']);
+        }
+
+        $data = [
+            'title' => 'Forgot Password | Raptor CRM',
+            'email' => '',
+            'email_err' => ''
+        ];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS);
+            $email = trim($_POST['email'] ?? '');
+            $data['email'] = $email;
+
+            if (empty($email)) {
+                $data['email_err'] = 'Please enter your email.';
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $data['email_err'] = 'Please enter a valid email address.';
+            } else {
+                $user = $this->userModel->findUserByEmail($email);
+                if ($user) {
+                    // Generate mock OTP
+                    $otp = (string) rand(100000, 999999);
+                    $_SESSION['forgot_otp'] = $otp;
+                    $_SESSION['forgot_email'] = $email;
+                    $_SESSION['forgot_expires'] = time() + 600; // 10 minutes
+
+                    $this->redirect('index.php?route=auth/reset_password&email=' . urlencode($email));
+                } else {
+                    $data['email_err'] = 'No active user found with that email address.';
+                }
+            }
+        }
+
+        $this->view('auth/forgot', $data);
+    }
+
+    // Reset Password Action
+    public function reset_password() {
+        if ($this->isLoggedIn()) {
+            $this->redirectByRole($_SESSION['user_role']);
+        }
+
+        $email = $_GET['email'] ?? $_POST['email'] ?? '';
+
+        $data = [
+            'title' => 'Reset Password | Raptor CRM',
+            'email' => $email,
+            'otp_err' => '',
+            'password_err' => '',
+            'confirm_password_err' => ''
+        ];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS);
+            $otp = trim($_POST['otp'] ?? '');
+            $password = trim($_POST['password'] ?? '');
+            $confirmPassword = trim($_POST['confirm_password'] ?? '');
+
+            // Validate OTP
+            if (empty($otp)) {
+                $data['otp_err'] = 'Please enter the OTP.';
+            } elseif (!isset($_SESSION['forgot_otp']) || $_SESSION['forgot_otp'] !== $otp || $_SESSION['forgot_email'] !== $email) {
+                $data['otp_err'] = 'Invalid OTP or email mismatch.';
+            } elseif (time() > $_SESSION['forgot_expires']) {
+                $data['otp_err'] = 'OTP has expired. Please request a new one.';
+            }
+
+            // Validate password
+            if (empty($password)) {
+                $data['password_err'] = 'Please enter a new password.';
+            } elseif (strlen($password) < 8) {
+                $data['password_err'] = 'Password must be at least 8 characters long.';
+            }
+
+            if (empty($confirmPassword)) {
+                $data['confirm_password_err'] = 'Please confirm your password.';
+            } elseif ($password !== $confirmPassword) {
+                $data['confirm_password_err'] = 'Passwords do not match.';
+            }
+
+            if (empty($data['otp_err']) && empty($data['password_err']) && empty($data['confirm_password_err'])) {
+                if ($this->userModel->resetPassword($email, $password)) {
+                    // Clear session OTP
+                    unset($_SESSION['forgot_otp']);
+                    unset($_SESSION['forgot_email']);
+                    unset($_SESSION['forgot_expires']);
+
+                    $_SESSION['login_success'] = 'Password reset successfully. You can now log in.';
+                    $this->redirect('index.php?route=auth/login');
+                } else {
+                    $data['password_err'] = 'Failed to reset password. Please try again.';
+                }
+            }
+        }
+
+        $this->view('auth/reset', $data);
+    }
+
     // Logout Action
     public function logout() {
         if ($this->isLoggedIn()) {

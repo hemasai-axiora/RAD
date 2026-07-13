@@ -215,6 +215,12 @@
             <div class="logo-sub text-secondary small" style="font-size: 0.8rem; margin-top: 0.15rem;">Digital Marketing CRM</div>
         </div>
 
+        <?php if (!empty($_SESSION['login_success'])): ?>
+            <div class="alert alert-success py-2 px-3 small mb-4" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2); color: var(--text-primary);">
+                <i class="fa-solid fa-circle-check me-2"></i><?php echo $_SESSION['login_success']; unset($_SESSION['login_success']); ?>
+            </div>
+        <?php endif; ?>
+
         <form action="index.php?route=auth/login" method="POST">
             <!-- CSRF Token -->
             <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
@@ -233,7 +239,7 @@
             <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <label for="password" class="form-label mb-0">Password</label>
-                    <a href="#" class="forgot-pass">Forgot password?</a>
+                    <a href="index.php?route=auth/forgot" class="forgot-pass">Forgot password?</a>
                 </div>
                 <input type="password" name="password" id="password" 
                        class="form-control <?php echo (!empty($password_err)) ? 'is-invalid' : ''; ?>" 

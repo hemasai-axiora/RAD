@@ -47,14 +47,20 @@ $statusTone = [
                     <div class="text-white"><?php echo htmlspecialchars($lead->team_name ?? 'No team'); ?></div>
                 </div>
                 <div class="col-sm-6 col-xl-4">
-                    <div class="text-secondary small">Contact</div>
+                    <div class="text-secondary small">Email</div>
                     <div class="text-white"><?php echo htmlspecialchars($lead->email ?: 'No email'); ?></div>
-                    <div class="text-secondary"><?php echo htmlspecialchars($lead->phone ?: 'No phone'); ?></div>
+                </div>
+                <div class="col-sm-6 col-xl-4">
+                    <div class="text-secondary small">Phone</div>
+                    <div class="text-white"><?php echo htmlspecialchars(($lead->phone === '0000000000' || empty($lead->phone)) ? 'No phone' : $lead->phone); ?></div>
                 </div>
                 <div class="col-sm-6 col-xl-4">
                     <div class="text-secondary small">Source</div>
                     <div class="text-white"><?php echo htmlspecialchars($lead->lead_source); ?></div>
-                    <div class="text-secondary"><?php echo htmlspecialchars($lead->campaign_source ?: 'No campaign'); ?></div>
+                </div>
+                <div class="col-sm-6 col-xl-4">
+                    <div class="text-secondary small">Campaign</div>
+                    <div class="text-white"><?php echo htmlspecialchars($lead->campaign_source ?: 'No campaign'); ?></div>
                 </div>
                 <div class="col-sm-6 col-xl-4">
                     <div class="text-secondary small">Product</div>
@@ -71,6 +77,10 @@ $statusTone = [
                 <div class="col-sm-6 col-xl-4">
                     <div class="text-secondary small">Next Follow-up</div>
                     <div class="text-white"><?php echo $lead->next_follow_up_at ? htmlspecialchars(date('M d, Y h:i A', strtotime($lead->next_follow_up_at))) : 'Not scheduled'; ?></div>
+                </div>
+                <div class="col-sm-6 col-xl-4">
+                    <div class="text-secondary small">Date Taken</div>
+                    <div class="text-white"><?php echo $lead->created_at ? htmlspecialchars(date('M d, Y h:i A', strtotime($lead->created_at))) : 'N/A'; ?></div>
                 </div>
                 <div class="col-12">
                     <div class="text-secondary small">Location / Lost Reason</div>
