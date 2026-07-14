@@ -231,17 +231,17 @@
         </div>
         <div class="flex items-center gap-8">
           <div>
-            <div class="text-2xl font-bold mono text-grad" data-counter="5" data-suffix="M+">0</div>
+            <div class="text-2xl font-bold mono text-grad" data-counter="5" data-suffix="M+">5M+</div>
             <div class="text-xs text-[var(--ink-3)] mt-1">Records Processed</div>
           </div>
           <div class="w-px h-10" style="background:var(--border-strong)"></div>
           <div>
-            <div class="text-2xl font-bold mono text-grad" data-counter="99.9" data-suffix="%" data-decimal="1">0</div>
+            <div class="text-2xl font-bold mono text-grad" data-counter="99.9" data-suffix="%" data-decimal="1">99.9%</div>
             <div class="text-xs text-[var(--ink-3)] mt-1">Platform Availability</div>
           </div>
           <div class="w-px h-10" style="background:var(--border-strong)"></div>
           <div>
-            <div class="text-2xl font-bold mono text-grad" data-counter="250" data-suffix="+">0</div>
+            <div class="text-2xl font-bold mono text-grad" data-counter="250" data-suffix="+">250+</div>
             <div class="text-xs text-[var(--ink-3)] mt-1">Dashboards Live</div>
           </div>
         </div>
@@ -363,14 +363,14 @@
         <div class="glass-card rounded-2xl p-6">
           <h3 class="font-bold mb-1">Starter</h3>
           <p class="text-xs text-[var(--ink-3)] mb-4">For small teams getting started</p>
-          <div class="text-2xl font-extrabold mono mb-4">₹3,999<span class="text-sm font-medium text-[var(--ink-3)]">/mo</span></div>
+          <div class="text-2xl font-extrabold mono mb-4">₹9,999<span class="text-sm font-medium text-[var(--ink-3)]">/mo</span></div>
           <span class="tab-trigger btn-ghost block text-center py-2.5 rounded-xl text-sm font-semibold cursor-pointer" data-tab="contact">Start Free Trial</span>
         </div>
         <div class="pricing-pro rounded-2xl p-6 relative">
           <span class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-bold bg-gradient-to-r from-[var(--blue)] to-[var(--violet)] text-white">MOST POPULAR</span>
           <h3 class="font-bold mb-1">Professional</h3>
           <p class="text-xs text-[var(--ink-3)] mb-4">For growing revenue teams</p>
-          <div class="text-2xl font-extrabold mono mb-4">₹11,999<span class="text-sm font-medium text-[var(--ink-3)]">/mo</span></div>
+          <div class="text-2xl font-extrabold mono mb-4">₹24,999<span class="text-sm font-medium text-[var(--ink-3)]">/mo</span></div>
           <span class="tab-trigger btn-glow block text-center py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer" data-tab="contact">Start Free Trial</span>
         </div>
         <div class="glass-card rounded-2xl p-6">
@@ -392,11 +392,11 @@
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
-        <div class="glass-card rounded-2xl p-3.5 text-center"><div class="text-lg font-extrabold mono text-grad" data-counter="250" data-suffix="+">0</div><p class="text-[10px] text-[var(--ink-3)] mt-1">Dashboards</p></div>
-        <div class="glass-card rounded-2xl p-3.5 text-center"><div class="text-lg font-extrabold mono text-grad" data-counter="20" data-suffix="+">0</div><p class="text-[10px] text-[var(--ink-3)] mt-1">Modules</p></div>
-        <div class="glass-card rounded-2xl p-3.5 text-center"><div class="text-lg font-extrabold mono text-grad" data-counter="5" data-suffix="M+">0</div><p class="text-[10px] text-[var(--ink-3)] mt-1">Records</p></div>
-        <div class="glass-card rounded-2xl p-3.5 text-center"><div class="text-lg font-extrabold mono text-grad" data-counter="99.9" data-decimal="1" data-suffix="%">0</div><p class="text-[10px] text-[var(--ink-3)] mt-1">Uptime</p></div>
-        <div class="glass-card rounded-2xl p-3.5 text-center col-span-2 sm:col-span-1"><div class="text-lg font-extrabold mono text-grad" data-counter="95" data-suffix="%">0</div><p class="text-[10px] text-[var(--ink-3)] mt-1">Satisfaction</p></div>
+        <div class="glass-card rounded-2xl p-3.5 text-center"><div class="text-lg font-extrabold mono text-grad" data-counter="250" data-suffix="+">250+</div><p class="text-[10px] text-[var(--ink-3)] mt-1">Dashboards</p></div>
+        <div class="glass-card rounded-2xl p-3.5 text-center"><div class="text-lg font-extrabold mono text-grad" data-counter="20" data-suffix="+">20+</div><p class="text-[10px] text-[var(--ink-3)] mt-1">Modules</p></div>
+        <div class="glass-card rounded-2xl p-3.5 text-center"><div class="text-lg font-extrabold mono text-grad" data-counter="5" data-suffix="M+">5M+</div><p class="text-[10px] text-[var(--ink-3)] mt-1">Records</p></div>
+        <div class="glass-card rounded-2xl p-3.5 text-center"><div class="text-lg font-extrabold mono text-grad" data-counter="99.9" data-decimal="1" data-suffix="%">99.9%</div><p class="text-[10px] text-[var(--ink-3)] mt-1">Uptime</p></div>
+        <div class="glass-card rounded-2xl p-3.5 text-center col-span-2 sm:col-span-1"><div class="text-lg font-extrabold mono text-grad" data-counter="95" data-suffix="%">95%</div><p class="text-[10px] text-[var(--ink-3)] mt-1">Satisfaction</p></div>
       </div>
 
       <div class="grid lg:grid-cols-12 gap-4">
@@ -650,7 +650,7 @@
       }
       requestAnimationFrame(tick);
     });
-  }, { threshold: 0.3 });
+  }, { threshold: 0.05 });
   document.querySelectorAll('[data-counter]').forEach(el => counterIO.observe(el));
 
   // Particle network canvas

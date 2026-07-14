@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $title; ?></title>
+    <title><?php echo str_ireplace('Raptor CRM', 'RAPTOR', $title); ?></title>
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="<?php echo URLROOT; ?>/logo.png">
     <!-- Inter Font -->
@@ -211,8 +211,8 @@
     <div class="login-card">
         <div class="logo-area d-flex flex-column align-items-center mb-4">
             <img src="<?php echo URLROOT; ?>/logo.png" alt="Raptor Logo" style="height: 70px; width: auto; object-fit: contain; margin-bottom: 0.75rem;">
-            <div class="logo-text text-white fw-bold" style="font-size: 1.5rem; letter-spacing: -0.5px;">RAPTOR CRM</div>
-            <div class="logo-sub text-secondary small" style="font-size: 0.8rem; margin-top: 0.15rem;">Digital Marketing CRM</div>
+            <div class="logo-text text-white fw-bold" style="font-size: 1.5rem; letter-spacing: -0.5px;">RAPTOR</div>
+            <div class="logo-sub text-secondary small" style="font-size: 0.8rem; margin-top: 0.15rem;">Digital Marketing Hub</div>
         </div>
 
         <?php if (!empty($_SESSION['login_success'])): ?>

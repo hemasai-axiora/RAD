@@ -16,6 +16,9 @@ class AttendanceController extends Controller {
 
     /** Self attendance screen. */
     public function index() {
+        if ($_SESSION['user_role'] === 'admin') {
+            $this->redirect('index.php?route=dashboard/index');
+        }
         $userId = (int) $_SESSION['user_id'];
         $today  = $this->att->getToday($userId);
         $data = [

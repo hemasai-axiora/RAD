@@ -103,6 +103,14 @@ class Controller {
             $this->redirect('index.php?route=auth/login');
         }
 
+        // Force password reset gate
+        if (isset($_SESSION['force_password_reset']) && $_SESSION['force_password_reset'] == 1) {
+            $route = $_GET['route'] ?? '';
+            if ($route !== 'auth/reset_forced_password' && $route !== 'auth/logout') {
+                $this->redirect('index.php?route=auth/reset_forced_password');
+            }
+        }
+
         // Automatic CSRF token validation on all authenticated POST requests
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $csrf = $_POST['csrf_token'] ?? $_GET['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';

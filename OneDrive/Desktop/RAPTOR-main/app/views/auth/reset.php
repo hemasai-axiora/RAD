@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Password | Raptor CRM</title>
+    <title>Reset Password | RAPTOR</title>
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="<?php echo URLROOT; ?>/logo.png">
     <!-- Inter Font -->

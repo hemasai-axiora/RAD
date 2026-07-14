@@ -5,7 +5,7 @@
                 <div class="d-flex align-items-center gap-3">
                     <img src="<?php echo URLROOT; ?>/logo.png" alt="Raptor Logo" style="height: 60px; width: auto; object-fit: contain;">
                     <div>
-                        <h4 class="text-white mb-1">Welcome to RAPTOR CRM</h4>
+                        <h4 class="text-white mb-1">Welcome to RAPTOR</h4>
                         <div class="text-secondary" style="font-size: 0.9rem;">Your consolidated digital marketing command center. Customize widgets, inspect channels, and generate digests.</div>
                     </div>
                 </div>

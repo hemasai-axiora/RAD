@@ -56,6 +56,11 @@ $jobs = [
         'file' => 'cron_retention.php',
         'desc' => 'Clean old logs & database entries'
     ],
+    'cron_invoice_reminders' => [
+        'schedule' => '0 9 * * *',
+        'file' => 'cron_invoice_reminders.php',
+        'desc' => 'Send invoice due reminders daily'
+    ],
     'backup_to_s3' => [
         'schedule' => '0 0 * * *',
         'file' => 'backup_to_s3.php',

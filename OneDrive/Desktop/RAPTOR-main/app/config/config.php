@@ -17,7 +17,7 @@ if (!function_exists('env')) {
 // Database Settings
 define('DB_HOST', env('DB_HOST', 'db'));
 define('DB_USER', env('DB_USER', 'root'));
-define('DB_PASS', env('DB_PASS', 'rootpassword'));
+define('DB_PASS', env('DB_PASS', env('DB_PASSWORD', 'rootpassword')));
 define('DB_NAME', env('DB_NAME', 'raptor_crm_db'));
 
 // App Paths & URLs
@@ -33,7 +33,7 @@ if (isset($_SERVER['HTTP_HOST'])) {
 } else {
     define('URLROOT', env('URLROOT', 'http://localhost:8080/public'));
 }
-define('SITENAME', env('SITENAME', 'Raptor CRM'));
+define('SITENAME', env('SITENAME', 'RAPTOR'));
 
 // Environment: 'development' shows errors, 'production' hides them.
 define('APP_ENV', env('APP_ENV', 'development'));

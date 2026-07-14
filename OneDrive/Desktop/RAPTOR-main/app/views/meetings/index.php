@@ -169,13 +169,13 @@
                             <label class="form-label text-secondary">Title</label>
                             <input type="text" name="title" class="form-control bg-dark border-secondary text-white" required>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary">Start</label>
-                            <input type="datetime-local" name="scheduled_start" class="form-control bg-dark border-secondary text-white" required>
+                        <div class="col-md-12">
+                            <label class="form-label text-secondary">Start Date & Time (Future Only) *</label>
+                            <input type="datetime-local" name="scheduled_start" min="<?php echo date('Y-m-d\TH:i'); ?>" class="form-control bg-dark border-secondary text-white" required>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary">End</label>
-                            <input type="datetime-local" name="scheduled_end" class="form-control bg-dark border-secondary text-white">
+                        <div class="col-md-12 mt-2">
+                            <label class="form-label text-secondary">Additional Attendees (Optional comma-separated email list)</label>
+                            <input type="text" name="attendees_list" class="form-control bg-dark border-secondary text-white" placeholder="e.g. contact1@client.com, contact2@client.com">
                         </div>
                     </div>
                     <div class="mt-3">

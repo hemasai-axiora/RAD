@@ -129,7 +129,58 @@ class ClientsController extends Controller {
             }
         }
 
+        $data['contacts'] = $this->clientModel->getContactsByClientId($id);
         $this->viewWithLayout('clients/edit', 'main', $data);
+    }
+
+    // Add Client Contact
+    public function addContact() {
+        if (!in_array($_SESSION['user_role'], ['admin', 'manager'])) {
+            $this->redirect('index.php?route=clients/index');
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
+            $clientId = (int)($_POST['client_id'] ?? 0);
+            
+            $data = [
+                'client_id' => $clientId,
+                'name' => trim($_POST['name'] ?? ''),
+                'email' => trim($_POST['email'] ?? ''),
+                'phone' => trim($_POST['phone'] ?? ''),
+                'role_or_title' => trim($_POST['role_or_title'] ?? '')
+            ];
+
+            if ($clientId > 0 && !empty($data['name']) && !empty($data['email'])) {
+                $this->clientModel->addContact($data);
+                $_SESSION['client_success'] = 'Contact person added successfully.';
+                $this->redirect('index.php?route=clients/edit/' . $clientId);
+                return;
+            }
+        }
+        $this->redirect('index.php?route=clients/index');
+    }
+
+    // Delete Client Contact
+    public function deleteContact($contactId) {
+        if (!in_array($_SESSION['user_role'], ['admin', 'manager'])) {
+            $this->redirect('index.php?route=clients/index');
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
+            $clientId = (int)($_POST['client_id'] ?? 0);
+
+            if ($contactId > 0) {
+                $this->clientModel->deleteContact($contactId);
+                $_SESSION['client_success'] = 'Contact person deleted successfully.';
+                if ($clientId > 0) {
+                    $this->redirect('index.php?route=clients/edit/' . $clientId);
+                    return;
+                }
+            }
+        }
+        $this->redirect('index.php?route=clients/index');
     }
 
     // Delete Client
@@ -147,5 +198,12 @@ class ClientsController extends Controller {
         } else {
             $this->redirect('index.php?route=clients/index');
         }
+    }
+
+    // JSON API to fetch client contacts/stakeholders
+    public function contacts_api() {
+        $clientId = (int)($_GET['client_id'] ?? 0);
+        $contacts = $this->clientModel->getContactsByClientId($clientId);
+        $this->jsonOk($contacts);
     }
 }

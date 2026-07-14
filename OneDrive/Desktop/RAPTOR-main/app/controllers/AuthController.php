@@ -186,6 +186,58 @@ class AuthController extends Controller {
         $this->view('auth/reset', $data);
     }
 
+    // Forced Password Reset Action
+    public function reset_forced_password() {
+        if (!$this->isLoggedIn()) {
+            $this->redirect('index.php?route=auth/login');
+        }
+
+        $data = [
+            'title' => 'Change Password | Raptor CRM',
+            'password_err' => '',
+            'confirm_password_err' => '',
+            'csrf_token' => $this->generateCsrfToken()
+        ];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS);
+            $password = trim($_POST['password'] ?? '');
+            $confirmPassword = trim($_POST['confirm_password'] ?? '');
+            $csrf = $_POST['csrf_token'] ?? '';
+
+            if (!$this->validateCsrfToken($csrf)) {
+                $data['password_err'] = 'Security validation failed (CSRF mismatch).';
+            } else {
+                if (empty($password)) {
+                    $data['password_err'] = 'Please enter a new password.';
+                } elseif (strlen($password) < 8) {
+                    $data['password_err'] = 'Password must be at least 8 characters long.';
+                }
+
+                if (empty($confirmPassword)) {
+                    $data['confirm_password_err'] = 'Please confirm your password.';
+                } elseif ($password !== $confirmPassword) {
+                    $data['confirm_password_err'] = 'Passwords do not match.';
+                }
+
+                if (empty($data['password_err']) && empty($data['confirm_password_err'])) {
+                    $db = Database::getInstance()->getConnection();
+                    $hashed = password_hash($password, PASSWORD_BCRYPT, ['cost' => 10]);
+                    $stmt = $db->prepare('UPDATE users SET password = :pass, force_password_reset = 0 WHERE user_id = :id');
+                    if ($stmt->execute([':pass' => $hashed, ':id' => $_SESSION['user_id']])) {
+                        $_SESSION['force_password_reset'] = 0;
+                        $_SESSION['user_success'] = 'Password updated successfully. You are now logged in.';
+                        $this->redirectByRole($_SESSION['user_role']);
+                    } else {
+                        $data['password_err'] = 'Failed to update password. Please try again.';
+                    }
+                }
+            }
+        }
+
+        $this->view('auth/reset_forced', $data);
+    }
+
     // Logout Action
     public function logout() {
         if ($this->isLoggedIn()) {
@@ -207,6 +259,7 @@ class AuthController extends Controller {
         $_SESSION['user_email'] = $user->email;
         $_SESSION['user_name'] = $user->name;
         $_SESSION['user_role'] = $user->role_name;
+        $_SESSION['force_password_reset'] = (int) ($user->force_password_reset ?? 0);
         
         // Fetch and cache role permissions
         $_SESSION['permissions'] = $this->userModel->getRolePermissions($user->role_id);

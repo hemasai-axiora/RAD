@@ -1,7 +1,7 @@
 self.addEventListener('push', function (event) {
     var data = {};
     try { data = event.data ? event.data.json() : {}; } catch (e) { data = {}; }
-    var title = data.title || 'Raptor CRM';
+    var title = data.title || 'RAPTOR';
     var options = {
         body: data.body || data.message || 'You have a new notification.',
         icon: data.icon || '',

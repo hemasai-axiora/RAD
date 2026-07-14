@@ -198,12 +198,13 @@
                 </tr>
             </thead>
             <tbody>
+                <?php $symbol = ($invoice->currency === 'INR') ? '₹' : '$'; ?>
                 <tr>
                     <td>
                         <strong>Monthly Digital Marketing Retainer</strong><br>
                         <span class="text-secondary" style="font-size: 0.85rem;">Includes social media posting, search ad optimization, and analytics reporting.</span>
                     </td>
-                    <td class="text-end font-weight-bold">$<?php echo number_format($invoice->amount, 2); ?></td>
+                    <td class="text-end font-weight-bold"><?php echo $symbol; ?><?php echo number_format($invoice->amount, 2); ?></td>
                 </tr>
             </tbody>
         </table>
@@ -212,22 +213,22 @@
             <table class="totals-table">
                 <tr>
                     <td>Subtotal:</td>
-                    <td class="text-end font-weight-bold">$<?php echo number_format($invoice->amount, 2); ?></td>
+                    <td class="text-end font-weight-bold"><?php echo $symbol; ?><?php echo number_format($invoice->amount, 2); ?></td>
                 </tr>
                 <tr>
                     <td>Tax (0%):</td>
-                    <td class="text-end font-weight-bold">$0.00</td>
+                    <td class="text-end font-weight-bold"><?php echo $symbol; ?>0.00</td>
                 </tr>
                 <tr class="grand-total">
                     <td>Amount Due:</td>
-                    <td class="text-end">$<?php echo number_format($invoice->amount, 2); ?></td>
+                    <td class="text-end"><?php echo $symbol; ?><?php echo number_format($invoice->amount, 2); ?></td>
                 </tr>
             </tbody>
         </div>
 
         <div class="invoice-footer">
             <p>Thank you for your business! Please send payments via Bank Transfer or Stripe invoice link.</p>
-            <p style="font-size:0.7rem;">Raptor CRM - Generated on <?php echo date('Y-m-d H:i:s'); ?></p>
+            <p style="font-size:0.7rem;">RAPTOR - Generated on <?php echo date('Y-m-d H:i:s'); ?></p>
         </div>
     </div>
 

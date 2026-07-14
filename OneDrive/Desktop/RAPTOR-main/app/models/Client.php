@@ -53,6 +53,32 @@ class Client extends Model {
         return $this->execute();
     }
 
+    // Get all contacts/stakeholders for a client
+    public function getContactsByClientId($client_id) {
+        $this->query('SELECT * FROM client_contacts WHERE client_id = :client_id ORDER BY name ASC');
+        $this->bind(':client_id', $client_id);
+        return $this->resultSet();
+    }
+
+    // Add contact
+    public function addContact($data) {
+        $this->query('INSERT INTO client_contacts (client_id, name, email, phone, role_or_title) 
+                      VALUES (:client_id, :name, :email, :phone, :role_or_title)');
+        $this->bind(':client_id', $data['client_id']);
+        $this->bind(':name', $data['name']);
+        $this->bind(':email', $data['email']);
+        $this->bind(':phone', $data['phone']);
+        $this->bind(':role_or_title', $data['role_or_title']);
+        return $this->execute();
+    }
+
+    // Delete contact
+    public function deleteContact($contact_id) {
+        $this->query('DELETE FROM client_contacts WHERE contact_id = :contact_id');
+        $this->bind(':contact_id', $contact_id);
+        return $this->execute();
+    }
+
     // Physical deletion is disabled by governance policy.
     public function deleteClient($id) {
         return false;

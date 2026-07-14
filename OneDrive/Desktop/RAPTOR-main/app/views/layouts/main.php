@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo isset($title) ? htmlspecialchars($title) : 'Raptor CRM'; ?></title>
+    <?php
+        $page_title = isset($title) ? htmlspecialchars($title) : 'RAPTOR';
+        $page_title = str_ireplace('Raptor CRM', 'RAPTOR', $page_title);
+    ?>
+    <title><?php echo $page_title; ?></title>
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="<?php echo URLROOT; ?>/logo.png">
     <!-- Inter Font -->
@@ -16,8 +20,75 @@
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
 
+    <!-- Select2 Searchable Dropdowns -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        .select2-container--default .select2-selection--single {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 8px !important;
+            height: 38px !important;
+            display: flex;
+            align-items: center;
+        }
+        [data-theme="dark"] .select2-container--default .select2-selection--single {
+            background-color: rgba(0, 0, 0, 0.25) !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #333 !important;
+            padding-left: 12px !important;
+        }
+        [data-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #fff !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px !important;
+            right: 8px !important;
+        }
+        .select2-dropdown {
+            background-color: #ffffff !important;
+            border: 1px solid var(--border-color) !important;
+            color: #333 !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+            z-index: 9999 !important;
+        }
+        [data-theme="dark"] .select2-dropdown {
+            background-color: #1a1c29 !important;
+            color: #fff !important;
+        }
+        .select2-search__field {
+            background-color: #fff !important;
+            border: 1px solid var(--border-color) !important;
+            color: #333 !important;
+            border-radius: 6px !important;
+        }
+        [data-theme="dark"] .select2-search__field {
+            background-color: #0d0e12 !important;
+            color: #fff !important;
+        }
+        .select2-container--default .select2-results__option {
+            color: #333 !important;
+            background-color: #fff !important;
+        }
+        [data-theme="dark"] .select2-container--default .select2-results__option {
+            color: #fff !important;
+            background-color: #1a1c29 !important;
+        }
+        .select2-container--default .select2-results__option--highlighted {
+            background-color: var(--primary) !important;
+            color: #ffffff !important;
+        }
+        .select2-container--default .select2-results__option--selected,
+        .select2-container--default .select2-results__option[aria-selected=true] {
+            background-color: var(--primary) !important;
+            color: #ffffff !important;
+        }
+    </style>
+
     <!-- Script Libraries loaded in Head to support inline view scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -726,11 +797,11 @@
                 <div class="d-flex align-items-center justify-content-between w-100">
                     <div class="d-flex align-items-center gap-2">
                         <img src="<?php echo URLROOT; ?>/logo.png" alt="Raptor Logo" class="brand-logo-img" style="height: 32px; width: auto; object-fit: contain;">
-                        <span class="sidebar-brand-text text-white" style="font-size: 1.15rem; font-weight: 700; letter-spacing: -0.5px;">RAPTOR CRM</span>
+                        <span class="sidebar-brand-text text-white" style="font-size: 1.15rem; font-weight: 700; letter-spacing: -0.5px;">RAPTOR</span>
                     </div>
                     <button type="button" class="btn-close btn-close-white d-lg-none" id="close-sidebar-btn" aria-label="Close" style="font-size: 0.8rem;"></button>
                 </div>
-                <span class="sidebar-brand-desc text-secondary mt-1" style="font-size: 0.72rem; font-weight: 500;">Digital Marketing CRM</span>
+                <span class="sidebar-brand-desc text-secondary mt-1" style="font-size: 0.72rem; font-weight: 500;">Digital Marketing Hub</span>
             </div>
             
             <ul class="sidebar-menu">
@@ -787,11 +858,13 @@
                         <i class="fa-solid fa-chevron-right section-arrow"></i>
                     </div>
                     <ul class="menu-section-items">
+                        <?php if ($role !== 'admin'): ?>
                         <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'attendance') ? 'active' : ''; ?>">
                             <a href="index.php?route=attendance/index">
                                 <i class="fa-solid fa-fingerprint"></i><span>My Attendance</span>
                             </a>
                         </li>
+                        <?php endif; ?>
                         <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'followups') ? 'active' : ''; ?>">
                             <a href="index.php?route=followups/index">
                                 <i class="fa-solid fa-bell"></i><span>My Follow-ups</span>
@@ -978,22 +1051,23 @@
                     </ul>
                 </li>
 
-                <!-- 8. System Accordion Group -->
-                <?php if (in_array($role, ['admin', 'manager', 'team_leader', 'hr'], true)): ?>
-                <li class="menu-section" data-section="system">
+                <!-- 8. HR & Payroll Accordion Group -->
+                <?php if (in_array($role, ['admin', 'manager', 'team_leader', 'hr', 'finance', 'employee', 'sales_person'], true)): ?>
+                <li class="menu-section" data-section="hr">
                     <div class="menu-section-header">
-                        <i class="fa-solid fa-network-wired section-icon"></i>
-                        <span class="section-text">System</span>
+                        <i class="fa-solid fa-users-gear section-icon"></i>
+                        <span class="section-text">HR & Payroll</span>
                         <i class="fa-solid fa-chevron-right section-arrow"></i>
                     </div>
                     <ul class="menu-section-items">
                         <?php if (Policy::canManageEmployees()): ?>
                         <li class="menu-item <?php echo ($data['title'] === 'Employee Management | Raptor CRM') ? 'active' : ''; ?>">
                             <a href="index.php?route=users/index">
-                                <i class="fa-solid fa-users"></i><span>Employee Management</span>
+                                <i class="fa-solid fa-users"></i><span>Employee Directory</span>
                             </a>
                         </li>
                         <?php endif; ?>
+                        
                         <?php if (Policy::canApproveDataEdit() || Policy::canRequestDataEdit()): ?>
                         <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'edit_requests') ? 'active' : ''; ?>">
                             <a href="index.php?route=editrequests/index">
@@ -1001,6 +1075,7 @@
                             </a>
                         </li>
                         <?php endif; ?>
+                        
                         <?php if (in_array($role, ['admin', 'manager'], true)): ?>
                         <li class="menu-item <?php echo ($data['title'] === 'Organization | Raptor CRM') ? 'active' : ''; ?>">
                             <a href="index.php?route=teams/index">
@@ -1008,6 +1083,49 @@
                             </a>
                         </li>
                         <?php endif; ?>
+
+                        <!-- New Payroll Items -->
+                        <?php if (in_array($role, ['admin', 'hr', 'finance', 'manager'], true)): ?>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'payroll_dashboard') ? 'active' : ''; ?>">
+                            <a href="index.php?route=payroll/dashboard">
+                                <i class="fa-solid fa-chart-pie"></i><span>Payroll Dashboard</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+
+                        <?php if (in_array($role, ['admin', 'hr'], true)): ?>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'payroll_structures') ? 'active' : ''; ?>">
+                            <a href="index.php?route=payroll/structures">
+                                <i class="fa-solid fa-calculator"></i><span>Salary Structures</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+
+                        <?php if (in_array($role, ['admin', 'hr', 'finance'], true)): ?>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'payroll_processing') ? 'active' : ''; ?>">
+                            <a href="index.php?route=payroll/processing">
+                                <i class="fa-solid fa-file-invoice-dollar"></i><span>Payroll Runs</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'payroll_payslips') ? 'active' : ''; ?>">
+                            <a href="index.php?route=payroll/payslips">
+                                <i class="fa-solid fa-receipt"></i><span>My Payslips</span>
+                            </a>
+                        </li>
+
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'payroll_reimbursements') ? 'active' : ''; ?>">
+                            <a href="index.php?route=payroll/reimbursements">
+                                <i class="fa-solid fa-hand-holding-dollar"></i><span>Reimbursements</span>
+                            </a>
+                        </li>
+
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'payroll_bonuses') ? 'active' : ''; ?>">
+                            <a href="index.php?route=payroll/bonuses">
+                                <i class="fa-solid fa-gift"></i><span>Bonuses & Perks</span>
+                            </a>
+                        </li>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -1051,7 +1169,7 @@
                     </a>
                 </div>
                 <div class="sidebar-footer-text text-center text-secondary small mt-3" style="font-size: 0.68rem; line-height: 1.4;">
-                    &copy; 2026 RAPTOR CRM<br>Powered by RAPTOR CRM
+                    &copy; 2026 RAPTOR<br>Powered by RAPTOR
                 </div>
             </div>
         </nav>
@@ -1070,9 +1188,14 @@
                     <!-- Small header logo -->
                     <div class="d-flex align-items-center gap-2 ms-2">
                         <img src="<?php echo URLROOT; ?>/logo.png" alt="Logo" style="height: 28px; width: auto; object-fit: contain;">
-                        <span class="fw-bold d-none d-md-inline" style="font-size: 1.05rem; letter-spacing: -0.3px; color: var(--primary);">RAPTOR CRM</span>
+                        <span class="fw-bold d-none d-md-inline" style="font-size: 1.05rem; letter-spacing: -0.3px; color: var(--primary);">RAPTOR</span>
                     </div>
-                    <h2 class="page-title ms-3 border-start ps-3" style="font-size: 1rem; font-weight: 600; margin-bottom: 0; border-color: var(--border-strong) !important; color: var(--text-primary);"><?php echo isset($title) ? htmlspecialchars($title) : 'Dashboard'; ?></h2>
+                    <h2 class="page-title ms-3 border-start ps-3" style="font-size: 1rem; font-weight: 600; margin-bottom: 0; border-color: var(--border-strong) !important; color: var(--text-primary);">
+                        <?php 
+                            $display_title = isset($title) ? htmlspecialchars($title) : 'Dashboard';
+                            echo str_ireplace('Raptor CRM', 'RAPTOR', $display_title);
+                        ?>
+                    </h2>
                 </div>
 
                 <div class="topbar-right">
@@ -1096,8 +1219,8 @@
             <!-- Sticky branded page footer -->
             <footer class="footer py-3 border-top" style="border-color: var(--border-color) !important; background-color: var(--panel-dark);">
                 <div class="container-fluid d-flex justify-content-between align-items-center px-4" style="font-size: 0.8rem; color: var(--text-secondary);">
-                    <span>&copy; 2026 <strong>RAPTOR CRM</strong></span>
-                    <span>Powered by <strong>RAPTOR CRM</strong></span>
+                    <span>&copy; 2026 <strong>RAPTOR</strong></span>
+                    <span>Powered by <strong>RAPTOR</strong></span>
                 </div>
             </footer>
         </div>
@@ -1117,7 +1240,7 @@
         <a href="index.php?route=<?php echo $homeRoute; ?>">
             <i class="fa-solid fa-house-chimney"></i><span>Home</span>
         </a>
-        <?php if ($salesSide): ?>
+        <?php if ($salesSide && $role !== 'admin'): ?>
         <a href="index.php?route=attendance/index">
             <i class="fa-solid fa-fingerprint"></i><span>Attend</span>
         </a>

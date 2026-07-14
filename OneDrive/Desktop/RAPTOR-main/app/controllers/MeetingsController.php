@@ -14,6 +14,7 @@ class MeetingsController extends Controller {
 
         $this->meetingModel = $this->model('Meeting');
         $this->leadModel = $this->model('Lead');
+        $this->userModel = $this->model('User');
     }
 
     public function index() {
@@ -48,27 +49,86 @@ class MeetingsController extends Controller {
         }
 
         $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
+        
+        $scheduledStart = $this->normalizeDatetime($_POST['scheduled_start'] ?? '');
+        if (!$scheduledStart || strtotime($scheduledStart) < time()) {
+            $_SESSION['meeting_error'] = 'Meeting start time must be in the future.';
+            $this->redirect('index.php?route=meetings/index');
+            return;
+        }
+
         $assigned = Policy::isEmployee()
             ? $_SESSION['user_id']
             : ($_POST['assigned_to_user_id'] ?? $_SESSION['user_id']);
+        
         $leadId = $_POST['lead_id'] ?? null;
         if ($leadId !== null && $leadId !== '' && !$this->leadModel->getLeadById((int) $leadId, $this->visibleUserIds())) {
             $leadId = null;
         }
+
+        $title = strip_tags(trim($_POST['title'] ?? ''));
+        $location = strip_tags(trim($_POST['location'] ?? ''));
 
         $id = $this->meetingModel->add([
             'lead_id' => $leadId,
             'assigned_to_user_id' => $assigned,
             'created_by_user_id' => $_SESSION['user_id'],
             'type' => $_POST['type'] ?? 'meeting',
-            'title' => strip_tags(trim($_POST['title'] ?? '')),
-            'scheduled_start' => $this->normalizeDatetime($_POST['scheduled_start'] ?? '') ?: date('Y-m-d H:i:s'),
-            'scheduled_end' => $this->normalizeDatetime($_POST['scheduled_end'] ?? ''),
-            'location' => strip_tags(trim($_POST['location'] ?? '')),
+            'title' => $title,
+            'scheduled_start' => $scheduledStart,
+            'scheduled_end' => null,
+            'location' => $location,
         ]);
 
         if ($id) {
             $this->audit('Scheduled meeting/demo #' . (int) $id, 'meeting', (int) $id);
+
+            // Fetch recipient emails
+            $recipients = [];
+
+            // 1. The Owner/Assignee
+            $owner = $this->userModel->getUserById($assigned);
+            if ($owner && !empty($owner->email)) {
+                $recipients[] = $owner->email;
+            }
+
+            // 2. The Lead
+            if ($leadId) {
+                $lead = $this->leadModel->getLeadById((int) $leadId, $this->visibleUserIds());
+                if ($lead && !empty($lead->email)) {
+                    $recipients[] = $lead->email;
+                }
+            }
+
+            // 3. Additional Attendees / Participants
+            if (!empty($_POST['attendees_list'])) {
+                $emails = explode(',', $_POST['attendees_list']);
+                foreach ($emails as $email) {
+                    $email = trim($email);
+                    if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        $recipients[] = $email;
+                    }
+                }
+            }
+
+            $recipients = array_unique($recipients);
+
+            if ($recipients) {
+                $meetingUrl = URLROOT . '/index.php?route=meetings/index';
+                $subject = "Meeting Scheduled: " . $title;
+                $body = "Hello,\n\nA new meeting has been scheduled in Raptor CRM.\n\n" .
+                        "Details:\n" .
+                        "- Title: " . $title . "\n" .
+                        "- Date & Time: " . $scheduledStart . "\n" .
+                        "- Location: " . ($location ?: 'N/A') . "\n\n" .
+                        "Please click the link below to view or check-in to this meeting:\n" .
+                        $meetingUrl . "\n\n" .
+                        "Best regards,\nRaptor CRM System";
+
+                foreach ($recipients as $email) {
+                    @mail($email, $subject, $body);
+                }
+            }
         }
 
         $return = $_POST['return'] ?? 'meetings/index';

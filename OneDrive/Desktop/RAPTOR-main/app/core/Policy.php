@@ -14,6 +14,10 @@ class Policy {
         return self::role() === 'hr';
     }
 
+    public static function isFinance(): bool {
+        return self::role() === 'finance';
+    }
+
     public static function isManager(): bool {
         return in_array(self::role(), ['manager', 'team_leader'], true);
     }
