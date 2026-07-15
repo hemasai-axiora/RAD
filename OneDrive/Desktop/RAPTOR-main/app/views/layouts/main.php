@@ -1188,12 +1188,14 @@
                     <!-- Small header logo -->
                     <div class="d-flex align-items-center gap-2 ms-2">
                         <img src="<?php echo URLROOT; ?>/logo.png" alt="Logo" style="height: 28px; width: auto; object-fit: contain;">
-                        <span class="fw-bold d-none d-md-inline" style="font-size: 1.05rem; letter-spacing: -0.3px; color: var(--primary);">RAPTOR</span>
                     </div>
                     <h2 class="page-title ms-3 border-start ps-3" style="font-size: 1rem; font-weight: 600; margin-bottom: 0; border-color: var(--border-strong) !important; color: var(--text-primary);">
                         <?php 
                             $display_title = isset($title) ? htmlspecialchars($title) : 'Dashboard';
-                            echo str_ireplace('Raptor CRM', 'RAPTOR', $display_title);
+                            $display_title = preg_replace('/\s*\|\s*RAPTOR\s*/i', '', $display_title);
+                            $display_title = preg_replace('/\s*\|\s*Raptor CRM\s*/i', '', $display_title);
+                            $display_title = str_ireplace(['Raptor CRM', 'RAPTOR'], '', $display_title);
+                            echo trim($display_title, " |");
                         ?>
                     </h2>
                 </div>
@@ -1206,7 +1208,7 @@
                     </select>
                     <input type="text" class="filter-select d-none d-lg-block" id="date-range" placeholder="Date Range">
                     <button type="button" class="theme-toggle" id="theme-toggle" title="Toggle Theme">
-                        <i class="fa-solid fa-moon"></i><span class="d-none d-xl-inline ms-1">Theme</span>
+                        <i class="fa-solid fa-moon"></i>
                     </button>
                 </div>
             </header>
