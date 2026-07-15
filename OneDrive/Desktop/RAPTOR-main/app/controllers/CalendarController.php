@@ -138,6 +138,27 @@ class CalendarController extends Controller {
         $endDate = $_POST['end_date'] ?? '';
 
         if ($title !== '' && $startDate !== '' && $endDate !== '') {
+            $startTs = strtotime($startDate);
+            $endTs = strtotime($endDate);
+
+            if (!$startTs || !$endTs) {
+                $_SESSION['calendar_error'] = 'Invalid start or end date/time format.';
+                $this->redirect('index.php?route=calendar/index');
+                return;
+            }
+
+            if ($startTs < strtotime('today')) {
+                $_SESSION['calendar_error'] = 'Start date/time cannot be in the past.';
+                $this->redirect('index.php?route=calendar/index');
+                return;
+            }
+
+            if ($endTs < $startTs) {
+                $_SESSION['calendar_error'] = 'End date/time cannot be earlier than start date/time.';
+                $this->redirect('index.php?route=calendar/index');
+                return;
+            }
+
             $db = Database::getInstance()->getConnection();
             $stmt = $db->prepare("INSERT INTO calendar_events (client_id, user_id, title, description, start_date, end_date) VALUES (:client_id, :user_id, :title, :description, :start_date, :end_date)");
             $stmt->execute([
@@ -149,6 +170,9 @@ class CalendarController extends Controller {
                 ':end_date' => str_replace('T', ' ', $endDate),
             ]);
             $this->audit('Created calendar event: ' . $title, 'calendar_event');
+            $_SESSION['calendar_success'] = 'Event scheduled successfully.';
+        } else {
+            $_SESSION['calendar_error'] = 'All fields marked with * are required.';
         }
 
         $this->redirect('index.php?route=calendar/index');

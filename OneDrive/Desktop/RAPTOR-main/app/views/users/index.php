@@ -14,23 +14,26 @@
 <div class="pulse-card">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="text-white mb-0">Employee Management</h4>
-        <button class="btn btn-primary btn-sm px-3 py-2" data-bs-toggle="modal" data-bs-target="#addUserModal" style="background: var(--primary); border: none; border-radius: 8px;">
-            <i class="fa-solid fa-user-plus me-2"></i>Add Employee
-        </button>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-light btn-sm px-3 py-2" data-bs-toggle="modal" data-bs-target="#bulkUploadModal" style="border-radius: 8px; border-color: rgba(255,255,255,0.15);">
+                <i class="fa-solid fa-cloud-arrow-up me-2"></i>Bulk Upload
+            </button>
+            <button class="btn btn-primary btn-sm px-3 py-2" data-bs-toggle="modal" data-bs-target="#addUserModal" style="background: var(--primary); border: none; border-radius: 8px;">
+                <i class="fa-solid fa-user-plus me-2"></i>Add Employee
+            </button>
+        </div>
     </div>
 
     <div class="table-responsive">
         <table class="table table-dark table-hover align-middle border-secondary" id="users-table">
             <thead>
                 <tr class="text-secondary" style="border-bottom: 1px solid var(--border-color);">
-                    <th>Employee ID</th>
-                    <th>Photo</th>
+                    <th>EmpID</th>
                     <th>Name</th>
                     <th>Email Address</th>
                     <th>Job Title</th>
                     <th>Location</th>
                     <th>Joining Date</th>
-                    <th>Status</th>
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
@@ -38,15 +41,6 @@
                 <?php foreach ($users as $user): ?>
                     <tr style="border-bottom: 1px solid var(--border-color);">
                         <td class="text-white font-monospace"><?php echo htmlspecialchars($user->employee_code ?? 'SYS-ADMIN'); ?></td>
-                        <td>
-                            <?php if (!empty($user->profile_photo)): ?>
-                                <img src="index.php?route=file/show&key=<?php echo urlencode($user->profile_photo); ?>" alt="Profile" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover; border: 1px solid var(--border-color);">
-                            <?php else: ?>
-                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px; font-weight: bold; font-size: 0.85rem;">
-                                    <?php echo strtoupper(substr($user->name, 0, 2)); ?>
-                                </div>
-                            <?php endif; ?>
-                        </td>
                         <td class="font-weight-bold text-white"><?php echo htmlspecialchars($user->name); ?></td>
                         <td><?php echo htmlspecialchars($user->email); ?></td>
                         <td>
@@ -56,11 +50,6 @@
                         </td>
                         <td><?php echo htmlspecialchars($user->work_location ?? 'Office'); ?></td>
                         <td><?php echo !empty($user->date_of_joining) ? date('Y-m-d', strtotime($user->date_of_joining)) : date('Y-m-d', strtotime($user->created_at)); ?></td>
-                        <td>
-                            <span class="badge bg-<?php echo $user->status === 'active' ? 'success' : 'danger'; ?>-subtle text-<?php echo $user->status === 'active' ? 'success' : 'danger'; ?> border border-<?php echo $user->status === 'active' ? 'success' : 'danger'; ?>-subtle">
-                                <?php echo strtoupper($user->status); ?>
-                            </span>
-                        </td>
                         <td class="text-end">
                             <div class="d-inline-flex gap-2">
                                 <button class="btn btn-outline-info btn-sm btn-edit-user" 
@@ -96,14 +85,6 @@
                                         data-bs-toggle="modal" data-bs-target="#editUserModal">
                                     <i class="fa-solid fa-user-pen"></i> Edit
                                 </button>
-                                <?php if ($user->user_id !== $_SESSION['user_id']): ?>
-                                    <form action="index.php?route=users/deactivate/<?php echo $user->user_id; ?>" method="POST" onsubmit="return confirm('Deactivate this employee account? No data will be deleted.');">
-                                        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm">
-                                            <i class="fa-solid fa-user-slash"></i> Deactivate
-                                        </button>
-                                    </form>
-                                <?php endif; ?>
                             </div>
                         </td>
                     </tr>
@@ -144,11 +125,11 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Full Name *</label>
-                                    <input type="text" name="name" class="form-control bg-dark border-secondary text-white" required>
+                                    <input type="text" name="name" class="form-control bg-dark border-secondary text-white" pattern="^[A-Za-z\s'-]{2,}$" title="Please enter a valid full name (alphabetic, spaces, hyphens, and apostrophes allowed, min 2 characters)." required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Email Address *</label>
-                                    <input type="email" name="email" class="form-control bg-dark border-secondary text-white" required>
+                                    <input type="email" name="email" class="form-control bg-dark border-secondary text-white" pattern="^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$" title="Please enter a valid email address with a domain suffix (e.g. user@example.com)." required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Employee ID (Manual Entry) *</label>
@@ -156,15 +137,23 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Phone Number</label>
-                                    <input type="text" name="phone_number" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="phone_number" class="form-control bg-dark border-secondary text-white" pattern="^[6-9]\d{9}$" maxlength="10" title="Please enter a valid 10-digit phone number starting with 6-9.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Job Title</label>
-                                    <input type="text" name="job_title" class="form-control bg-dark border-secondary text-white" placeholder="e.g. Sales Executive">
+                                    <input type="text" name="job_title" class="form-control bg-dark border-secondary text-white" placeholder="e.g. Sales Executive" pattern="^[A-Za-z\s&/]{2,}$" title="Please enter a valid job title (alphabetic, spaces, & and / allowed, min 2 characters).">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Department</label>
-                                    <input type="text" name="department" class="form-control bg-dark border-secondary text-white" placeholder="e.g. Sales" value="Sales">
+                                    <select name="department" class="form-select bg-dark border-secondary text-white" required>
+                                        <option value="Sales">Sales</option>
+                                        <option value="Marketing">Marketing</option>
+                                        <option value="Engineering">Engineering</option>
+                                        <option value="HR">HR</option>
+                                        <option value="Finance">Finance</option>
+                                        <option value="Operations">Operations</option>
+                                        <option value="Executive">Executive</option>
+                                    </select>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Date of Joining</label>
@@ -172,7 +161,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Date of Birth</label>
-                                    <input type="date" name="date_of_birth" class="form-control bg-dark border-secondary text-white">
+                                    <input type="date" name="date_of_birth" class="form-control bg-dark border-secondary text-white" max="<?php echo date('Y-m-d', strtotime('-18 years')); ?>">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">System Role *</label>
@@ -206,7 +195,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Emergency Contact</label>
-                                    <input type="text" name="emergency_contact" class="form-control bg-dark border-secondary text-white" placeholder="Name - Phone">
+                                    <input type="text" name="emergency_contact" class="form-control bg-dark border-secondary text-white" placeholder="e.g. 9876543210" pattern="^[6-9]\d{9}$" maxlength="10" title="Please enter a valid 10-digit emergency contact phone number starting with 6-9.">
                                 </div>
                                 <div class="col-md-12">
                                     <label class="form-label text-secondary">Employee Bio / Notes</label>
@@ -239,27 +228,27 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Account Holder Name</label>
-                                    <input type="text" name="account_holder_name" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="account_holder_name" class="form-control bg-dark border-secondary text-white" pattern="^[A-Za-z\s'-]{2,}$" title="Please enter a valid account holder name.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Bank Name</label>
-                                    <input type="text" name="bank_name" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="bank_name" class="form-control bg-dark border-secondary text-white" pattern="^[A-Za-z\s&.]{2,}$" title="Please enter a valid bank name (letters, spaces, & and . allowed).">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Account Number</label>
-                                    <input type="password" name="account_number" class="form-control bg-dark border-secondary text-white main-account-num">
+                                    <input type="password" name="account_number" class="form-control bg-dark border-secondary text-white main-account-num" pattern="^\d+$" title="Account number must be numeric.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Confirm Account Number</label>
-                                    <input type="text" class="form-control bg-dark border-secondary text-white confirm-account-num">
+                                    <input type="text" name="confirm_account_number" class="form-control bg-dark border-secondary text-white confirm-account-num" pattern="^\d+$" title="Confirm Account Number must be numeric and match Account Number.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">IFSC Code</label>
-                                    <input type="text" name="ifsc_code" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="ifsc_code" class="form-control bg-dark border-secondary text-white" pattern="^[A-Z]{4}0[A-Z0-9]{6}$" title="Please enter a valid IFSC code (e.g. SBIN0001234).">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Branch Name / Address</label>
-                                    <input type="text" name="branch_name" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="branch_name" class="form-control bg-dark border-secondary text-white" pattern="^[A-Za-z0-9\s,.\#\-]{3,}$" title="Please enter a valid branch name/address.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Account Type</label>
@@ -276,27 +265,34 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">PAN Number</label>
-                                    <input type="text" name="pan_number" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="pan_number" class="form-control bg-dark border-secondary text-white" pattern="^[A-Z]{5}[0-9]{4}[A-Z]$" title="Please enter a valid 10-character PAN number (e.g. ABCDE1234F)." oninput="this.value = this.value.toUpperCase()">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Aadhaar Number</label>
-                                    <input type="text" name="aadhaar_number" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="aadhaar_number" class="form-control bg-dark border-secondary text-white" pattern="^\d{12}$" maxlength="12" title="Please enter a valid 12-digit Aadhaar number.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">UAN (PF)</label>
-                                    <input type="text" name="uan" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="uan" class="form-control bg-dark border-secondary text-white" pattern="^\d{12}$" maxlength="12" title="Please enter a valid 12-digit UAN number.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">ESIC Number</label>
-                                    <input type="text" name="esic_number" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="esic_number" class="form-control bg-dark border-secondary text-white" pattern="^\d{17}$" maxlength="17" title="Please enter a valid 17-digit ESIC number.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Salary / CTC (Monthly)</label>
-                                    <input type="number" step="0.01" name="salary" class="form-control bg-dark border-secondary text-white" placeholder="0.00">
+                                    <input type="number" step="0.01" min="0.01" name="salary" class="form-control bg-dark border-secondary text-white" placeholder="0.00" title="Salary must be a positive number greater than 0.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Pay Grade / Salary Band</label>
-                                    <input type="text" name="pay_grade" class="form-control bg-dark border-secondary text-white" placeholder="e.g. Band A">
+                                    <select name="pay_grade" class="form-select bg-dark border-secondary text-white">
+                                        <option value="">-- None --</option>
+                                        <option value="Band A">Band A</option>
+                                        <option value="Band B">Band B</option>
+                                        <option value="Band C">Band C</option>
+                                        <option value="Band D">Band D</option>
+                                        <option value="Band E">Band E</option>
+                                    </select>
                                 </div>
                                 <div class="col-md-6 mt-4">
                                     <div class="form-check form-switch mt-2">
@@ -350,11 +346,11 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Full Name *</label>
-                                    <input type="text" name="name" id="edit_name" class="form-control bg-dark border-secondary text-white" required>
+                                    <input type="text" name="name" id="edit_name" class="form-control bg-dark border-secondary text-white" pattern="^[A-Za-z\s'-]{2,}$" title="Please enter a valid full name (alphabetic, spaces, hyphens, and apostrophes allowed, min 2 characters)." required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Email Address *</label>
-                                    <input type="email" name="email" id="edit_email" class="form-control bg-dark border-secondary text-white" required>
+                                    <input type="email" name="email" id="edit_email" class="form-control bg-dark border-secondary text-white" pattern="^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$" title="Please enter a valid email address with a domain suffix (e.g. user@example.com)." required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Employee ID (Manual Entry) *</label>
@@ -362,15 +358,23 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Phone Number</label>
-                                    <input type="text" name="phone_number" id="edit_phone_number" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="phone_number" id="edit_phone_number" class="form-control bg-dark border-secondary text-white" pattern="^[6-9]\d{9}$" maxlength="10" title="Please enter a valid 10-digit phone number starting with 6-9.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Job Title</label>
-                                    <input type="text" name="job_title" id="edit_job_title" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="job_title" id="edit_job_title" class="form-control bg-dark border-secondary text-white" pattern="^[A-Za-z\s&/]{2,}$" title="Please enter a valid job title (alphabetic, spaces, & and / allowed, min 2 characters).">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Department</label>
-                                    <input type="text" name="department" id="edit_department" class="form-control bg-dark border-secondary text-white">
+                                    <select name="department" id="edit_department" class="form-select bg-dark border-secondary text-white" required>
+                                        <option value="Sales">Sales</option>
+                                        <option value="Marketing">Marketing</option>
+                                        <option value="Engineering">Engineering</option>
+                                        <option value="HR">HR</option>
+                                        <option value="Finance">Finance</option>
+                                        <option value="Operations">Operations</option>
+                                        <option value="Executive">Executive</option>
+                                    </select>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Date of Joining</label>
@@ -378,7 +382,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Date of Birth</label>
-                                    <input type="date" name="date_of_birth" id="edit_date_of_birth" class="form-control bg-dark border-secondary text-white">
+                                    <input type="date" name="date_of_birth" id="edit_date_of_birth" class="form-control bg-dark border-secondary text-white" max="<?php echo date('Y-m-d', strtotime('-18 years')); ?>">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">System Role *</label>
@@ -411,7 +415,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Emergency Contact</label>
-                                    <input type="text" name="emergency_contact" id="edit_emergency_contact" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="emergency_contact" id="edit_emergency_contact" class="form-control bg-dark border-secondary text-white" placeholder="e.g. 9876543210" pattern="^[6-9]\d{9}$" maxlength="10" title="Please enter a valid 10-digit emergency contact phone number starting with 6-9.">
                                 </div>
                                 <div class="col-md-12">
                                     <label class="form-label text-secondary">Employee Bio / Notes</label>
@@ -444,27 +448,27 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Account Holder Name</label>
-                                    <input type="text" name="account_holder_name" id="edit_account_holder_name" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="account_holder_name" id="edit_account_holder_name" class="form-control bg-dark border-secondary text-white" pattern="^[A-Za-z\s'-]{2,}$" title="Please enter a valid account holder name.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Bank Name</label>
-                                    <input type="text" name="bank_name" id="edit_bank_name" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="bank_name" id="edit_bank_name" class="form-control bg-dark border-secondary text-white" pattern="^[A-Za-z\s&.]{2,}$" title="Please enter a valid bank name (letters, spaces, & and . allowed).">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Account Number</label>
-                                    <input type="password" name="account_number" id="edit_account_number" class="form-control bg-dark border-secondary text-white main-account-num">
+                                    <input type="password" name="account_number" id="edit_account_number" class="form-control bg-dark border-secondary text-white main-account-num" pattern="^\d+$" title="Account number must be numeric.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Confirm Account Number</label>
-                                    <input type="text" id="edit_confirm_account_number" class="form-control bg-dark border-secondary text-white confirm-account-num">
+                                    <input type="text" name="confirm_account_number" id="edit_confirm_account_number" class="form-control bg-dark border-secondary text-white confirm-account-num" pattern="^\d+$" title="Confirm Account Number must be numeric and match Account Number.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">IFSC Code</label>
-                                    <input type="text" name="ifsc_code" id="edit_ifsc_code" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="ifsc_code" id="edit_ifsc_code" class="form-control bg-dark border-secondary text-white" pattern="^[A-Z]{4}0[A-Z0-9]{6}$" title="Please enter a valid IFSC code (e.g. SBIN0001234).">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Branch Name / Address</label>
-                                    <input type="text" name="branch_name" id="edit_branch_name" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="branch_name" id="edit_branch_name" class="form-control bg-dark border-secondary text-white" pattern="^[A-Za-z0-9\s,.\#\-]{3,}$" title="Please enter a valid branch name/address.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Account Type</label>
@@ -482,15 +486,15 @@
                                 <?php if (in_array($_SESSION['user_role'], ['admin', 'hr', 'finance'], true)): ?>
                                     <div class="col-md-6">
                                         <label class="form-label text-secondary">PAN Number</label>
-                                        <input type="text" name="pan_number" id="edit_pan_number" class="form-control bg-dark border-secondary text-white">
+                                        <input type="text" name="pan_number" id="edit_pan_number" class="form-control bg-dark border-secondary text-white" pattern="^[A-Z]{5}[0-9]{4}[A-Z]$" title="Please enter a valid 10-character PAN number (e.g. ABCDE1234F)." oninput="this.value = this.value.toUpperCase()">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label text-secondary">Aadhaar Number</label>
-                                        <input type="text" name="aadhaar_number" id="edit_aadhaar_number" class="form-control bg-dark border-secondary text-white">
+                                        <input type="text" name="aadhaar_number" id="edit_aadhaar_number" class="form-control bg-dark border-secondary text-white" pattern="^\d{12}$" maxlength="12" title="Please enter a valid 12-digit Aadhaar number.">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label text-secondary">Salary / CTC (Monthly)</label>
-                                        <input type="number" step="0.01" name="salary" id="edit_salary" class="form-control bg-dark border-secondary text-white" placeholder="0.00">
+                                        <input type="number" step="0.01" min="0.01" name="salary" id="edit_salary" class="form-control bg-dark border-secondary text-white" placeholder="0.00" title="Salary must be a positive number greater than 0.">
                                     </div>
                                 <?php else: ?>
                                     <!-- Keep fields hidden but submit current values so they don't get cleared -->
@@ -503,15 +507,22 @@
                                 <?php endif; ?>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">UAN (PF)</label>
-                                    <input type="text" name="uan" id="edit_uan" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="uan" id="edit_uan" class="form-control bg-dark border-secondary text-white" pattern="^\d{12}$" maxlength="12" title="Please enter a valid 12-digit UAN number.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">ESIC Number</label>
-                                    <input type="text" name="esic_number" id="edit_esic_number" class="form-control bg-dark border-secondary text-white">
+                                    <input type="text" name="esic_number" id="edit_esic_number" class="form-control bg-dark border-secondary text-white" pattern="^\d{17}$" maxlength="17" title="Please enter a valid 17-digit ESIC number.">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Pay Grade / Salary Band</label>
-                                    <input type="text" name="pay_grade" id="edit_pay_grade" class="form-control bg-dark border-secondary text-white">
+                                    <select name="pay_grade" id="edit_pay_grade" class="form-select bg-dark border-secondary text-white">
+                                        <option value="">-- None --</option>
+                                        <option value="Band A">Band A</option>
+                                        <option value="Band B">Band B</option>
+                                        <option value="Band C">Band C</option>
+                                        <option value="Band D">Band D</option>
+                                        <option value="Band E">Band E</option>
+                                    </select>
                                 </div>
                                 <div class="col-md-6 mt-4">
                                     <div class="form-check form-switch mt-2">
@@ -523,17 +534,39 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-secondary">
-                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="background: var(--primary); border: none;">Save Changes</button>
+                <div class="modal-footer border-secondary d-flex justify-content-between">
+                    <div>
+                        <button type="button" class="btn btn-outline-danger btn-deactivate-user-modal">
+                            <i class="fa-solid fa-user-slash me-2"></i>Deactivate
+                        </button>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="background: var(--primary); border: none;">Save Changes</button>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<!-- Deactivate User Hidden Form -->
+<form id="deactivate-user-form" action="" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+</form>
+
 <script>
 $(document).ready(function() {
+    // Deactivate User from Modal
+    $('.btn-deactivate-user-modal').on('click', function() {
+        const id = $('#edit_id').val();
+        if (confirm('Deactivate this employee account? No data will be deleted.')) {
+            const form = $('#deactivate-user-form');
+            form.attr('action', 'index.php?route=users/deactivate/' + id);
+            form.submit();
+        }
+    });
+
     // Populate Edit Modal
     $('.btn-edit-user').on('click', function() {
         const id = $(this).data('id');
@@ -549,6 +582,14 @@ $(document).ready(function() {
         $('#edit_status').val(status);
         $('#edit_password').val('');
         
+        // Show/hide Deactivate button based on current user session
+        const currentUserId = <?php echo $_SESSION['user_id']; ?>;
+        if (id == currentUserId) {
+            $('.btn-deactivate-user-modal').hide();
+        } else {
+            $('.btn-deactivate-user-modal').show();
+        }
+
         // Populate new fields
         $('#edit_employee_code').val($(this).data('employee-code'));
         $('#edit_phone_number').val($(this).data('phone-number'));
@@ -599,5 +640,273 @@ $(document).ready(function() {
             "search": "Filter Employees:"
         }
     });
+
+    // Bulk Upload Modal Scripting
+    $('#btn-upload-preview').on('click', function() {
+        const fileInput = document.getElementById('csv_file');
+        if (!fileInput.files || fileInput.files.length === 0) {
+            alert('Please select a CSV file first.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('csv_file', fileInput.files[0]);
+        formData.append('csrf_token', '<?php echo $_SESSION['csrf_token']; ?>');
+
+        $('#btn-upload-preview').html('<span class="spinner-border spinner-border-sm me-2"></span>Validating...').prop('disabled', true);
+
+        $.ajax({
+            url: 'index.php?route=users/bulkUpload',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function(res) {
+                $('#btn-upload-preview').html('Upload & Preview').prop('disabled', false);
+                if (res.success === false) {
+                    alert(res.message);
+                    return;
+                }
+
+                $('#summary-total').text(res.total_rows);
+                $('#summary-valid').text(res.valid_count);
+                $('#summary-errors').text(res.error_count);
+
+                let html = '';
+                res.rows.forEach(function(row) {
+                    let statusBadge = '';
+                    let rowClass = '';
+                    if (row.status === 'valid') {
+                        if (row.action === 'duplicate') {
+                            statusBadge = '<span class="badge bg-warning text-dark">Duplicate</span>';
+                            rowClass = 'table-warning text-dark';
+                        } else {
+                            statusBadge = '<span class="badge bg-success">Valid</span>';
+                        }
+                    } else {
+                        statusBadge = '<span class="badge bg-danger">Error</span>';
+                        rowClass = 'table-danger text-dark';
+                    }
+
+                    let errorList = [];
+                    for (let field in row.errors) {
+                        errorList.push('<strong>' + field + ':</strong> ' + row.errors[field]);
+                    }
+                    if (row.action === 'duplicate' && row.data._duplicate_message) {
+                        errorList.push('<span class="text-warning"><strong>Duplicate Warning:</strong> ' + row.data._duplicate_message + '</span>');
+                    }
+                    let errorHtml = errorList.join('<br>');
+
+                    html += '<tr class="' + rowClass + '">';
+                    html += '<td>' + row.index + '</td>';
+                    html += '<td>' + statusBadge + '</td>';
+                    html += '<td>' + (row.data.employee_code || '') + '</td>';
+                    html += '<td>' + (row.data.first_name || '') + '</td>';
+                    html += '<td>' + (row.data.last_name || '') + '</td>';
+                    html += '<td>' + (row.data.email || '') + '</td>';
+                    html += '<td>' + (row.data.department || '') + '</td>';
+                    html += '<td>' + (row.data.job_title || '') + '</td>';
+                    html += '<td>' + errorHtml + '</td>';
+                    html += '</tr>';
+                });
+
+                $('#preview-table-body').html(html);
+                $('#upload-step').addClass('d-none');
+                $('#preview-step').removeClass('d-none');
+
+                if (res.valid_count === 0) {
+                    $('#btn-confirm-import').prop('disabled', true);
+                } else {
+                    $('#btn-confirm-import').prop('disabled', false);
+                }
+            },
+            error: function(xhr) {
+                $('#btn-upload-preview').html('Upload & Preview').prop('disabled', false);
+                let msg = 'Upload failed.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    msg = xhr.responseJSON.message;
+                }
+                alert(msg);
+            }
+        });
+    });
+
+    $('#btn-back-upload').on('click', function() {
+        $('#preview-step').addClass('d-none');
+        $('#upload-step').removeClass('d-none');
+        document.getElementById('csv_file').value = '';
+    });
+
+    $('#btn-confirm-import').on('click', function() {
+        const strategy = $('#duplicate_strategy').val();
+        const payload = {
+            duplicate_strategy: strategy,
+            csrf_token: '<?php echo $_SESSION['csrf_token']; ?>'
+        };
+
+        $('#btn-confirm-import').html('<span class="spinner-border spinner-border-sm me-2"></span>Importing...').prop('disabled', true);
+
+        $.ajax({
+            url: 'index.php?route=users/bulkImport',
+            type: 'POST',
+            data: JSON.stringify(payload),
+            contentType: 'application/json',
+            success: function(res) {
+                $('#btn-confirm-import').html('Confirm & Import').prop('disabled', false);
+                if (res.success === false) {
+                    alert(res.message);
+                    return;
+                }
+
+                $('#result-imported').text(res.imported);
+                $('#result-skipped').text(res.skipped);
+                $('#result-failed').text(res.failed);
+
+                if (res.failed > 0) {
+                    $('#btn-download-errors').removeClass('d-none');
+                } else {
+                    $('#btn-download-errors').addClass('d-none');
+                }
+
+                $('#preview-step').addClass('d-none');
+                $('#results-step').removeClass('d-none');
+            },
+            error: function(xhr) {
+                $('#btn-confirm-import').html('Confirm & Import').prop('disabled', false);
+                let msg = 'Import failed.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    msg = xhr.responseJSON.message;
+                }
+                alert(msg);
+            }
+        });
+    });
+
+    $('#bulkUploadModal').on('hidden.bs.modal', function() {
+        $('#upload-step').removeClass('d-none');
+        $('#preview-step').addClass('d-none');
+        $('#results-step').addClass('d-none');
+        document.getElementById('csv_file').value = '';
+    });
 });
 </script>
+
+<!-- Bulk Upload Modal -->
+<div class="modal fade" id="bulkUploadModal" tabindex="-1" aria-labelledby="bulkUploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark text-white border-secondary" style="border-radius: 12px; backdrop-filter: blur(15px); background: rgba(15, 23, 42, 0.95) !important;">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="bulkUploadModalLabel"><i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i>Bulk Upload Employees</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- STEP 1: Upload Form -->
+                <div id="upload-step">
+                    <p class="text-secondary small mb-4">
+                        Upload a CSV file containing employee details to import them in bulk. Please ensure your CSV headers match the required fields.
+                    </p>
+                    <div class="mb-4 d-flex justify-content-between align-items-center p-3 rounded border border-secondary" style="background: rgba(255,255,255,0.02) !important;">
+                        <div>
+                            <h6 class="mb-1 fw-bold">Need a template?</h6>
+                            <span class="text-secondary small">Download our pre-formatted template with example rows.</span>
+                        </div>
+                        <a href="index.php?route=users/downloadTemplate" class="btn btn-outline-info btn-sm px-3">
+                            <i class="fa-solid fa-download me-2"></i>Download CSV Template
+                        </a>
+                    </div>
+                    <div class="mb-4">
+                        <label for="csv_file" class="form-label text-secondary small">Select CSV File (Max 5MB / 5,000 rows)</label>
+                        <input type="file" id="csv_file" class="form-control bg-dark border-secondary text-white" accept=".csv" required>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" id="btn-upload-preview" class="btn btn-primary px-4" style="background: var(--primary); border: none;">Upload & Preview</button>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Preview & Validation -->
+                <div id="preview-step" class="d-none">
+                    <div class="alert alert-info py-2 px-3 small border-info mb-3 d-flex align-items-center justify-content-between" style="background: rgba(13, 202, 240, 0.1); color: #0dcaf0;">
+                        <div>
+                            <i class="fa-solid fa-circle-info me-2"></i>
+                            <strong>Validation Summary:</strong> 
+                            <span id="summary-total">0</span> total rows, 
+                            <span id="summary-valid" class="text-success fw-bold">0</span> valid, 
+                            <span id="summary-errors" class="text-danger fw-bold">0</span> errors.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="duplicate_strategy" class="form-label text-secondary small">Duplicate Resolution Strategy:</label>
+                        <select id="duplicate_strategy" class="form-select bg-dark border-secondary text-white">
+                            <option value="skip">Skip duplicate records (Default)</option>
+                            <option value="update">Overwrite/Update existing database records</option>
+                            <option value="create">Import anyway (Create duplicate records)</option>
+                        </select>
+                        <div class="text-secondary small mt-1" style="font-size: 0.75rem;">
+                            Note: Duplicate detection matches unique keys (Email, Employee Code).
+                        </div>
+                    </div>
+
+                    <div class="table-responsive rounded border border-secondary mb-4" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-dark table-hover table-sm small align-middle mb-0" style="font-size: 0.8rem;">
+                            <thead class="sticky-top bg-dark" style="z-index: 1;">
+                                <tr class="text-secondary">
+                                    <th>Row</th>
+                                    <th>Status</th>
+                                    <th>Employee ID</th>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Email</th>
+                                    <th>Department</th>
+                                    <th>Job Title</th>
+                                    <th>Errors / Warnings</th>
+                                </tr>
+                            </thead>
+                            <tbody id="preview-table-body">
+                                <!-- Dynamic rows via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" id="btn-back-upload" class="btn btn-secondary px-4">Back</button>
+                        <button type="button" id="btn-confirm-import" class="btn btn-primary px-4" style="background: var(--primary); border: none;">Confirm & Import</button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: Results Summary -->
+                <div id="results-step" class="d-none text-center py-4">
+                    <div class="mb-3">
+                        <i class="fa-solid fa-circle-check text-success" style="font-size: 3.5rem;"></i>
+                    </div>
+                    <h4 class="fw-bold mb-3">Import Process Completed</h4>
+                    <div class="row justify-content-center mb-4">
+                        <div class="col-8">
+                            <div class="bg-dark rounded p-3 border border-secondary" style="background: rgba(255,255,255,0.02) !important;">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-secondary">Successfully Imported:</span>
+                                    <span class="fw-bold text-success" id="result-imported">0</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-secondary">Skipped (Duplicates):</span>
+                                    <span class="fw-bold text-warning" id="result-skipped">0</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-secondary">Failed (Database Errors):</span>
+                                    <span class="fw-bold text-danger" id="result-failed">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a id="btn-download-errors" href="index.php?route=users/downloadErrors" class="btn btn-outline-danger px-4 d-none">
+                            <i class="fa-solid fa-file-excel me-2"></i>Download Error Report
+                        </a>
+                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

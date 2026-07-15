@@ -124,13 +124,13 @@ class Monitoring extends Model {
     }
 
     public function employeeDay(int $userId, string $date): array {
-        $start = $date . ' 00:00:00';
-        $end = $date . ' 23:59:59';
+        $start = parseLocalToUtc($date . ' 00:00:00');
+        $end = parseLocalToUtc($date . ' 23:59:59');
         return [
             'employee' => $this->employee($userId),
             'attendance' => $this->singleSql('SELECT * FROM attendance WHERE user_id = :uid AND work_date = :d', [':uid' => $userId, ':d' => $date]),
             'locations' => $this->rowsSql('SELECT * FROM location_logs WHERE user_id = :uid AND captured_at BETWEEN :start AND :end ORDER BY captured_at DESC LIMIT 20', [':uid' => $userId, ':start' => $start, ':end' => $end]),
-            'tasks' => $this->rowsSql('SELECT * FROM tasks WHERE assigned_to_user_id = :uid AND (DATE(deadline) = :d OR DATE(completed_at) = :d) ORDER BY deadline ASC', [':uid' => $userId, ':d' => $date]),
+            'tasks' => $this->rowsSql('SELECT * FROM tasks WHERE assigned_to_user_id = :uid AND ((deadline BETWEEN :start AND :end) OR (completed_at BETWEEN :start AND :end)) ORDER BY deadline ASC', [':uid' => $userId, ':start' => $start, ':end' => $end]),
             'communications' => $this->rowsSql('SELECT c.*, l.first_name, l.last_name FROM communications c LEFT JOIN leads l ON c.lead_id = l.lead_id WHERE c.user_id = :uid AND c.happened_at BETWEEN :start AND :end ORDER BY c.happened_at DESC', [':uid' => $userId, ':start' => $start, ':end' => $end]),
             'meetings' => $this->rowsSql('SELECT m.*, l.first_name, l.last_name FROM meetings m LEFT JOIN leads l ON m.lead_id = l.lead_id WHERE m.assigned_to_user_id = :uid AND m.scheduled_start BETWEEN :start AND :end ORDER BY m.scheduled_start ASC', [':uid' => $userId, ':start' => $start, ':end' => $end]),
             'leads' => $this->rowsSql('SELECT * FROM leads WHERE assigned_to_user_id = :uid AND created_at BETWEEN :start AND :end ORDER BY created_at DESC', [':uid' => $userId, ':start' => $start, ':end' => $end]),

@@ -42,10 +42,26 @@ class EditrequestsController extends Controller {
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS);
+            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
             $comment = trim($_POST['manager_comment'] ?? '');
             $entityId = (int) ($_POST['entity_id'] ?? 0);
-            $changes = $this->requestModel->parseChangesText(htmlspecialchars_decode($_POST['proposed_changes'] ?? '', ENT_QUOTES));
+            $rawChanges = htmlspecialchars_decode($_POST['proposed_changes'] ?? '', ENT_QUOTES);
+
+            // Validate JSON
+            if (!Validation::validateJson($rawChanges)) {
+                $_SESSION['edit_request_error'] = 'Please enter valid JSON data.';
+                $this->redirect('index.php?route=editrequests/index');
+                return;
+            }
+
+            // Validate Comment
+            if (!Validation::validateManagerComment($comment)) {
+                $_SESSION['edit_request_error'] = 'Please enter a meaningful comment using at least 3 characters.';
+                $this->redirect('index.php?route=editrequests/index');
+                return;
+            }
+
+            $changes = $this->requestModel->parseChangesText($rawChanges);
 
             if ($entityId > 0 && $comment !== '') {
                 $this->requestModel->create([
@@ -57,6 +73,9 @@ class EditrequestsController extends Controller {
                     'requested_by_user_id' => (int) $_SESSION['user_id'],
                 ]);
                 $this->audit('Created data edit request', 'data_edit_requests');
+                $_SESSION['edit_request_success'] = 'Data edit request submitted successfully.';
+            } else {
+                $_SESSION['edit_request_error'] = 'All fields are required.';
             }
         }
 

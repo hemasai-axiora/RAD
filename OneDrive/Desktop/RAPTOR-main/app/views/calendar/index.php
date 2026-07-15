@@ -108,6 +108,17 @@
     }
 </style>
 
+<?php if (isset($_SESSION['calendar_error'])): ?>
+    <div class="alert alert-danger border-0 shadow mb-3" style="background: rgba(220, 53, 69, 0.15); color: #e63946;">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i> <?php echo $_SESSION['calendar_error']; unset($_SESSION['calendar_error']); ?>
+    </div>
+<?php endif; ?>
+<?php if (isset($_SESSION['calendar_success'])): ?>
+    <div class="alert alert-success border-0 shadow mb-3" style="background: rgba(25, 135, 84, 0.15); color: #2ec4b6;">
+        <i class="fa-solid fa-circle-check me-2"></i> <?php echo $_SESSION['calendar_success']; unset($_SESSION['calendar_success']); ?>
+    </div>
+<?php endif; ?>
+
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-2">
     <div>
         <h4 class="text-white mb-1">Events & Schedules</h4>
@@ -185,11 +196,11 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="start_date" class="form-label text-secondary">Start Date & Time</label>
-                            <input type="datetime-local" class="form-control" name="start_date" id="start_date" required>
+                            <input type="datetime-local" class="form-control" name="start_date" id="start_date" min="<?php echo date('Y-m-d\TH:i'); ?>" required>
                         </div>
                         <div class="col-md-6">
                             <label for="end_date" class="form-label text-secondary">End Date & Time</label>
-                            <input type="datetime-local" class="form-control" name="end_date" id="end_date" required>
+                            <input type="datetime-local" class="form-control" name="end_date" id="end_date" min="<?php echo date('Y-m-d\TH:i'); ?>" required>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -260,5 +271,33 @@
             }
         });
         calendar.render();
+
+        const startDateInput = document.getElementById('start_date');
+        const endDateInput = document.getElementById('end_date');
+        
+        if (startDateInput && endDateInput) {
+            startDateInput.addEventListener('change', function() {
+                if (startDateInput.value) {
+                    const start = new Date(startDateInput.value);
+                    start.setHours(start.getHours() + 1);
+                    const yyyy = start.getFullYear();
+                    const mm = String(start.getMonth() + 1).padStart(2, '0');
+                    const dd = String(start.getDate()).padStart(2, '0');
+                    const hh = String(start.getHours()).padStart(2, '0');
+                    const min = String(start.getMinutes()).padStart(2, '0');
+                    endDateInput.value = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+                    endDateInput.min = startDateInput.value;
+                }
+            });
+            
+            endDateInput.addEventListener('change', function() {
+                if (startDateInput.value && endDateInput.value) {
+                    if (new Date(endDateInput.value) < new Date(startDateInput.value)) {
+                        alert('End date/time cannot be earlier than start date/time.');
+                        endDateInput.value = '';
+                    }
+                }
+            });
+        }
     });
 </script>

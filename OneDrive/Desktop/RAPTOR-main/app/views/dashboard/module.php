@@ -31,7 +31,7 @@ $meta = function ($widget) use ($widget_meta) {
             <div class="text-secondary"><?php echo htmlspecialchars($dashboard['description']); ?></div>
             <div class="text-secondary small mt-2">Range: <?php echo htmlspecialchars($dashboard_data['range_label']); ?></div>
         </div>
-        <div class="d-flex flex-wrap gap-2 align-self-start">
+        <div class="d-flex flex-wrap gap-2 align-self-start align-self-xl-center">
             <?php foreach ($dashboards as $key => $item): ?>
                 <a class="btn btn-sm <?php echo $key === $dashboard['key'] ? 'btn-primary' : 'btn-outline-light'; ?>"
                    href="index.php?route=dashboard/show/<?php echo urlencode($key); ?>">

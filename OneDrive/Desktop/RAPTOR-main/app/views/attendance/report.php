@@ -1,14 +1,27 @@
 <?php
 // Quick roll-ups for the summary tiles
 $totPresent = 0; $totLate = 0; $totEarly = 0; $totMins = 0;
-foreach ($rows as $r) {
-    if (in_array($r->status, ['present', 'half_day', 'wfh'])) { $totPresent++; }
-    if ($r->is_late) { $totLate++; }
-    if ($r->is_early_logout) { $totEarly++; }
-    $totMins += (int) $r->worked_minutes;
+if (!empty($rows)) {
+    foreach ($rows as $r) {
+        if (in_array($r->status, ['present', 'half_day', 'wfh'])) { $totPresent++; }
+        if ($r->is_late) { $totLate++; }
+        if ($r->is_early_logout) { $totEarly++; }
+        $totMins += (int) $r->worked_minutes;
+    }
 }
 $totHrs = round($totMins / 60, 1);
 ?>
+
+<?php if (!empty($error)): ?>
+    <div class="alert alert-danger border-0 shadow mb-3" style="background: rgba(220, 53, 69, 0.15); color: #e63946;">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i> <?php echo htmlspecialchars($error); ?>
+    </div>
+<?php endif; ?>
+<?php if (!empty($_SESSION['report_error'])): ?>
+    <div class="alert alert-danger border-0 shadow mb-3" style="background: rgba(220, 53, 69, 0.15); color: #e63946;">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i> <?php echo htmlspecialchars($_SESSION['report_error']); unset($_SESSION['report_error']); ?>
+    </div>
+<?php endif; ?>
 
 <!-- Filters -->
 <div class="pulse-card mb-3">
@@ -16,11 +29,11 @@ $totHrs = round($totMins / 60, 1);
         <input type="hidden" name="route" value="attendance/report">
         <div class="col-6 col-md-3">
             <label class="form-label text-secondary small">From</label>
-            <input type="date" name="from" value="<?php echo htmlspecialchars($from); ?>" class="form-control bg-dark border-secondary text-white">
+            <input type="date" name="from" id="attendance_from" value="<?php echo htmlspecialchars($from); ?>" class="form-control bg-dark border-secondary text-white">
         </div>
         <div class="col-6 col-md-3">
             <label class="form-label text-secondary small">To</label>
-            <input type="date" name="to" value="<?php echo htmlspecialchars($to); ?>" class="form-control bg-dark border-secondary text-white">
+            <input type="date" name="to" id="attendance_to" value="<?php echo htmlspecialchars($to); ?>" class="form-control bg-dark border-secondary text-white">
         </div>
         <div class="col-12 col-md-6 d-flex gap-2">
             <button class="btn btn-primary" style="background: var(--primary); border: none;"><i class="fa-solid fa-filter me-2"></i>Apply</button>
@@ -86,3 +99,31 @@ $totHrs = round($totMins / 60, 1);
     </div>
     <p class="text-secondary small mt-2 mb-0"><strong>Flags:</strong> L = Late, E = Early logout, G = Outside geofence.</p>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fromInput = document.getElementById('attendance_from');
+    const toInput = document.getElementById('attendance_to');
+    
+    if (fromInput && toInput) {
+        fromInput.addEventListener('change', function() {
+            if (fromInput.value) {
+                toInput.min = fromInput.value;
+            }
+        });
+        toInput.addEventListener('change', function() {
+            if (toInput.value) {
+                fromInput.max = toInput.value;
+            }
+        });
+        
+        // Initial boundaries
+        if (fromInput.value) {
+            toInput.min = fromInput.value;
+        }
+        if (toInput.value) {
+            fromInput.max = toInput.value;
+        }
+    }
+});
+</script>

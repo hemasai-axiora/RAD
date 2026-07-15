@@ -1,5 +1,16 @@
 <?php $csrf = $_SESSION['csrf_token']; ?>
 
+<?php if (!empty($_SESSION['team_error'])): ?>
+    <div class="alert alert-danger border-0 shadow mb-3" style="background: rgba(220, 53, 69, 0.15); color: #e63946;">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i> <?php echo $_SESSION['team_error']; unset($_SESSION['team_error']); ?>
+    </div>
+<?php endif; ?>
+<?php if (!empty($_SESSION['team_success'])): ?>
+    <div class="alert alert-success border-0 shadow mb-3" style="background: rgba(25, 135, 84, 0.15); color: #2ec4b6;">
+        <i class="fa-solid fa-circle-check me-2"></i> <?php echo $_SESSION['team_success']; unset($_SESSION['team_success']); ?>
+    </div>
+<?php endif; ?>
+
 <!-- Section tabs -->
 <ul class="nav nav-pills mb-3 gap-2" id="orgTabs" role="tablist">
     <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-teams" type="button"><i class="fa-solid fa-people-group me-2"></i>Teams</button></li>

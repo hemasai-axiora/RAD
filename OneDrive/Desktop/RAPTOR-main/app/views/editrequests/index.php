@@ -1,3 +1,14 @@
+<?php if (!empty($_SESSION['edit_request_error'])): ?>
+    <div class="alert alert-danger border-0 shadow mb-3" style="background: rgba(220, 53, 69, 0.15); color: #e63946;">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i> <?php echo $_SESSION['edit_request_error']; unset($_SESSION['edit_request_error']); ?>
+    </div>
+<?php endif; ?>
+<?php if (!empty($_SESSION['edit_request_success'])): ?>
+    <div class="alert alert-success border-0 shadow mb-3" style="background: rgba(25, 135, 84, 0.15); color: #2ec4b6;">
+        <i class="fa-solid fa-circle-check me-2"></i> <?php echo $_SESSION['edit_request_success']; unset($_SESSION['edit_request_success']); ?>
+    </div>
+<?php endif; ?>
+
 <div class="pulse-card mb-4">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>

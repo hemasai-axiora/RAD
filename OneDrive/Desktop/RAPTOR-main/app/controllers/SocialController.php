@@ -30,23 +30,47 @@ class SocialController extends Controller {
         $userId = $_SESSION['user_id'];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Validate CSRF
-            // Handled automatically by base Controller::requireAuth() on POST request, but let's double check inputs.
+            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
+
             $data = [
-                'platform_id' => (int)$_POST['platform_id'],
-                'account_id' => (int)$_POST['account_id'],
+                'platform_id' => (int)($_POST['platform_id'] ?? 0),
+                'account_id' => (int)($_POST['account_id'] ?? 0),
                 'post_id' => !empty($_POST['post_id']) ? (int)$_POST['post_id'] : null,
-                'likes' => (int)$_POST['likes'],
-                'comments' => (int)$_POST['comments'],
-                'shares' => (int)$_POST['shares'],
-                'views' => (int)$_POST['views'],
-                'reach' => (int)$_POST['reach'],
-                'impressions' => (int)$_POST['impressions'],
-                'clicks' => (int)$_POST['clicks'],
-                'followers_gained' => (int)$_POST['followers_gained'],
+                'likes' => (int)($_POST['likes'] ?? 0),
+                'comments' => (int)($_POST['comments'] ?? 0),
+                'shares' => (int)($_POST['shares'] ?? 0),
+                'views' => (int)($_POST['views'] ?? 1),
+                'reach' => (int)($_POST['reach'] ?? 0),
+                'impressions' => (int)($_POST['impressions'] ?? 0),
+                'clicks' => (int)($_POST['clicks'] ?? 0),
+                'followers_gained' => (int)($_POST['followers_gained'] ?? 0),
                 'custom_notes' => trim($_POST['custom_notes'] ?? ''),
                 'updated_by' => $userId
             ];
+
+            if (empty($data['platform_id']) || empty($data['account_id'])) {
+                $_SESSION['flash_error'] = "Platform and Social Account are required.";
+                $this->redirect('index.php?route=social/update');
+                return;
+            }
+
+            // Verify account and platform pair
+            $account = $socialModel->getAccountById($data['account_id']);
+            if (!$account || (int)$account->platform_id !== $data['platform_id']) {
+                $_SESSION['flash_error'] = "Invalid Platform and Social Account selection.";
+                $this->redirect('index.php?route=social/update');
+                return;
+            }
+
+            // Verify post matches account if post_id is provided
+            if ($data['post_id'] !== null) {
+                $post = $postModel->getPostById($data['post_id']);
+                if (!$post || (int)$post->account_id !== $data['account_id']) {
+                    $_SESSION['flash_error'] = "Target Post does not belong to the selected Social Account.";
+                    $this->redirect('index.php?route=social/update');
+                    return;
+                }
+            }
 
             try {
                 if ($analyticsModel->logEntry($data)) {

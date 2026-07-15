@@ -1,7 +1,7 @@
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
         <h4 class="text-white mb-1">Target Planning</h4>
-        <div class="text-secondary" style="font-size:0.9rem;">Plan daily, weekly, or monthly targets and track achieved values from CRM activity.</div>
+        <div class="text-secondary" style="font-size:0.9rem;">Plan daily, weekly, or monthly targets and track achieved values.</div>
     </div>
     <div class="d-flex gap-2">
         <?php if ($can_approve): ?>

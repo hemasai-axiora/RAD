@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = process.env.RAPTOR_BASE_URL || 'http://localhost:8080/public';
+const baseURL = process.env.RAPTOR_BASE_URL || 'http://localhost:8080/public/';
 
 export default defineConfig({
   testDir: './tests/e2e',

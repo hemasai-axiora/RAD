@@ -48,12 +48,14 @@ class InvoicesController extends Controller {
             'invoice_number' => 'INV-' . time(),
             'amount' => '',
             'status' => 'unpaid',
-            'due_date' => '',
+            'due_date' => date('Y-m-d', strtotime('+30 days')),
             'billing_address' => '',
+            'sender_details' => '',
             'currency' => 'USD',
             'conversion_rate' => $conversionRate,
             'amount_err' => '',
-            'client_err' => ''
+            'client_err' => '',
+            'due_date_err' => ''
         ];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -65,8 +67,10 @@ class InvoicesController extends Controller {
             $data['status'] = trim($_POST['status'] ?? 'unpaid');
             $data['due_date'] = trim($_POST['due_date'] ?? '');
             $data['billing_address'] = trim($_POST['billing_address'] ?? '');
+            $data['sender_details'] = trim($_POST['sender_details'] ?? '');
             $data['currency'] = trim($_POST['currency'] ?? 'USD');
             $data['conversion_rate'] = $conversionRate;
+            $data['due_date_err'] = '';
 
             // Validate
             if (empty($data['client_id'])) {
@@ -75,8 +79,13 @@ class InvoicesController extends Controller {
             if (empty($data['amount']) || !is_numeric($data['amount'])) {
                 $data['amount_err'] = 'Please enter a valid amount';
             }
+            if (empty($data['due_date'])) {
+                $data['due_date_err'] = 'Please enter a due date';
+            } elseif (strtotime($data['due_date']) < strtotime(date('Y-m-d'))) {
+                $data['due_date_err'] = 'Due date cannot be earlier than invoice date';
+            }
 
-            if (empty($data['amount_err']) && empty($data['client_err'])) {
+            if (empty($data['amount_err']) && empty($data['client_err']) && empty($data['due_date_err'])) {
                 if ($this->invoiceModel->addInvoice($data)) {
                     $invoiceId = $this->invoiceModel->lastInsertId();
                     
@@ -97,21 +106,42 @@ class InvoicesController extends Controller {
                         }
                     }
 
+                    // Add custom email participants / CCs
+                    if (!empty($_POST['custom_email_participants'])) {
+                        $rawParticipants = str_replace(';', ',', $_POST['custom_email_participants']);
+                        $customRecipients = explode(',', $rawParticipants);
+                        foreach ($customRecipients as $email) {
+                            $email = trim($email);
+                            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                                $recipients[] = $email;
+                            }
+                        }
+                    }
+
                     $recipients = array_unique($recipients);
                     $sendEmail = isset($_POST['send_email_on_generate']) && $_POST['send_email_on_generate'] === '1';
 
                     if ($sendEmail && $recipients) {
                         $invoiceUrl = URLROOT . '/index.php?route=invoices/show/' . $invoiceId;
-                        $subject = "Invoice Generated: " . $data['invoice_number'];
-                        $currencySymbol = ($data['currency'] === 'INR') ? 'Rs. ' : '$';
-                        $body = "Hello,\n\nAn invoice has been generated for your company, " . ($client ? $client->company_name : 'Valued Client') . ".\n\n" .
-                                "Details:\n" .
-                                "- Invoice Number: " . $data['invoice_number'] . "\n" .
-                                "- Amount: " . $currencySymbol . number_format((float)$data['amount'], 2) . "\n" .
-                                "- Due Date: " . $data['due_date'] . "\n\n" .
-                                "Please click the link below to view or print your invoice:\n" .
-                                $invoiceUrl . "\n\n" .
-                                "Best regards,\nRaptor Billing Team";
+                        
+                        // Use custom subject if provided
+                        $subject = !empty($_POST['custom_email_subject']) ? trim($_POST['custom_email_subject']) : ("Invoice Generated: " . $data['invoice_number']);
+                        
+                        // Use custom body if provided, and swap dynamic link placeholder
+                        if (!empty($_POST['custom_email_body'])) {
+                            $body = trim($_POST['custom_email_body']);
+                            $body = str_replace('[Invoice Link will be generated automatically]', $invoiceUrl, $body);
+                        } else {
+                            $currencySymbol = ($data['currency'] === 'INR') ? 'Rs. ' : '$';
+                            $body = "Hello,\n\nAn invoice has been generated for your company, " . ($client ? $client->company_name : 'Valued Client') . ".\n\n" .
+                                    "Details:\n" .
+                                    "- Invoice Number: " . $data['invoice_number'] . "\n" .
+                                    "- Amount: " . $currencySymbol . number_format((float)$data['amount'], 2) . "\n" .
+                                    "- Due Date: " . $data['due_date'] . "\n\n" .
+                                    "Please click the link below to view or print your invoice:\n" .
+                                    $invoiceUrl . "\n\n" .
+                                    "Best regards,\nRaptor Billing Team";
+                        }
                         
                         foreach ($recipients as $email) {
                             @mail($email, $subject, $body);

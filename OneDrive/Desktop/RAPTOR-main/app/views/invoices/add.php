@@ -47,7 +47,8 @@
 
                     <div class="col-md-4">
                         <label for="due_date" class="form-label text-secondary font-weight-bold">Due Date *</label>
-                        <input type="date" name="due_date" id="due_date" class="form-control" value="<?php echo htmlspecialchars($due_date); ?>" required>
+                        <input type="date" name="due_date" id="due_date" class="form-control <?php echo (!empty($due_date_err)) ? 'is-invalid' : ''; ?>" value="<?php echo htmlspecialchars($due_date); ?>" min="<?php echo date('Y-m-d'); ?>" required>
+                        <div class="invalid-feedback"><?php echo $due_date_err ?? ''; ?></div>
                     </div>
 
                     <div class="col-md-6">
@@ -68,13 +69,45 @@
 
                     <!-- Editable Billing Address -->
                     <div class="col-md-12">
-                        <label for="billing_address" class="form-label text-secondary font-weight-bold">Billing Address</label>
-                        <textarea name="billing_address" id="billing_address" class="form-control" rows="3" placeholder="Will auto-populate from client record but can be customized here..."><?php echo htmlspecialchars($billing_address); ?></textarea>
+                        <label for="billing_address" class="form-label text-secondary font-weight-bold d-flex align-items-center gap-2">
+                            Billing Address
+                            <button type="button" class="btn btn-link btn-sm p-0 text-primary" id="btn-edit-billing-address" title="Override billing address" style="text-decoration: none;">
+                                <i class="fa-solid fa-pencil" style="font-size: 0.85rem;"></i>
+                            </button>
+                            <button type="button" class="btn btn-link btn-sm p-0 text-danger d-none" id="btn-cancel-billing-address" title="Revert to default address" style="text-decoration: none;">
+                                <i class="fa-solid fa-xmark" style="font-size: 0.85rem;"></i>
+                            </button>
+                        </label>
+                        <textarea name="billing_address" id="billing_address" class="form-control" rows="3" placeholder="Will auto-populate from client record but can be customized here..." readonly><?php echo htmlspecialchars($billing_address); ?></textarea>
+                    </div>
+
+                    <!-- Hidden Custom Email Inputs -->
+                    <input type="hidden" name="custom_email_subject" id="hidden_email_subject" value="">
+                    <input type="hidden" name="custom_email_body" id="hidden_email_body" value="">
+                    <input type="hidden" name="custom_email_participants" id="hidden_email_participants" value="">
+
+                    <!-- Editable Sender Details -->
+                    <div class="col-md-12">
+                        <label for="sender_details" class="form-label text-secondary font-weight-bold d-flex align-items-center gap-2">
+                            Sender Details
+                            <button type="button" class="btn btn-link btn-sm p-0 text-primary" id="btn-edit-sender-details" title="Override sender details" style="text-decoration: none;">
+                                <i class="fa-solid fa-pencil" style="font-size: 0.85rem;"></i>
+                            </button>
+                            <button type="button" class="btn btn-link btn-sm p-0 text-danger d-none" id="btn-cancel-sender-details" title="Revert to default sender details" style="text-decoration: none;">
+                                <i class="fa-solid fa-xmark" style="font-size: 0.85rem;"></i>
+                            </button>
+                        </label>
+                        <textarea name="sender_details" id="sender_details" class="form-control" rows="3" placeholder="Will populate with default company details but can be customized here..." readonly><?php echo htmlspecialchars($sender_details); ?></textarea>
                     </div>
 
                     <!-- Selected Stakeholders Checklist -->
                     <div class="col-md-12">
-                        <label class="form-label text-secondary font-weight-bold mb-1">Send Invoice Copy to Stakeholders (Optional)</label>
+                        <label class="form-label text-secondary font-weight-bold mb-1 d-flex align-items-center gap-2">
+                            Send Invoice Copy to Stakeholders (Optional)
+                            <button type="button" class="btn btn-link btn-sm p-0 text-primary" id="btn-edit-email-template" title="Customize email template & CC participants" data-bs-toggle="modal" data-bs-target="#editEmailTemplateModal" style="text-decoration: none;">
+                                <i class="fa-solid fa-pencil" style="font-size: 0.85rem;"></i>
+                            </button>
+                        </label>
                         <div id="client-contacts-container" class="p-3 rounded border border-secondary bg-dark bg-opacity-50" style="max-height: 150px; overflow-y: auto;">
                             <p class="text-secondary small mb-0 select-prompt-txt">Select a Client Company above to view stakeholders.</p>
                         </div>
@@ -115,10 +148,9 @@
                         <h2 class="font-weight-bold mb-1" style="color: #6366f1;">INVOICE</h2>
                         <div class="text-secondary" id="preview-invoice-num">INV-XXXXXXXXXX</div>
                     </div>
-                    <div class="text-end text-secondary small">
-                        <h6 class="font-weight-bold text-black mb-1">Raptor Marketing Agency</h6>
-                        <div>100 Creator Square, Business Bay</div>
-                        <div>billing@raptor-agency.com</div>
+                    <div class="text-end text-secondary small" style="width: 280px;">
+                        <div class="mb-1"><span class="text-secondary text-uppercase small font-weight-bold">Sender Details (Edit to Customize):</span></div>
+                        <textarea id="preview-sender-details-field" class="form-control form-control-sm text-secondary small bg-light text-end" rows="4" style="font-family: inherit; font-size: 0.85rem; border: 1px dashed #ccc; text-align: right; width: 100%; box-sizing: border-box;"></textarea>
                     </div>
                 </div>
 
@@ -170,9 +202,116 @@
     </div>
 </div>
 
+<!-- Customize Email Template Modal -->
+<div class="modal fade" id="editEmailTemplateModal" tabindex="-1" aria-labelledby="editEmailTemplateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="editEmailTemplateModalLabel"><i class="fa-solid fa-envelope me-2 text-primary"></i>Customize Email & CC Participants</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="modal_email_subject" class="form-label text-secondary font-weight-bold">Email Subject</label>
+                    <input type="text" id="modal_email_subject" class="form-control bg-dark border-secondary text-white" style="border-radius: 8px;">
+                </div>
+                <div class="mb-3">
+                    <label for="modal_email_body" class="form-label text-secondary font-weight-bold">Email Message Body</label>
+                    <textarea id="modal_email_body" class="form-control bg-dark border-secondary text-white" rows="6" style="border-radius: 8px;"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="modal_email_participants" class="form-label text-secondary font-weight-bold">CC / Additional Stakeholders</label>
+                    <input type="text" id="modal_email_participants" class="form-control bg-dark border-secondary text-white" placeholder="stakeholder1@example.com, stakeholder2@example.com" style="border-radius: 8px;">
+                    <div class="form-text text-secondary small">Enter comma-separated email addresses of additional recipients.</div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btn-save-email-template" data-bs-dismiss="modal" style="background: var(--primary); border: none;">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 $(document).ready(function() {
     const conversionRate = <?php echo (float)$conversion_rate; ?>;
+    const defaultSenderDetails = "Raptor Marketing Agency\n100 Creator Square, Business Bay\nbilling@raptor-agency.com\n+1 (555) 0100";
+    let billingAddressEditing = false;
+    let senderDetailsEditing = false;
+    let originalClientAddress = '';
+
+    // Initialize Default Sender Details if empty
+    if (!$('#sender_details').val()) {
+        $('#sender_details').val(defaultSenderDetails);
+    }
+
+    // Billing Address override toggle
+    $('#btn-edit-billing-address').on('click', function() {
+        billingAddressEditing = true;
+        $('#billing_address').prop('readonly', false).focus();
+        $('#btn-edit-billing-address').addClass('d-none');
+        $('#btn-cancel-billing-address').removeClass('d-none');
+    });
+
+    // Revert/Cancel Billing Address override
+    $('#btn-cancel-billing-address').on('click', function() {
+        billingAddressEditing = false;
+        $('#billing_address').val(originalClientAddress).prop('readonly', true);
+        $('#btn-edit-billing-address').removeClass('d-none');
+        $('#btn-cancel-billing-address').addClass('d-none');
+    });
+
+    // Sender Details override toggle
+    $('#btn-edit-sender-details').on('click', function() {
+        senderDetailsEditing = true;
+        $('#sender_details').prop('readonly', false).focus();
+        $('#btn-edit-sender-details').addClass('d-none');
+        $('#btn-cancel-sender-details').removeClass('d-none');
+    });
+
+    // Revert/Cancel Sender Details override
+    $('#btn-cancel-sender-details').on('click', function() {
+        senderDetailsEditing = false;
+        $('#sender_details').val(defaultSenderDetails).prop('readonly', true);
+        $('#btn-edit-sender-details').removeClass('d-none');
+        $('#btn-cancel-sender-details').addClass('d-none');
+    });
+
+    // Modal Open: Copy hidden inputs or pre-fill defaults
+    $('#editEmailTemplateModal').on('show.bs.modal', function () {
+        const clientName = $('#client_id option:selected').data('name') || 'Valued Client';
+        const invoiceNum = $('#invoice_number').val() || 'INV-XXXXXXXX';
+        const amount = $('#amount').val() || '0.00';
+        const currency = $('#currency').val();
+        const dueDate = $('#due_date').val() || 'YYYY-MM-DD';
+        const currencySymbol = (currency === 'INR') ? 'Rs. ' : '$';
+
+        const defaultSubject = `Invoice ${invoiceNum} from Raptor Marketing Agency`;
+        const defaultBody = `Hello,\n\nAn invoice has been generated for your company, ${clientName}.\n\n` +
+                            `Details:\n` +
+                            `- Invoice Number: ${invoiceNum}\n` +
+                            `- Amount: ${currencySymbol}${amount}\n` +
+                            `- Due Date: ${dueDate}\n\n` +
+                            `Please click the link below to view or print your invoice:\n` +
+                            `[Invoice Link will be generated automatically]\n\n` +
+                            `Best regards,\nRaptor Billing Team`;
+
+        const currentSubject = $('#hidden_email_subject').val() || defaultSubject;
+        const currentBody = $('#hidden_email_body').val() || defaultBody;
+        const currentParticipants = $('#hidden_email_participants').val();
+
+        $('#modal_email_subject').val(currentSubject);
+        $('#modal_email_body').val(currentBody);
+        $('#modal_email_participants').val(currentParticipants);
+    });
+
+    // Save Email Template Changes: Copy to hidden fields
+    $('#btn-save-email-template').on('click', function() {
+        $('#hidden_email_subject').val($('#modal_email_subject').val());
+        $('#hidden_email_body').val($('#modal_email_body').val());
+        $('#hidden_email_participants').val($('#modal_email_participants').val());
+    });
 
     // Initialize Select2 search option inside the select element
     $('#client_id').select2({
@@ -186,7 +325,10 @@ $(document).ready(function() {
         const address = option.data('address') || '';
         const name = option.data('name');
         
-        $('#billing_address').val(address);
+        originalClientAddress = address;
+        if (!billingAddressEditing) {
+            $('#billing_address').val(address);
+        }
 
         const clientId = $(this).val();
         if (!clientId) {
@@ -265,6 +407,10 @@ $(document).ready(function() {
         $('#preview-item-amt').text(formattedAmt);
         $('#preview-grand-total').text(formattedAmt);
 
+        // Populate Sender Details in Preview Modal from main form textarea
+        const senderDetails = $('#sender_details').val() || defaultSenderDetails;
+        $('#preview-sender-details-field').val(senderDetails);
+
         // Open modal
         $('#invoicePreviewModal').modal('show');
     });
@@ -272,6 +418,11 @@ $(document).ready(function() {
     // Synchronize modifications inside the preview modal back to the main form billing address field
     $('#preview-billing-address-field').on('input change', function() {
         $('#billing_address').val($(this).val());
+    });
+
+    // Synchronize modifications inside the preview modal back to the main form sender details textarea
+    $('#preview-sender-details-field').on('input change', function() {
+        $('#sender_details').val($(this).val());
     });
 
     // Form submission from preview modal

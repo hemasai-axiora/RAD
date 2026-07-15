@@ -58,14 +58,13 @@
             <?php if (empty($communications)): ?><div class="text-secondary">No communications logged.</div><?php endif; ?>
             <?php foreach ($communications as $comm): ?>
                 <div class="border-bottom border-secondary border-opacity-10 pb-3 mb-3">
-                    <div class="text-white"><?php echo strtoupper(htmlspecialchars($comm->channel)); ?> - <?php echo htmlspecialchars($comm->outcome ?: $comm->direction); ?></div>
-                    <div class="text-secondary small"><?php echo htmlspecialchars(date('h:i A', strtotime($comm->happened_at))); ?><?php echo $comm->lead_id ? ' · ' . htmlspecialchars(trim($comm->first_name . ' ' . ($comm->last_name ?? ''))) : ''; ?></div>
+                    <div class="text-white"><?php echo strtoupper(htmlspecialchars($comm->channel)); ?> - <?php echo htmlspecialchars($comm->outcome ?: $comm->direction); ?></div>                    <div class="text-secondary small"><?php echo htmlspecialchars(formatToLocalTime($comm->happened_at, 'h:i A')); ?><?php echo $comm->lead_id ? ' · ' . htmlspecialchars(trim($comm->first_name . ' ' . ($comm->last_name ?? ''))) : ''; ?></div>
                     <?php if ($comm->note): ?><div class="text-secondary small"><?php echo htmlspecialchars($comm->note); ?></div><?php endif; ?>
                 </div>
             <?php endforeach; ?>
         </div>
     </div>
-
+ 
     <div class="col-xl-6">
         <div class="pulse-card h-100">
             <h5 class="text-white mb-3">Meetings & Demos</h5>
@@ -76,13 +75,13 @@
                         <span class="text-white fw-semibold"><?php echo htmlspecialchars($meeting->title); ?></span>
                         <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25"><?php echo strtoupper($meeting->type); ?></span>
                     </div>
-                    <div class="text-secondary small"><?php echo htmlspecialchars(date('h:i A', strtotime($meeting->scheduled_start))); ?> · <?php echo strtoupper($meeting->status); ?></div>
+                    <div class="text-secondary small"><?php echo htmlspecialchars(formatToLocalTime($meeting->scheduled_start, 'h:i A')); ?> · <?php echo strtoupper($meeting->status); ?></div>
                     <?php if ($meeting->outcome): ?><div class="text-secondary small"><?php echo htmlspecialchars($meeting->outcome); ?></div><?php endif; ?>
                 </div>
             <?php endforeach; ?>
         </div>
     </div>
-
+ 
     <div class="col-xl-6">
         <div class="pulse-card h-100">
             <h5 class="text-white mb-3">Leads & Follow-ups</h5>
@@ -98,13 +97,13 @@
                     <h6 class="text-secondary">Follow-ups</h6>
                     <?php if (empty($followups)): ?><div class="text-secondary small">None</div><?php endif; ?>
                     <?php foreach ($followups as $f): ?>
-                        <div class="mb-2"><span class="text-white"><?php echo htmlspecialchars($f->first_name . ' ' . ($f->last_name ?? '')); ?></span><div class="text-secondary small"><?php echo htmlspecialchars(date('h:i A', strtotime($f->due_at))) . ' · ' . strtoupper($f->status); ?></div></div>
+                        <div class="mb-2"><span class="text-white"><?php echo htmlspecialchars($f->first_name . ' ' . ($f->last_name ?? '')); ?></span><div class="text-secondary small"><?php echo htmlspecialchars(formatToLocalTime($f->due_at, 'h:i A')) . ' · ' . strtoupper($f->status); ?></div></div>
                     <?php endforeach; ?>
                 </div>
             </div>
         </div>
     </div>
-
+ 
     <div class="col-12">
         <div class="pulse-card">
             <h5 class="text-white mb-3">Recent Location Points</h5>
@@ -114,7 +113,7 @@
                     <tbody>
                         <?php foreach ($locations as $loc): ?>
                             <tr>
-                                <td data-label="Time"><?php echo htmlspecialchars(date('h:i A', strtotime($loc->captured_at))); ?></td>
+                                <td data-label="Time"><?php echo htmlspecialchars(formatToLocalTime($loc->captured_at, 'h:i A')); ?></td>
                                 <td data-label="Source"><?php echo htmlspecialchars($loc->source); ?></td>
                                 <td data-label="Coords" class="font-monospace small"><?php echo htmlspecialchars($loc->lat . ', ' . $loc->lng); ?></td>
                                 <td data-label="Accuracy"><?php echo $loc->accuracy_m !== null ? (int) $loc->accuracy_m . 'm' : '-'; ?></td>

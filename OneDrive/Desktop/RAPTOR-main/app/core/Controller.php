@@ -170,6 +170,9 @@ class Controller {
 
     /** Emit a JSON response and stop. */
     protected function json($payload, int $status = 200) {
+        if (ob_get_length()) {
+            ob_clean();
+        }
         http_response_code($status);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode($payload);

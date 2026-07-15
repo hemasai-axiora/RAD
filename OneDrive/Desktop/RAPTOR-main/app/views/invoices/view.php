@@ -161,10 +161,14 @@
                 </div>
             </div>
             <div class="company-details">
-                <h5 style="color:#6366f1; font-weight:700; margin-bottom: 0.25rem;">Raptor Marketing Agency</h5>
-                <div>100 Creator Square, Business Bay</div>
-                <div>billing@raptor-agency.com</div>
-                <div>+1 (555) 0100</div>
+                <?php if (!empty($invoice->sender_details)): ?>
+                    <?php echo nl2br(htmlspecialchars($invoice->sender_details)); ?>
+                <?php else: ?>
+                    <h5 style="color:#6366f1; font-weight:700; margin-bottom: 0.25rem;">Raptor Marketing Agency</h5>
+                    <div>100 Creator Square, Business Bay</div>
+                    <div>billing@raptor-agency.com</div>
+                    <div>+1 (555) 0100</div>
+                <?php endif; ?>
             </div>
         </div>
 

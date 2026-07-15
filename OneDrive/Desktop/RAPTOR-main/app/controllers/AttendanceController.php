@@ -160,12 +160,20 @@ class AttendanceController extends Controller {
     public function report() {
         $this->requireOversight();
         [$from, $to] = $this->reportRange();
+        $error = '';
+        $rows = [];
+        if ($to < $from) {
+            $error = 'To Date cannot be earlier than From Date.';
+        } else {
+            $rows = $this->att->getReport(['from' => $from, 'to' => $to, 'user_ids' => $this->visibleUserIds()]);
+        }
         $data = [
             'title'      => 'Attendance Report | Raptor CRM',
             'active_tab' => 'attendance_report',
             'from'       => $from,
             'to'         => $to,
-            'rows'       => $this->att->getReport(['from' => $from, 'to' => $to, 'user_ids' => $this->visibleUserIds()]),
+            'rows'       => $rows,
+            'error'      => $error,
         ];
         $this->viewWithLayout('attendance/report', 'main', $data);
     }
@@ -174,6 +182,11 @@ class AttendanceController extends Controller {
     public function exportReport() {
         $this->requireOversight();
         [$from, $to] = $this->reportRange();
+        if ($to < $from) {
+            $_SESSION['report_error'] = 'To Date cannot be earlier than From Date.';
+            $this->redirect('index.php?route=attendance/report&from=' . urlencode($from) . '&to=' . urlencode($to));
+            return;
+        }
         $rows = $this->att->getReport(['from' => $from, 'to' => $to, 'user_ids' => $this->visibleUserIds()]);
 
         header('Content-Type: text/csv; charset=utf-8');

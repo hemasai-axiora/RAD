@@ -1213,8 +1213,8 @@
                     <h2 class="page-title ms-3 border-start ps-3" style="font-size: 1rem; font-weight: 600; margin-bottom: 0; border-color: var(--border-strong) !important; color: var(--text-primary);">
                         <?php 
                             $display_title = isset($title) ? htmlspecialchars($title) : 'Dashboard';
-                            $display_title = preg_replace('/\s*\|\s*RAPTOR\s*/i', '', $display_title);
                             $display_title = preg_replace('/\s*\|\s*Raptor CRM\s*/i', '', $display_title);
+                            $display_title = preg_replace('/\s*\|\s*RAPTOR\s*/i', '', $display_title);
                             $display_title = str_ireplace(['Raptor CRM', 'RAPTOR'], '', $display_title);
                             echo trim($display_title, " |");
                         ?>
@@ -1532,5 +1532,14 @@
     })();
     </script>
     <?php endif; ?>
+    <script>
+    // Timezone detection and cookie setter
+    (function() {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (tz) {
+            document.cookie = "user_timezone=" + encodeURIComponent(tz) + "; path=/; max-age=31536000; SameSite=Lax";
+        }
+    })();
+    </script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 <?php
 // Log Social Analytics View (Employee)
 $hasPlatforms = false;
-if (isset($platforms) && isset($groupedAccounts)) {
+if (!empty($assignedAccounts) && isset($platforms) && isset($groupedAccounts)) {
     foreach ($platforms as $plat) {
         if (isset($groupedAccounts[$plat->platform_id])) {
             $hasPlatforms = true;
@@ -49,7 +49,7 @@ if (isset($platforms) && isset($groupedAccounts)) {
                         <div class="col-md-6">
                             <label for="platform_id" class="form-label text-secondary">Platform</label>
                             <select name="platform_id" id="platform_id" class="filter-select w-100" required <?php echo !$hasPlatforms ? 'disabled' : ''; ?> style="padding: 0.6rem 1rem;">
-                                <option value=""><?php echo $hasPlatforms ? 'Select Platform' : 'No Platforms Available'; ?></option>
+                                <option value=""><?php echo $hasPlatforms ? 'Select Platform' : 'No accounts available'; ?></option>
                                 <?php if ($hasPlatforms): ?>
                                     <?php foreach ($platforms as $plat): ?>
                                         <?php if (isset($groupedAccounts[$plat->platform_id])): ?>
@@ -64,7 +64,7 @@ if (isset($platforms) && isset($groupedAccounts)) {
                         <div class="col-md-6">
                             <label for="account_id" class="form-label text-secondary">Social Account</label>
                             <select name="account_id" id="account_id" class="filter-select w-100" required disabled style="padding: 0.6rem 1rem;">
-                                <option value=""><?php echo $hasPlatforms ? 'Select Account' : 'No Accounts Available'; ?></option>
+                                <option value=""><?php echo $hasPlatforms ? 'Select Account' : 'No accounts available'; ?></option>
                             </select>
                         </div>
 
@@ -72,7 +72,7 @@ if (isset($platforms) && isset($groupedAccounts)) {
                         <div class="col-12">
                             <label for="post_id" class="form-label text-secondary">Target Post (Optional)</label>
                             <select name="post_id" id="post_id" class="filter-select w-100" disabled style="padding: 0.6rem 1rem;">
-                                <option value="">Account-level metrics (No post)</option>
+                                <option value=""><?php echo $hasPlatforms ? 'Account-level metrics (No post)' : 'No accounts available'; ?></option>
                             </select>
                         </div>
                     </div>

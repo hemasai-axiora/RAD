@@ -41,10 +41,15 @@ class TeamsController extends Controller {
     public function add() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
-            if (!empty($_POST['name'])) {
-                $this->teamModel->addTeam($_POST);
-                $this->audit('Created team: ' . $_POST['name'], 'team');
+            $name = trim($_POST['name'] ?? '');
+            if (!Validation::validateNameWithSpaces($name)) {
+                $_SESSION['team_error'] = 'Please enter a valid team name (alphabetic and spaces only, min 3 characters).';
+                $this->redirect('index.php?route=teams/index');
+                return;
             }
+            $this->teamModel->addTeam($_POST);
+            $this->audit('Created team: ' . $_POST['name'], 'team');
+            $_SESSION['team_success'] = 'Team created successfully.';
         }
         $this->redirect('index.php?route=teams/index');
     }
@@ -52,9 +57,16 @@ class TeamsController extends Controller {
     public function edit() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
-            if (!empty($_POST['team_id']) && !empty($_POST['name'])) {
+            $name = trim($_POST['name'] ?? '');
+            if (!Validation::validateNameWithSpaces($name)) {
+                $_SESSION['team_error'] = 'Please enter a valid team name (alphabetic and spaces only, min 3 characters).';
+                $this->redirect('index.php?route=teams/index');
+                return;
+            }
+            if (!empty($_POST['team_id'])) {
                 $this->teamModel->updateTeam($_POST);
                 $this->audit('Updated team #' . $_POST['team_id'], 'team', (int) $_POST['team_id']);
+                $_SESSION['team_success'] = 'Team updated successfully.';
             }
         }
         $this->redirect('index.php?route=teams/index');
@@ -64,6 +76,7 @@ class TeamsController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->teamModel->deleteTeam($id);
             $this->audit('Deleted team #' . $id, 'team', (int) $id);
+            $_SESSION['team_success'] = 'Team deleted successfully.';
         }
         $this->redirect('index.php?route=teams/index');
     }
@@ -84,6 +97,7 @@ class TeamsController extends Controller {
                 } else {
                     $this->audit('Assigned user #' . $_POST['user_id'] . ' to team #' . $teamId, 'team', $teamId);
                 }
+                $_SESSION['team_success'] = 'Team member assignment updated successfully.';
             }
         }
         $this->redirect('index.php?route=teams/index');
@@ -94,10 +108,24 @@ class TeamsController extends Controller {
     public function addBranch() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
-            if (!empty($_POST['name'])) {
-                $this->teamModel->addBranch($_POST);
-                $this->audit('Created branch: ' . $_POST['name'], 'branch');
+            $name = trim($_POST['name'] ?? '');
+            $address = trim($_POST['address'] ?? '');
+
+            if (!Validation::validateNameWithSpaces($name)) {
+                $_SESSION['team_error'] = 'Please enter a valid branch name (alphabetic and spaces only, min 3 characters).';
+                $this->redirect('index.php?route=teams/index');
+                return;
             }
+
+            if (!empty($address) && !Validation::validateAddress($address)) {
+                $_SESSION['team_error'] = 'Please enter a valid branch address.';
+                $this->redirect('index.php?route=teams/index');
+                return;
+            }
+
+            $this->teamModel->addBranch($_POST);
+            $this->audit('Created branch: ' . $_POST['name'], 'branch');
+            $_SESSION['team_success'] = 'Branch created successfully.';
         }
         $this->redirect('index.php?route=teams/index');
     }

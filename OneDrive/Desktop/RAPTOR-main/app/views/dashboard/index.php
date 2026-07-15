@@ -26,7 +26,7 @@
                             <p class="text-secondary mb-3"><?php echo htmlspecialchars($dashboard['description']); ?></p>
                             <div class="d-flex flex-wrap gap-2">
                                 <?php foreach (array_slice($dashboard['widgets'], 0, 4) as $widget): ?>
-                                    <span class="badge bg-primary bg-opacity-25 text-white border border-primary border-opacity-25"><?php echo htmlspecialchars(str_replace('_', ' ', $widget)); ?></span>
+                                    <span class="badge bg-primary bg-opacity-10 text-white border border-primary"><?php echo htmlspecialchars(str_replace('_', ' ', $widget)); ?></span>
                                 <?php endforeach; ?>
                             </div>
                         </div>

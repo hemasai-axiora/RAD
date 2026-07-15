@@ -26,11 +26,14 @@ header('Permissions-Policy: camera=(self), geolocation=(self), microphone=()');
 spl_autoload_register(function ($className) {
     $corePath = APPROOT . '/core/' . $className . '.php';
     $modelPath = APPROOT . '/models/' . $className . '.php';
+    $servicePath = APPROOT . '/services/' . $className . '.php';
     
     if (file_exists($corePath)) {
         require_once $corePath;
     } elseif (file_exists($modelPath)) {
         require_once $modelPath;
+    } elseif (file_exists($servicePath)) {
+        require_once $servicePath;
     }
 });
 

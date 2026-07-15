@@ -60,3 +60,46 @@ if (APP_ENV === 'production') {
     error_reporting(E_ALL);
     ini_set('display_errors', '1');
 }
+
+/**
+ * Timezone Helpers
+ */
+if (!function_exists('getUserTimezone')) {
+    function getUserTimezone(): string {
+        return $_COOKIE['user_timezone'] ?? 'UTC';
+    }
+}
+
+if (!function_exists('formatToLocalTime')) {
+    function formatToLocalTime($utcDatetime, $format = 'Y-m-d H:i:s'): string {
+        if (empty($utcDatetime)) return '';
+        try {
+            $dt = new DateTime($utcDatetime, new DateTimeZone('UTC'));
+            $localTz = getUserTimezone();
+            // Fallback if browser timezone name is not recognized by PHP
+            try {
+                $dt->setTimezone(new DateTimeZone($localTz));
+            } catch (Exception $ex) {
+                $dt->setTimezone(new DateTimeZone('UTC'));
+            }
+            return $dt->format($format);
+        } catch (Exception $e) {
+            return $utcDatetime;
+        }
+    }
+}
+
+if (!function_exists('parseLocalToUtc')) {
+    function parseLocalToUtc($localDatetimeString): string {
+        if (empty($localDatetimeString)) return '';
+        try {
+            $localTz = getUserTimezone();
+            $dt = new DateTime($localDatetimeString, new DateTimeZone($localTz));
+            $dt->setTimezone(new DateTimeZone('UTC'));
+            return $dt->format('Y-m-d H:i:s');
+        } catch (Exception $e) {
+            return $localDatetimeString;
+        }
+    }
+}
+
