@@ -20,6 +20,7 @@ class TeamsController extends Controller {
     }
 
     public function index() {
+        $mgrId = $_SESSION['user_role'] === 'manager' ? (int) $_SESSION['user_id'] : null;
         $data = [
             'title'       => 'Organization | Raptor CRM',
             'active_tab'  => 'system',
@@ -30,6 +31,7 @@ class TeamsController extends Controller {
             'salespersons'=> $this->teamModel->getSalesPersons(),
             'geofences'   => $this->teamModel->getGeofences(),
             'geofence_enabled' => $this->teamModel->isGeofenceEnabled(),
+            'team_members' => $this->teamModel->getTeamMembers($mgrId),
         ];
         $this->viewWithLayout('teams/index', 'main', $data);
     }
@@ -70,13 +72,18 @@ class TeamsController extends Controller {
     public function assign() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
-            if (!empty($_POST['user_id']) && !empty($_POST['team_id'])) {
+            if (!empty($_POST['user_id']) && isset($_POST['team_id'])) {
+                $teamId = ($_POST['team_id'] === 'remove' || $_POST['team_id'] === '') ? null : (int) $_POST['team_id'];
                 $this->teamModel->assignMember(
                     (int) $_POST['user_id'],
-                    (int) $_POST['team_id'],
+                    $teamId,
                     !empty($_POST['reporting_manager_id']) ? (int) $_POST['reporting_manager_id'] : null
                 );
-                $this->audit('Assigned user #' . $_POST['user_id'] . ' to team #' . $_POST['team_id'], 'team', (int) $_POST['team_id']);
+                if ($teamId === null) {
+                    $this->audit('Removed user #' . $_POST['user_id'] . ' from team', 'team');
+                } else {
+                    $this->audit('Assigned user #' . $_POST['user_id'] . ' to team #' . $teamId, 'team', $teamId);
+                }
             }
         }
         $this->redirect('index.php?route=teams/index');

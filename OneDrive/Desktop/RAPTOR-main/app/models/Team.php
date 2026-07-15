@@ -67,14 +67,14 @@ class Team extends Model {
             $this->bind(':uid', (int) $userId);
             $this->bind(':dept', 'Sales');
             $this->bind(':title', 'Sales Executive');
-            $this->bind(':team', (int) $teamId);
-            $this->bind(':mgr', $reportingManagerId ? (int) $reportingManagerId : null);
+            $this->bind(':team', $teamId !== null ? (int)$teamId : null);
+            $this->bind(':mgr', $reportingManagerId ? (int)$reportingManagerId : null);
             return $this->execute();
         }
 
         $this->query('UPDATE employees SET team_id = :team, reporting_manager_id = :mgr WHERE user_id = :uid');
-        $this->bind(':team', (int) $teamId);
-        $this->bind(':mgr', $reportingManagerId ? (int) $reportingManagerId : null);
+        $this->bind(':team', $teamId !== null ? (int)$teamId : null);
+        $this->bind(':mgr', $reportingManagerId ? (int)$reportingManagerId : null);
         $this->bind(':uid', (int) $userId);
         return $this->execute();
     }
@@ -178,6 +178,30 @@ class Team extends Model {
                       LEFT JOIN employees e ON u.user_id = e.user_id
                       WHERE r.role_name IN ('employee','sales_person') AND u.status = 'active'
                       ORDER BY u.name ASC");
+        return $this->resultSet();
+    }
+
+    /** Retrieve assigned team members for a manager (or all if admin). */
+    public function getTeamMembers($managerUserId = null) {
+        $sql = "SELECT u.user_id, u.name, u.email, t.name AS team_name, mgr.name AS manager_name
+                FROM users u
+                JOIN roles r ON u.role_id = r.role_id
+                JOIN employees e ON u.user_id = e.user_id
+                LEFT JOIN teams t ON e.team_id = t.team_id
+                LEFT JOIN users mgr ON e.reporting_manager_id = mgr.user_id
+                WHERE r.role_name IN ('employee', 'sales_person') AND u.status = 'active'";
+        
+        if ($managerUserId !== null) {
+            $sql .= " AND (t.manager_user_id = :mgr_id OR e.reporting_manager_id = :mgr_id2)";
+        }
+        
+        $sql .= " ORDER BY t.name ASC, u.name ASC";
+        
+        $this->query($sql);
+        if ($managerUserId !== null) {
+            $this->bind(':mgr_id', (int) $managerUserId);
+            $this->bind(':mgr_id2', (int) $managerUserId);
+        }
         return $this->resultSet();
     }
 }

@@ -59,6 +59,40 @@
                 </table>
             </div>
         </div>
+
+        <div class="pulse-card mt-4">
+            <h4 class="text-white mb-4"><?php echo $_SESSION['user_role'] === 'manager' ? 'My Team Members' : 'Assigned Team Members'; ?></h4>
+            <div class="table-scroll">
+                <table class="table table-dark table-hover align-middle table-stack">
+                    <thead>
+                        <tr class="text-secondary">
+                            <th>Employee</th>
+                            <th>Email</th>
+                            <th>Assigned Team</th>
+                            <th>Reporting Manager</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php if (empty($team_members)): ?>
+                        <tr><td colspan="4" class="text-center text-secondary py-4">No team members assigned yet.</td></tr>
+                    <?php else: foreach ($team_members as $m): ?>
+                        <tr>
+                            <td data-label="Employee" class="text-white fw-semibold"><?php echo htmlspecialchars($m->name); ?></td>
+                            <td data-label="Email"><?php echo htmlspecialchars($m->email); ?></td>
+                            <td data-label="Assigned Team">
+                                <?php if ($m->team_name): ?>
+                                    <span class="badge bg-primary-subtle text-primary"><?php echo htmlspecialchars($m->team_name); ?></span>
+                                <?php else: ?>
+                                    <span class="badge bg-secondary-subtle text-secondary">No Team</span>
+                                <?php endif; ?>
+                            </td>
+                            <td data-label="Reporting Manager"><?php echo htmlspecialchars($m->manager_name ?? '—'); ?></td>
+                        </tr>
+                    <?php endforeach; endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <!-- ===================== BRANCHES ===================== -->
@@ -294,6 +328,7 @@ function territoryOptions($territories, $selected = 0) {
             <div class="mb-3"><label class="form-label text-secondary">Team *</label>
                 <select name="team_id" required class="form-select bg-dark border-secondary text-white">
                     <option value="">-- Select --</option>
+                    <option value="remove">-- No Team / Remove from Team --</option>
                     <?php foreach ($teams as $t): ?><option value="<?php echo (int)$t->team_id; ?>"><?php echo htmlspecialchars($t->name); ?></option><?php endforeach; ?>
                 </select>
             </div>
