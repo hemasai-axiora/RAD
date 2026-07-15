@@ -633,6 +633,27 @@
         }
         .theme-toggle:hover { color: var(--primary); border-color: var(--primary); }
 
+        /* Custom Table Pagination Styles */
+        .table-pagination-nav .page-link {
+            background-color: var(--surface-soft) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-primary) !important;
+            cursor: pointer;
+        }
+        .table-pagination-nav .page-link:hover {
+            background-color: var(--primary-strong) !important;
+            color: #fff !important;
+        }
+        .table-pagination-nav .page-item.active .page-link {
+            background-color: var(--primary) !important;
+            border-color: var(--primary) !important;
+            color: #fff !important;
+        }
+        .table-pagination-nav .page-item.disabled .page-link {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
         /* Mobile drawer overlay (hidden on desktop) */
         #sidebar-overlay {
             display: none;
@@ -1374,6 +1395,89 @@
                     new Date(new Date().setDate(new Date().getDate() - 30)),
                     new Date()
                 ]
+            });
+
+            // Global Table Pagination: 10 rows per page
+            function paginateTables() {
+                $('table').each(function() {
+                    var $table = $(this);
+                    if ($table.data('paginated')) return;
+                    
+                    var $tbody = $table.find('tbody');
+                    if ($tbody.length === 0) return;
+                    
+                    var $rows = $tbody.children('tr');
+                    // Skip if table has a single row showing "No ... found" or similar empty messages
+                    if ($rows.length === 1 && $rows.find('td[colspan]').length > 0) {
+                        return;
+                    }
+                    
+                    var limit = 10;
+                    var totalRows = $rows.length;
+                    if (totalRows <= limit) return;
+                    
+                    $table.data('paginated', true);
+                    var totalPages = Math.ceil(totalRows / limit);
+                    
+                    var $nav = $('<nav class="mt-3 table-pagination-nav"><ul class="pagination pagination-sm justify-content-end mb-0"></ul></nav>');
+                    var $ul = $nav.find('ul');
+                    
+                    function showPage(page) {
+                        var start = (page - 1) * limit;
+                        var end = start + limit;
+                        
+                        $rows.hide().slice(start, end).show();
+                        
+                        $ul.find('li.page-item').removeClass('active');
+                        $ul.find('li.page-item[data-page="' + page + '"]').addClass('active');
+                        
+                        $ul.find('.prev-btn').toggleClass('disabled', page === 1);
+                        $ul.find('.next-btn').toggleClass('disabled', page === totalPages);
+                        
+                        $table.data('current-page', page);
+                    }
+                    
+                    var $prevLi = $('<li class="page-item prev-btn"><a class="page-link" href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>');
+                    $prevLi.on('click', function(e) {
+                        e.preventDefault();
+                        var cur = $table.data('current-page') || 1;
+                        if (cur > 1) showPage(cur - 1);
+                    });
+                    $ul.append($prevLi);
+                    
+                    for (var i = 1; i <= totalPages; i++) {
+                        var $li = $('<li class="page-item" data-page="' + i + '"><a class="page-link" href="#">' + i + '</a></li>');
+                        $li.on('click', (function(pageNumber) {
+                            return function(e) {
+                                e.preventDefault();
+                                showPage(pageNumber);
+                            };
+                        })(i));
+                        $ul.append($li);
+                    }
+                    
+                    var $nextLi = $('<li class="page-item next-btn"><a class="page-link" href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>');
+                    $nextLi.on('click', function(e) {
+                        e.preventDefault();
+                        var cur = $table.data('current-page') || 1;
+                        if (cur < totalPages) showPage(cur + 1);
+                    });
+                    $ul.append($nextLi);
+                    
+                    var $parent = $table.parent();
+                    if ($parent.hasClass('table-responsive')) {
+                        $parent.after($nav);
+                    } else {
+                        $table.after($nav);
+                    }
+                    
+                    showPage(1);
+                });
+            }
+            
+            paginateTables();
+            $(document).on('shown.bs.modal shown.bs.tab ajaxComplete', function() {
+                paginateTables();
             });
         });
     </script>
