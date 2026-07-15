@@ -52,10 +52,16 @@ class DashboardController extends Controller {
             $this->redirect('index.php?route=dashboard/index');
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $input = [
+                'hidden_widgets'  => $_POST['hidden_widgets'] ?? [],
+                'widget_order'    => $_POST['widget_order'] ?? [],
+                'theme_accent'    => trim($_POST['theme_accent'] ?? ''),
+                'date_range_days' => trim($_POST['date_range_days'] ?? '')
+            ];
             $this->dashboardModuleModel->savePreferences(
                 (int) $_SESSION['user_id'],
                 $key,
-                $_POST,
+                $input,
                 $dashboard['widgets']
             );
             $this->audit('Updated dashboard preferences: ' . $key, 'dashboard_preferences');

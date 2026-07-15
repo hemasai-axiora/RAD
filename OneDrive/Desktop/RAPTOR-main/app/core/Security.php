@@ -7,6 +7,10 @@ class Security {
     }
 
     public static function clientIp(): string {
+        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+            return substr(trim($ips[0]), 0, 45);
+        }
         return substr($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0', 0, 45);
     }
 

@@ -75,6 +75,7 @@
                                         data-date-of-joining="<?php echo htmlspecialchars($user->date_of_joining ?? $user->hire_date ?? ''); ?>"
                                         data-date-of-birth="<?php echo htmlspecialchars($user->date_of_birth ?? ''); ?>"
                                         data-job-title="<?php echo htmlspecialchars($user->job_title ?? ''); ?>"
+                                        data-department="<?php echo htmlspecialchars($user->department ?? 'Sales'); ?>"
                                         data-employment-type="<?php echo htmlspecialchars($user->employment_type ?? 'Full-time'); ?>"
                                         data-work-location="<?php echo htmlspecialchars($user->work_location ?? 'Office'); ?>"
                                         data-bio="<?php echo htmlspecialchars($user->bio ?? ''); ?>"
@@ -160,6 +161,10 @@
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Job Title</label>
                                     <input type="text" name="job_title" class="form-control bg-dark border-secondary text-white" placeholder="e.g. Sales Executive">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-secondary">Department</label>
+                                    <input type="text" name="department" class="form-control bg-dark border-secondary text-white" placeholder="e.g. Sales" value="Sales">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary">Date of Joining</label>
@@ -364,6 +369,10 @@
                                     <input type="text" name="job_title" id="edit_job_title" class="form-control bg-dark border-secondary text-white">
                                 </div>
                                 <div class="col-md-6">
+                                    <label class="form-label text-secondary">Department</label>
+                                    <input type="text" name="department" id="edit_department" class="form-control bg-dark border-secondary text-white">
+                                </div>
+                                <div class="col-md-6">
                                     <label class="form-label text-secondary">Date of Joining</label>
                                     <input type="date" name="date_of_joining" id="edit_date_of_joining" class="form-control bg-dark border-secondary text-white">
                                 </div>
@@ -547,6 +556,7 @@ $(document).ready(function() {
         $('#edit_date_of_joining').val($(this).data('date-of-joining'));
         $('#edit_date_of_birth').val($(this).data('date-of-birth'));
         $('#edit_job_title').val($(this).data('job-title'));
+        $('#edit_department').val($(this).data('department'));
         $('#edit_employment_type').val($(this).data('employment-type'));
         $('#edit_work_location').val($(this).data('work-location'));
         $('#edit_bio').val($(this).data('bio'));

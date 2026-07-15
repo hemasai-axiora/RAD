@@ -417,21 +417,7 @@ class PayrollController extends Controller {
 
     // 5. Reimbursements Claim Workflow
     public function reimbursements() {
-        $emp = $this->payrollModel->getEmployeeByUserId($_SESSION['user_id']);
-        if (!$emp) {
-            // Auto-provision employee record for testing/admin access
-            try {
-                $db = Database::getInstance()->getConnection();
-                $stmt = $db->prepare("INSERT INTO employees (user_id, employee_code, job_title, salary, date_of_joining, department, hire_date) VALUES (:uid, :code, :title, 0, CURDATE(), 'Administration', CURDATE())");
-                $code = 'EMP-' . $_SESSION['user_id'];
-                $stmt->execute([
-                    ':uid' => $_SESSION['user_id'],
-                    ':code' => $code,
-                    ':title' => 'Staff'
-                ]);
-                $emp = $this->payrollModel->getEmployeeByUserId($_SESSION['user_id']);
-            } catch (Exception $e) {}
-        }
+        $emp = $this->getOrProvisionEmployee();
         
         $role = $_SESSION['user_role'];
         
@@ -461,21 +447,7 @@ class PayrollController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
             
-            $emp = $this->payrollModel->getEmployeeByUserId($_SESSION['user_id']);
-            if (!$emp) {
-                // Auto-provision
-                try {
-                    $db = Database::getInstance()->getConnection();
-                    $stmt = $db->prepare("INSERT INTO employees (user_id, employee_code, job_title, salary, date_of_joining, department, hire_date) VALUES (:uid, :code, :title, 0, CURDATE(), 'Administration', CURDATE())");
-                    $code = 'EMP-' . $_SESSION['user_id'];
-                    $stmt->execute([
-                        ':uid' => $_SESSION['user_id'],
-                        ':code' => $code,
-                        ':title' => 'Staff'
-                    ]);
-                    $emp = $this->payrollModel->getEmployeeByUserId($_SESSION['user_id']);
-                } catch (Exception $e) {}
-            }
+            $emp = $this->getOrProvisionEmployee();
 
             if (!$emp) {
                 $this->redirect('index.php?route=payroll/reimbursements');
@@ -629,5 +601,26 @@ class PayrollController extends Controller {
             }
         }
         $this->redirect('index.php?route=payroll/bonuses');
+    }
+
+    /**
+     * Retrieve current user's employee record, provisioning one if absent.
+     */
+    private function getOrProvisionEmployee() {
+        $emp = $this->payrollModel->getEmployeeByUserId($_SESSION['user_id']);
+        if (!$emp) {
+            try {
+                $db = Database::getInstance()->getConnection();
+                $stmt = $db->prepare("INSERT INTO employees (user_id, employee_code, job_title, salary, date_of_joining, department, hire_date) VALUES (:uid, :code, :title, 0, CURDATE(), 'Administration', CURDATE())");
+                $code = 'EMP-' . $_SESSION['user_id'];
+                $stmt->execute([
+                    ':uid' => $_SESSION['user_id'],
+                    ':code' => $code,
+                    ':title' => 'Staff'
+                ]);
+                $emp = $this->payrollModel->getEmployeeByUserId($_SESSION['user_id']);
+            } catch (Exception $e) {}
+        }
+        return $emp;
     }
 }

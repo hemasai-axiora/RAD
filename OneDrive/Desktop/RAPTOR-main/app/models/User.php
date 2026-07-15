@@ -213,7 +213,8 @@ class User extends Model {
                                 pf_applicable = :pf_applicable,
                                 esic_number = :esic_number,
                                 pay_grade = :pay_grade,
-                                job_title = :job_title
+                                job_title = :job_title,
+                                department = :department
                               WHERE employee_id = :employee_id');
                 
                 $this->bind(':employee_code', $data['employee_code']);
@@ -233,6 +234,7 @@ class User extends Model {
                 $this->bind(':esic_number', $data['esic_number']);
                 $this->bind(':pay_grade', $data['pay_grade']);
                 $this->bind(':job_title', $data['job_title'] ?? 'Sales Executive');
+                $this->bind(':department', $data['department'] ?? 'Sales');
                 $this->bind(':employee_id', $employeeId);
 
                 if (!$this->execute()) {

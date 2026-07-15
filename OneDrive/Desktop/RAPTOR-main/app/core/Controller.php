@@ -16,7 +16,7 @@ class Controller {
         // Check if view file exists
         if (file_exists(APPROOT . '/views/' . $view . '.php')) {
             // Require view file
-            require_once APPROOT . '/views/' . $view . '.php';
+            require APPROOT . '/views/' . $view . '.php';
         } else {
             die("View does not exist: " . $view);
         }
@@ -33,7 +33,7 @@ class Controller {
         // Start output buffering for child view
         ob_start();
         if (file_exists(APPROOT . '/views/' . $view . '.php')) {
-            require_once APPROOT . '/views/' . $view . '.php';
+            require APPROOT . '/views/' . $view . '.php';
         } else {
             die("View does not exist: " . $view);
         }

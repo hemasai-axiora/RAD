@@ -107,17 +107,21 @@ class AuthController extends Controller {
                 $data['email_err'] = 'Please enter a valid email address.';
             } else {
                 $user = $this->userModel->findUserByEmail($email);
+                // Securely generate OTP
+                $otp = (string) random_int(100000, 999999);
                 if ($user) {
-                    // Generate mock OTP
-                    $otp = (string) rand(100000, 999999);
                     $_SESSION['forgot_otp'] = $otp;
                     $_SESSION['forgot_email'] = $email;
                     $_SESSION['forgot_expires'] = time() + 600; // 10 minutes
-
-                    $this->redirect('index.php?route=auth/reset_password&email=' . urlencode($email));
                 } else {
-                    $data['email_err'] = 'No active user found with that email address.';
+                    // Set fake session data to prevent timing analysis & keep reset flow consistent
+                    $_SESSION['forgot_otp'] = (string) random_int(100000, 999999);
+                    $_SESSION['forgot_email'] = $email;
+                    $_SESSION['forgot_expires'] = time() - 3600; // already expired
                 }
+                
+                $_SESSION['login_success'] = 'If the email address is associated with an active account, an OTP has been sent.';
+                $this->redirect('index.php?route=auth/reset_password&email=' . urlencode($email));
             }
         }
 
