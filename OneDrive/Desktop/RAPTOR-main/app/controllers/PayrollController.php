@@ -179,6 +179,16 @@ class PayrollController extends Controller {
                         $travel = $struct ? (float)$struct->travel_allowance : 1600.00;
                         $bonus = $struct ? (float)$struct->bonus : 0.00;
                         $other = $struct ? (float)$struct->other_earnings : 0.00;
+
+                        // Add approved reimbursements for this employee and month
+                        $reimbSum = 0.00;
+                        try {
+                            $db = Database::getInstance()->getConnection();
+                            $reimbStmt = $db->prepare("SELECT SUM(amount) FROM reimbursements WHERE employee_id = :emp_id AND status = 'finance_approved' AND created_at LIKE :month");
+                            $reimbStmt->execute([':emp_id' => $emp->employee_id, ':month' => $month . '-%']);
+                            $reimbSum = (float)$reimbStmt->fetchColumn();
+                        } catch (Exception $e) {}
+                        $other += $reimbSum;
                         
                         $pf = $struct ? (float)$struct->pf : ($basic * 0.12);
                         $esic = $struct ? (float)$struct->esic : ($basic * 0.0075);
