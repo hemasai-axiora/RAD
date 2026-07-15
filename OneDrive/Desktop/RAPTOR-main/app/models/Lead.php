@@ -11,7 +11,8 @@ class Lead extends Model {
 
         $sql = 'SELECT l.*, l.company_name AS lead_company_name, c.company_name AS client_company_name,
                        u.name AS assignee_name, t.name AS team_name, p.name AS product_name,
-                       TIMESTAMPDIFF(DAY, l.created_at, NOW()) AS ageing_days
+                       TIMESTAMPDIFF(DAY, l.created_at, NOW()) AS ageing_days,
+                       (SELECT created_at FROM follow_ups WHERE lead_id = l.lead_id AND status = \'scheduled\' ORDER BY due_at ASC LIMIT 1) AS next_follow_up_created_at
                 FROM leads l
                 LEFT JOIN clients c ON l.client_id = c.client_id
                 LEFT JOIN users u ON l.assigned_to_user_id = u.user_id
@@ -243,8 +244,8 @@ class Lead extends Model {
         $this->bind(':first_name', $data['first_name']);
         $this->bind(':last_name', $data['last_name'] ?? null);
         $this->bind(':company_name', $data['company_name'] ?? null);
-        $this->bind(':email', $data['email'] ?? null);
-        $this->bind(':phone', $data['phone'] ?? null);
+        $this->bind(':email', (!isset($data['email']) || trim($data['email']) === '') ? null : trim($data['email']));
+        $this->bind(':phone', (!isset($data['phone']) || trim($data['phone']) === '') ? null : trim($data['phone']));
         $this->bind(':status', $data['status']);
         $this->bind(':lead_quality', $data['lead_quality']);
         $this->bind(':conversion_probability', $probability);

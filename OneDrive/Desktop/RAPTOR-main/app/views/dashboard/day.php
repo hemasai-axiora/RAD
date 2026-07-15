@@ -44,7 +44,7 @@
                 <div class="border-bottom border-secondary border-opacity-10 pb-3 mb-3">
                     <div class="d-flex justify-content-between">
                         <span class="text-white fw-semibold"><?php echo htmlspecialchars($task->title); ?></span>
-                        <span class="badge bg-secondary-subtle text-secondary"><?php echo strtoupper($task->status); ?></span>
+                        <span class="badge bg-secondary bg-opacity-25 text-white border border-secondary border-opacity-25"><?php echo strtoupper($task->status); ?></span>
                     </div>
                     <div class="text-secondary small"><?php echo (int) $task->progress_percent; ?>% · Review <?php echo htmlspecialchars(str_replace('_', ' ', $task->review_status)); ?></div>
                 </div>
@@ -74,7 +74,7 @@
                 <div class="border-bottom border-secondary border-opacity-10 pb-3 mb-3">
                     <div class="d-flex justify-content-between">
                         <span class="text-white fw-semibold"><?php echo htmlspecialchars($meeting->title); ?></span>
-                        <span class="badge bg-info-subtle text-info"><?php echo strtoupper($meeting->type); ?></span>
+                        <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25"><?php echo strtoupper($meeting->type); ?></span>
                     </div>
                     <div class="text-secondary small"><?php echo htmlspecialchars(date('h:i A', strtotime($meeting->scheduled_start))); ?> · <?php echo strtoupper($meeting->status); ?></div>
                     <?php if ($meeting->outcome): ?><div class="text-secondary small"><?php echo htmlspecialchars($meeting->outcome); ?></div><?php endif; ?>

@@ -48,11 +48,11 @@ $statusTone = [
                 </div>
                 <div class="col-sm-6 col-xl-4">
                     <div class="text-secondary small">Email</div>
-                    <div class="text-white"><?php echo htmlspecialchars($lead->email ?: 'No email'); ?></div>
+                    <div class="text-white text-wrap" style="word-break: break-all;"><?php echo htmlspecialchars($lead->email ?: 'No email'); ?></div>
                 </div>
                 <div class="col-sm-6 col-xl-4">
                     <div class="text-secondary small">Phone</div>
-                    <div class="text-white"><?php echo htmlspecialchars(($lead->phone === '0000000000' || empty($lead->phone)) ? 'No phone' : $lead->phone); ?></div>
+                    <div class="text-white text-wrap" style="word-break: break-all;"><?php echo htmlspecialchars((empty($lead->phone) || preg_match('/^0+$/', $lead->phone)) ? 'No phone' : $lead->phone); ?></div>
                 </div>
                 <div class="col-sm-6 col-xl-4">
                     <div class="text-secondary small">Source</div>
@@ -80,7 +80,7 @@ $statusTone = [
                 </div>
                 <div class="col-sm-6 col-xl-4">
                     <div class="text-secondary small">Date Taken</div>
-                    <div class="text-white"><?php echo $lead->created_at ? htmlspecialchars(date('M d, Y h:i A', strtotime($lead->created_at))) : 'N/A'; ?></div>
+                    <div class="text-white"><?php echo $lead->next_follow_up_created_at ? htmlspecialchars(date('M d, Y h:i A', strtotime($lead->next_follow_up_created_at))) : 'N/A'; ?></div>
                 </div>
                 <div class="col-12">
                     <div class="text-secondary small">Location / Lost Reason</div>

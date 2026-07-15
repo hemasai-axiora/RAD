@@ -1,5 +1,14 @@
 <?php
 // Log Social Analytics View (Employee)
+$hasPlatforms = false;
+if (isset($platforms) && isset($groupedAccounts)) {
+    foreach ($platforms as $plat) {
+        if (isset($groupedAccounts[$plat->platform_id])) {
+            $hasPlatforms = true;
+            break;
+        }
+    }
+}
 ?>
 <div class="container-fluid py-4">
     <!-- Breadcrumb -->
@@ -39,13 +48,15 @@
                         <!-- Platform Selection -->
                         <div class="col-md-6">
                             <label for="platform_id" class="form-label text-secondary">Platform</label>
-                            <select name="platform_id" id="platform_id" class="filter-select w-100" required style="padding: 0.6rem 1rem;">
-                                <option value="">Select Platform</option>
-                                <?php foreach ($platforms as $plat): ?>
-                                    <?php if (isset($groupedAccounts[$plat->platform_id])): ?>
-                                        <option value="<?php echo $plat->platform_id; ?>"><?php echo htmlspecialchars($plat->name); ?></option>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
+                            <select name="platform_id" id="platform_id" class="filter-select w-100" required <?php echo !$hasPlatforms ? 'disabled' : ''; ?> style="padding: 0.6rem 1rem;">
+                                <option value=""><?php echo $hasPlatforms ? 'Select Platform' : 'No Platforms Available'; ?></option>
+                                <?php if ($hasPlatforms): ?>
+                                    <?php foreach ($platforms as $plat): ?>
+                                        <?php if (isset($groupedAccounts[$plat->platform_id])): ?>
+                                            <option value="<?php echo $plat->platform_id; ?>"><?php echo htmlspecialchars($plat->name); ?></option>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </select>
                         </div>
 
@@ -53,7 +64,7 @@
                         <div class="col-md-6">
                             <label for="account_id" class="form-label text-secondary">Social Account</label>
                             <select name="account_id" id="account_id" class="filter-select w-100" required disabled style="padding: 0.6rem 1rem;">
-                                <option value="">Select Account</option>
+                                <option value=""><?php echo $hasPlatforms ? 'Select Account' : 'No Accounts Available'; ?></option>
                             </select>
                         </div>
 
@@ -168,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Platform change trigger
     platformSelect.addEventListener('change', function() {
         const pid = this.value;
-        accountSelect.innerHTML = '<option value="">Select Account</option>';
+        accountSelect.innerHTML = pid ? '<option value="">Select Account</option>' : '<option value="">No Accounts Available</option>';
         postSelect.innerHTML = '<option value="">Account-level metrics (No post)</option>';
         accountSelect.disabled = true;
         postSelect.disabled = true;
@@ -187,14 +198,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Account change trigger
     accountSelect.addEventListener('change', function() {
         const aid = this.value;
+        const pid = platformSelect.value;
         postSelect.innerHTML = '<option value="">Account-level metrics (No post)</option>';
         postSelect.disabled = true;
 
-        if (aid) {
+        if (pid && aid) {
             fetch('index.php?route=social/getPostsByAccount&accountId=' + aid)
                 .then(r => r.json())
                 .then(res => {
-                    if (res.success && res.data.length > 0) {
+                    if (res.success && res.data.length > 0 && platformSelect.value && accountSelect.value) {
                         res.data.forEach(post => {
                             const opt = document.createElement('option');
                             opt.value = post.post_id;

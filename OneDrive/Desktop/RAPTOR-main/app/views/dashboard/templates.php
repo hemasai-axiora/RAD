@@ -61,12 +61,12 @@
                 <div class="p-3 rounded-3 h-100" style="background: var(--surface-soft); border: 1px solid var(--border-color);">
                     <div class="d-flex justify-content-between gap-3">
                         <h5 class="text-white mb-1"><?php echo htmlspecialchars($template->name); ?></h5>
-                        <span class="badge bg-primary-subtle text-primary"><?php echo htmlspecialchars($template->visibility); ?></span>
+                        <span class="badge bg-primary bg-opacity-25 text-white border border-primary border-opacity-25"><?php echo htmlspecialchars($template->visibility); ?></span>
                     </div>
                     <p class="text-secondary small mb-3"><?php echo htmlspecialchars($template->description ?: 'No description provided.'); ?></p>
                     <div class="d-flex flex-wrap gap-2 mb-3">
                         <?php foreach ($widgets as $widget): ?>
-                            <span class="badge bg-secondary-subtle text-secondary"><?php echo htmlspecialchars($widget_meta[$widget]['label'] ?? $widget); ?></span>
+                            <span class="badge bg-secondary bg-opacity-25 text-white border border-secondary border-opacity-25"><?php echo htmlspecialchars($widget_meta[$widget]['label'] ?? $widget); ?></span>
                         <?php endforeach; ?>
                     </div>
                     <div class="text-secondary small">

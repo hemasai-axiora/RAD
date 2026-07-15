@@ -21,7 +21,8 @@
 
     <div class="col-md-6">
         <label for="last_name" class="form-label text-secondary">Last Name</label>
-        <input type="text" name="last_name" id="last_name" class="form-control" value="<?php echo htmlspecialchars($last_name); ?>" pattern="[A-Za-z\s'\-]{0,50}" title="Last name must contain only letters, spaces, hyphens, or apostrophes.">
+        <input type="text" name="last_name" id="last_name" class="form-control <?php echo (!empty($last_name_err)) ? 'is-invalid' : ''; ?>" value="<?php echo htmlspecialchars($last_name); ?>" pattern="[A-Za-z\s'\-]{0,50}" title="Last name must contain only letters, spaces, hyphens, or apostrophes.">
+        <div class="invalid-feedback"><?php echo htmlspecialchars($last_name_err); ?></div>
     </div>
 
     <div class="col-md-6">
@@ -43,12 +44,14 @@
 
     <div class="col-md-6">
         <label for="email" class="form-label text-secondary">Email Address</label>
-        <input type="email" name="email" id="email" class="form-control" value="<?php echo htmlspecialchars($email); ?>">
+        <input type="email" name="email" id="email" class="form-control <?php echo (!empty($email_err)) ? 'is-invalid' : ''; ?>" value="<?php echo htmlspecialchars($email); ?>">
+        <div class="invalid-feedback"><?php echo htmlspecialchars($email_err); ?></div>
     </div>
 
     <div class="col-md-6">
         <label for="phone" class="form-label text-secondary">Phone Number</label>
-        <input type="text" name="phone" id="phone" class="form-control" value="<?php echo htmlspecialchars($phone); ?>">
+        <input type="text" name="phone" id="phone" class="form-control <?php echo (!empty($phone_err)) ? 'is-invalid' : ''; ?>" value="<?php echo htmlspecialchars($phone); ?>">
+        <div class="invalid-feedback"><?php echo htmlspecialchars($phone_err); ?></div>
     </div>
 
     <div class="col-md-6">

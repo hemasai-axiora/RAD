@@ -109,7 +109,10 @@ class LeadsController extends Controller {
             'lost_reason' => '',
             'converted_at' => '',
             'first_name_err' => '',
+            'last_name_err' => '',
             'source_err' => '',
+            'phone_err' => '',
+            'email_err' => '',
             'duplicates' => [],
         ]);
 
@@ -119,7 +122,7 @@ class LeadsController extends Controller {
             $this->validateLeadData($data);
             $data['duplicates'] = $this->leadModel->findDuplicates($data['phone'], $data['email']);
 
-            if (empty($data['first_name_err']) && empty($data['source_err'])) {
+            if (empty($data['first_name_err']) && empty($data['last_name_err']) && empty($data['source_err']) && empty($data['phone_err']) && empty($data['email_err'])) {
                 $leadId = $this->leadModel->addLead($data);
                 if ($leadId) {
                     $this->audit('Created lead: ' . $data['first_name'], 'lead', (int) $leadId, null, $data);
@@ -163,7 +166,10 @@ class LeadsController extends Controller {
             'lost_reason' => $lead->lost_reason,
             'converted_at' => $lead->converted_at,
             'first_name_err' => '',
+            'last_name_err' => '',
             'source_err' => '',
+            'phone_err' => '',
+            'email_err' => '',
             'duplicates' => $this->leadModel->findDuplicates($lead->phone, $lead->email, (int) $id),
         ]);
 
@@ -175,7 +181,7 @@ class LeadsController extends Controller {
             $this->validateLeadData($data);
             $data['duplicates'] = $this->leadModel->findDuplicates($data['phone'], $data['email'], (int) $id);
 
-            if (empty($data['first_name_err']) && empty($data['source_err'])) {
+            if (empty($data['first_name_err']) && empty($data['last_name_err']) && empty($data['source_err']) && empty($data['phone_err']) && empty($data['email_err'])) {
                 if ($this->leadModel->updateLead($data)) {
                     if ($lead->status !== $data['status']) {
                         $this->autoScheduleAfterStageChange((int) $id, $data['status'], $data['assigned_to_user_id']);
@@ -268,8 +274,8 @@ class LeadsController extends Controller {
             $data['first_name_err'] = 'First name must be between 2 and 50 characters, containing only letters, spaces, hyphens, or apostrophes.';
         }
         
-        if (!empty($data['last_name']) && !preg_match("/^[A-Za-z\s'\-]{0,50}$/", $data['last_name'])) {
-            $data['first_name_err'] = 'Last name must contain only letters, spaces, hyphens, or apostrophes.';
+        if (!empty($data['last_name']) && !preg_match("/^[A-Za-z\s'\-]{2,50}$/", $data['last_name'])) {
+            $data['last_name_err'] = 'Last name must contain only letters, spaces, hyphens, or apostrophes, and be between 2 and 50 characters.';
         }
         
         if (empty($data['lead_source'])) {
@@ -280,6 +286,18 @@ class LeadsController extends Controller {
             $data['source_err'] = 'Expected Value must be greater than zero.';
         }
 
+        if (!empty($data['email'])) {
+            if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                $data['email_err'] = 'Please enter a valid email address.';
+            }
+        }
+
+        if (!empty($data['phone'])) {
+            if (!preg_match("/^[0-9\s\+\-\(\)\.]{7,20}$/", $data['phone'])) {
+                $data['phone_err'] = 'Phone number must contain only numbers and standard formatting symbols (+, -, parentheses, spaces, dots) and be between 7 and 20 characters.';
+            }
+        }
+        
         if (!in_array($data['status'], Lead::STATUSES, true)) {
             $data['status'] = 'new';
         }

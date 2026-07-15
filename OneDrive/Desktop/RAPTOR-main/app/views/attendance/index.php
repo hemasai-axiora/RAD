@@ -184,18 +184,38 @@ $(function () {
         }
 
         // Camera (front)
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-            .then(function (s) {
-                stream = s;
-                document.getElementById('cam').srcObject = s;
-                $('#btn-capture').removeClass('d-none');
-            })
-            .catch(function (err) {
-                msg('Camera permission denied or unavailable. A selfie is required.', false);
-                $('#btn-start').removeClass('d-none');
-                $('#capture-area').addClass('d-none');
-                $('#att-msg').html('<div class="alert alert-danger py-2 mt-3 text-center"><i class="fa-solid fa-video-slash me-2"></i>Camera access is blocked. Please check browser settings and allow camera access. <a href="#" onclick="location.reload(); return false;" class="alert-link text-decoration-underline ms-2">Reload &amp; Retry</a></div>');
-            });
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+                .then(function (s) {
+                    stream = s;
+                    document.getElementById('cam').srcObject = s;
+                    $('#btn-capture').removeClass('d-none');
+                })
+                .catch(function (err) {
+                    msg('Camera permission denied or unavailable. A selfie is required.', false);
+                    $('#btn-start').removeClass('d-none');
+                    $('#capture-area').addClass('d-none');
+                    $('#att-msg').html('<div class="alert alert-danger py-2 mt-3 text-center"><i class="fa-solid fa-video-slash me-2"></i>Camera access is blocked. Please check browser settings and allow camera access. <a href="#" onclick="location.reload(); return false;" class="alert-link text-decoration-underline ms-2">Reload &amp; Retry</a></div>');
+                });
+        } else {
+            // Non-secure origin / HTTP context fallback: Enable mock mode
+            msg('Using mock camera fallback (non-secure HTTP origin).', true);
+            $('#btn-capture').removeClass('d-none');
+            const camEl = document.getElementById('cam');
+            if (camEl) {
+                camEl.style.display = 'none';
+                let placeholder = document.getElementById('mock-cam-placeholder');
+                if (!placeholder) {
+                    placeholder = document.createElement('div');
+                    placeholder.id = 'mock-cam-placeholder';
+                    placeholder.className = 'w-100 d-flex align-items-center justify-content-center bg-dark text-secondary';
+                    placeholder.style.height = '240px';
+                    placeholder.style.borderRadius = '8px';
+                    placeholder.innerHTML = '<div class="text-center"><i class="fa-solid fa-video-slash fa-2x mb-2"></i><div>Mock Camera (HTTP Context)</div></div>';
+                    camEl.parentNode.appendChild(placeholder);
+                }
+            }
+        }
     });
 
     // --- Capture & submit ---
@@ -204,7 +224,21 @@ $(function () {
         const canvas = document.getElementById('snap');
         canvas.width = video.videoWidth || 320;
         canvas.height = video.videoHeight || 240;
-        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        const ctx = canvas.getContext('2d');
+
+        if (stream) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        } else {
+            // Draw a placeholder mockup selfie
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#64748b';
+            ctx.font = '16px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('MOCK SELFIE (HTTP)', canvas.width / 2, canvas.height / 2 - 10);
+            ctx.font = '12px sans-serif';
+            ctx.fillText(new Date().toLocaleString(), canvas.width / 2, canvas.height / 2 + 15);
+        }
         const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
 
         if (stream) { stream.getTracks().forEach(t => t.stop()); }

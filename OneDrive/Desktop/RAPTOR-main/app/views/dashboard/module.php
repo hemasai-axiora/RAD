@@ -187,7 +187,7 @@ $meta = function ($widget) use ($widget_meta) {
                     <div class="list-group list-group-flush">
                         <?php foreach ($dashboard_data['risk_alerts'] as $row): ?>
                             <div class="list-group-item bg-transparent text-white border-secondary border-opacity-10">
-                                <span class="badge bg-warning me-2"><?php echo htmlspecialchars($row->severity); ?></span><?php echo htmlspecialchars($row->title); ?>
+                                <span class="badge bg-warning text-dark me-2"><?php echo htmlspecialchars($row->severity); ?></span><?php echo htmlspecialchars($row->title); ?>
                             </div>
                         <?php endforeach; ?>
                     </div>
