@@ -8,6 +8,7 @@ class DashboardController extends Controller {
     public function __construct() {
         // Enforce user authentication for all dashboard routes
         $this->requireAuth();
+        $this->requirePermission('dashboard', 'view');
         $this->monitoringModel = $this->model('Monitoring');
         $this->dashboardModuleModel = $this->model('DashboardModule');
     }
@@ -27,8 +28,14 @@ class DashboardController extends Controller {
     public function show($key = 'sales_command') {
         $dashboard = $this->dashboardModuleModel->getDashboard($key, $_SESSION['user_role']);
         if (!$dashboard) {
-            $fallback = array_key_first($this->dashboardModuleModel->dashboardsForRole($_SESSION['user_role']));
-            $this->redirect('index.php?route=dashboard/show/' . ($fallback ?: 'executive'));
+            $dashboards = $this->dashboardModuleModel->dashboardsForRole($_SESSION['user_role']);
+            $fallback = array_key_first($dashboards);
+            if ($fallback && $fallback !== $key) {
+                $this->redirect('index.php?route=dashboard/show/' . $fallback);
+            } else {
+                $this->redirect('index.php?route=dashboard/index');
+            }
+            return;
         }
 
         $prefs = $this->dashboardModuleModel->preferences((int) $_SESSION['user_id'], $key);
@@ -70,13 +77,7 @@ class DashboardController extends Controller {
     }
 
     public function templates() {
-        if (!Policy::canCreateDashboardTemplate()) {
-            $this->viewWithLayout('errors/403', 'main', [
-                'title' => 'Access Denied',
-                'message' => 'Only analysts and admins can create dashboard templates.'
-            ]);
-            return;
-        }
+        $this->requirePermission('dashboard', 'manage');
 
         $this->viewWithLayout('dashboard/templates', 'main', [
             'title' => 'Dashboard Templates | Raptor CRM',
@@ -88,9 +89,7 @@ class DashboardController extends Controller {
     }
 
     public function createTemplate() {
-        if (!Policy::canCreateDashboardTemplate()) {
-            $this->redirect('index.php?route=dashboard/index');
-        }
+        $this->requirePermission('dashboard', 'manage');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
@@ -103,14 +102,10 @@ class DashboardController extends Controller {
 
     // Executive Marketing Overview Dashboard
     public function executive() {
-        // Employers, Managers, and Admins can access
-        $allowedRoles = ['admin', 'manager', 'employer'];
+        // Employers, Managers, Analysts, and Admins can access
+        $allowedRoles = ['admin', 'manager', 'employer', 'analyst'];
         if (!in_array($_SESSION['user_role'], $allowedRoles)) {
-            if ($_SESSION['user_role'] === 'analyst') {
-                $this->redirect('index.php?route=dashboard/channels');
-            } else {
-                $this->redirect('index.php?route=dashboard/index');
-            }
+            $this->redirect('index.php?route=dashboard/index');
         }
 
         $data = [

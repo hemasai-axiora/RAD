@@ -16,6 +16,7 @@ class AttendanceController extends Controller {
 
     /** Self attendance screen. */
     public function index() {
+        $this->requirePermission('attendance', 'view');
         if ($_SESSION['user_role'] === 'admin') {
             $this->redirect('index.php?route=dashboard/index');
         }
@@ -101,15 +102,8 @@ class AttendanceController extends Controller {
 
     // ================= Oversight: approvals & report =================
 
-    /** Only team leaders, managers, admins may monitor/approve. */
     private function requireOversight() {
-        if (!in_array($_SESSION['user_role'], ['admin', 'manager', 'team_leader'])) {
-            $this->viewWithLayout('errors/403', 'main', [
-                'title'   => 'Access Denied',
-                'message' => 'Attendance oversight is limited to Team Leaders, Managers, and Admins.'
-            ]);
-            exit();
-        }
+        $this->requirePermission('attendance', 'approve');
     }
 
     /** Pending attendance exceptions queue (scoped to the viewer's team subtree). */
@@ -128,7 +122,7 @@ class AttendanceController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->requireAuth(); // re-validates CSRF on POST
             if ($this->inScope((int) $id)) {
-                $ok = $this->att->setApproval((int) $id, 'approved', (int) $_SESSION['user_id']);
+                $ok = $this->att->setApproval((int) $id, 'Approved', (int) $_SESSION['user_id']);
                 if ($ok) { $this->audit('Approved attendance #' . (int) $id, 'attendance', (int) $id); }
             }
         }
@@ -141,19 +135,54 @@ class AttendanceController extends Controller {
             $this->requireAuth();
             $remark = isset($_POST['remark']) ? substr(trim($_POST['remark']), 0, 255) : null;
             if ($this->inScope((int) $id)) {
-                $ok = $this->att->setApproval((int) $id, 'rejected', (int) $_SESSION['user_id'], $remark);
+                $ok = $this->att->setApproval((int) $id, 'Rejected', (int) $_SESSION['user_id'], $remark);
                 if ($ok) { $this->audit('Rejected attendance #' . (int) $id, 'attendance', (int) $id); }
             }
         }
         $this->redirect('index.php?route=attendance/approvals');
     }
 
-    /** Ensure the target attendance row belongs to a user the approver may see. */
+    /** Ensure the target attendance row belongs to a user the approver may see, and matches hierarchy. */
     private function inScope(int $attendanceId): bool {
         $rec = $this->att->getById($attendanceId);
         if (!$rec) { return false; }
-        $scope = $this->visibleUserIds();
-        return $scope === null || in_array((int) $rec->user_id, $scope, true);
+
+        $role = $_SESSION['user_role'];
+        $uid  = (int) $_SESSION['user_id'];
+
+        // Enforce: Cannot approve their own attendance
+        if ((int) $rec->user_id === $uid) {
+            return false;
+        }
+
+        // Fetch owner details
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT u.user_id, r.role_name, e.reporting_manager_id 
+                              FROM users u 
+                              JOIN roles r ON u.role_id = r.role_id
+                              LEFT JOIN employees e ON u.user_id = e.user_id 
+                              WHERE u.user_id = :uid");
+        $stmt->execute([':uid' => $rec->user_id]);
+        $owner = $stmt->fetch(PDO::FETCH_OBJ);
+        if (!$owner) { return false; }
+
+        // Enforce specific approval workflow hierarchy:
+        if ($role === 'manager' || $role === 'team_leader') {
+            // Manager/Team Leader can only approve employees assigned to them (Employee / Sales Person)
+            return in_array($owner->role_name, ['employee', 'sales_person'], true) && (int) $owner->reporting_manager_id === $uid;
+        }
+
+        if ($role === 'hr') {
+            // HR can only approve Manager, Team Leader, Finance, and Analyst attendance
+            return in_array($owner->role_name, ['manager', 'team_leader', 'finance', 'analyst'], true);
+        }
+
+        if ($role === 'admin') {
+            // Admin can only approve HR attendance
+            return $owner->role_name === 'hr';
+        }
+
+        return false;
     }
 
     /** Attendance report with date range + team scoping. */

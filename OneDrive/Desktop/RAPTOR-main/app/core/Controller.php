@@ -150,9 +150,22 @@ class Controller {
     }
 
     // Enforce role permission boundary
-    protected function requirePermission($permissionName) {
+    protected function requirePermission($module, $action = null, $record = null) {
         $this->requireAuth();
-        if (!$this->hasPermission($permissionName)) {
+        
+        $permitted = false;
+        if ($action === null) {
+            if (strpos($module, '.') !== false) {
+                list($mod, $act) = explode('.', $module, 2);
+                $permitted = PermissionService::can($mod, $act, $record);
+            } else {
+                $permitted = $this->hasPermission($module);
+            }
+        } else {
+            $permitted = PermissionService::can($module, $action, $record);
+        }
+
+        if (!$permitted) {
             // Render 403 Access Denied
             $this->viewWithLayout('errors/403', 'main', [
                 'title' => 'Access Denied',
@@ -273,9 +286,6 @@ class Controller {
         }
     }
 
-    /**
-     * @return int[]|null  User IDs the current user may see, or null for all.
-     */
     protected function visibleUserIds() {
         if (!$this->isLoggedIn()) {
             return [];
@@ -288,7 +298,18 @@ class Controller {
             return null; // unrestricted
         }
 
-        if (Policy::isEmployee() || in_array($role, ['analyst', 'employer', 'hr'], true)) {
+        if ($role === 'hr') {
+            // HR can see Managers, Team Leaders, Finance, and Analysts
+            $db = Database::getInstance()->getConnection();
+            $stmt = $db->query("SELECT u.user_id FROM users u 
+                                JOIN roles r ON u.role_id = r.role_id 
+                                WHERE r.role_name IN ('manager', 'team_leader', 'finance', 'analyst')");
+            $ids = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN)) ?: [];
+            $ids[] = $uid; // Include self
+            return array_values(array_unique($ids));
+        }
+
+        if (Policy::isEmployee() || in_array($role, ['analyst', 'employer'], true)) {
             return [$uid]; // self only
         }
 

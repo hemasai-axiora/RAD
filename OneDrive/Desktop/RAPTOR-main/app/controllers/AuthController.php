@@ -62,6 +62,7 @@ class AuthController extends Controller {
 
                     if ($loggedInUser) {
                         Security::recordLoginAttempt($data['email'], true);
+                        Security::clearLoginAttempts($data['email']);
                         session_regenerate_id(true);
                         // Create Session variables
                         $this->createUserSession($loggedInUser);
@@ -174,6 +175,7 @@ class AuthController extends Controller {
 
             if (empty($data['otp_err']) && empty($data['password_err']) && empty($data['confirm_password_err'])) {
                 if ($this->userModel->resetPassword($email, $password)) {
+                    Security::clearLoginAttempts($email);
                     // Clear session OTP
                     unset($_SESSION['forgot_otp']);
                     unset($_SESSION['forgot_email']);
@@ -259,14 +261,19 @@ class AuthController extends Controller {
 
     // Helper to log in session
     private function createUserSession($user) {
-        $_SESSION['user_id'] = $user->user_id;
-        $_SESSION['user_email'] = $user->email;
-        $_SESSION['user_name'] = $user->name;
-        $_SESSION['user_role'] = $user->role_name;
+        $_SESSION['user_id']              = $user->user_id;
+        $_SESSION['user_email']           = $user->email;
+        $_SESSION['user_name']            = $user->name;
+        $_SESSION['user_role']            = $user->role_name;
+        $_SESSION['user_status']          = $user->status ?? 'active';
         $_SESSION['force_password_reset'] = (int) ($user->force_password_reset ?? 0);
-        
-        // Fetch and cache role permissions
+
+        // Legacy flat permissions list (backward compat with hasPermission())
         $_SESSION['permissions'] = $this->userModel->getRolePermissions($user->role_id);
+
+        // Granular permissions: ['module.action' => 'scope_or_null']
+        $_SESSION['rbac_permissions'] = PermissionService::loadForUser($user->user_id, $user->role_id);
+
         $_SESSION['last_activity'] = time();
     }
 

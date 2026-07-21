@@ -125,4 +125,15 @@ class Security {
             return false;
         }
     }
+
+    public static function clearLoginAttempts(string $email): void {
+        try {
+            $stmt = self::db()->prepare('DELETE FROM login_attempts WHERE email = :email OR ip_address = :ip');
+            $stmt->execute([
+                ':email' => strtolower(trim($email)),
+                ':ip' => self::clientIp(),
+            ]);
+        } catch (Exception $e) {
+        }
+    }
 }

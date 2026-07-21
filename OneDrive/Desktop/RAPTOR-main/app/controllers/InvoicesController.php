@@ -7,12 +7,7 @@ class InvoicesController extends Controller {
 
     public function __construct() {
         $this->requireAuth();
-        
-        // Enforce RBAC: Only Admin and Manager can access Invoicing
-        $allowedRoles = ['admin', 'manager'];
-        if (!in_array($_SESSION['user_role'], $allowedRoles)) {
-            $this->redirect('index.php?route=dashboard/executive');
-        }
+        $this->requirePermission('invoices', 'view');
 
         $this->invoiceModel = $this->model('Invoice');
         $this->clientModel = $this->model('Client');
@@ -33,6 +28,7 @@ class InvoicesController extends Controller {
 
     // Create invoice
     public function add() {
+        $this->requirePermission('invoices', 'create');
         $clients = $this->clientModel->getClients();
 
         // Get single source of truth conversion rate from settings table
@@ -188,10 +184,47 @@ class InvoicesController extends Controller {
         $this->redirect('index.php?route=invoices/index');
     }
 
-    // Delete invoice
+    // Delete invoice - disabled by governance policy
     public function delete($id) {
+        $this->redirect('index.php?route=invoices/index');
+    }
+
+    // Mark invoice as Paid (admin/finance only) - records UTR number
+    public function markPaid($id) {
+        $this->requirePermission('invoices', 'edit');
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->invoiceModel->deleteInvoice($id);
+            $utr = trim($_POST['utr_number'] ?? '');
+            if (empty($utr)) {
+                $_SESSION['invoice_error'] = 'UTR number is required to mark an invoice as Paid.';
+            } else {
+                $invoice = $this->invoiceModel->getInvoiceById($id);
+                if ($invoice && $invoice->status !== 'paid' && $invoice->status !== 'cancelled') {
+                    $this->invoiceModel->updatePayment($id, $utr);
+                    $_SESSION['invoice_success'] = 'Invoice marked as Paid. UTR: ' . htmlspecialchars($utr);
+                } else {
+                    $_SESSION['invoice_error'] = 'Invoice is already finalised or not found.';
+                }
+            }
+        }
+        $this->redirect('index.php?route=invoices/index');
+    }
+
+    // Mark invoice as Cancelled (admin/finance only) - records cancellation reason
+    public function markCancelled($id) {
+        $this->requirePermission('invoices', 'edit');
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $reason = trim($_POST['cancel_reason'] ?? '');
+            if (empty($reason)) {
+                $_SESSION['invoice_error'] = 'Cancellation reason is required.';
+            } else {
+                $invoice = $this->invoiceModel->getInvoiceById($id);
+                if ($invoice && $invoice->status !== 'paid' && $invoice->status !== 'cancelled') {
+                    $this->invoiceModel->updateCancellation($id, $reason);
+                    $_SESSION['invoice_success'] = 'Invoice has been cancelled.';
+                } else {
+                    $_SESSION['invoice_error'] = 'Invoice is already finalised or not found.';
+                }
+            }
         }
         $this->redirect('index.php?route=invoices/index');
     }

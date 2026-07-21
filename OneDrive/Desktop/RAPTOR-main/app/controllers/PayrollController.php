@@ -7,17 +7,14 @@ class PayrollController extends Controller {
 
     public function __construct() {
         $this->requireAuth();
+        $this->requirePermission('payroll', 'view');
         $this->payrollModel = $this->model('Payroll');
         $this->userModel = $this->model('User');
     }
 
     // 1. Payroll Dashboard
     public function dashboard() {
-        $role = $_SESSION['user_role'];
-        if (!in_array($role, ['admin', 'hr', 'finance', 'manager'], true)) {
-            $this->redirect('index.php?route=dashboard/executive');
-            return;
-        }
+        $this->requirePermission('payroll', 'view');
 
         // Fetch payroll runs for overview
         $runs = $this->payrollModel->getPayrollRuns();
@@ -36,11 +33,7 @@ class PayrollController extends Controller {
 
     // 2. Salary Structures Setup
     public function structures() {
-        $role = $_SESSION['user_role'];
-        if (!in_array($role, ['admin', 'hr'], true)) {
-            $this->redirect('index.php?route=payroll/dashboard');
-            return;
-        }
+        $this->requirePermission('payroll', 'edit');
 
         $employees = $this->payrollModel->getActiveEmployees();
 
@@ -64,11 +57,7 @@ class PayrollController extends Controller {
 
     // Save/Update Salary Structure
     public function save_structure() {
-        $role = $_SESSION['user_role'];
-        if (!in_array($role, ['admin', 'hr'], true)) {
-            $this->redirect('index.php?route=payroll/dashboard');
-            return;
-        }
+        $this->requirePermission('payroll', 'edit');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
@@ -113,11 +102,7 @@ class PayrollController extends Controller {
 
     // 3. Process Payroll Runs
     public function processing() {
-        $role = $_SESSION['user_role'];
-        if (!in_array($role, ['admin', 'hr', 'finance'], true)) {
-            $this->redirect('index.php?route=payroll/dashboard');
-            return;
-        }
+        $this->requirePermission('payroll', 'create');
 
         $runs = $this->payrollModel->getPayrollRuns();
 
@@ -144,11 +129,7 @@ class PayrollController extends Controller {
 
     // Start/Generate payroll run for a month
     public function run_generate() {
-        $role = $_SESSION['user_role'];
-        if (!in_array($role, ['admin', 'hr', 'finance'], true)) {
-            $this->redirect('index.php?route=payroll/dashboard');
-            return;
-        }
+        $this->requirePermission('payroll', 'create');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
@@ -157,13 +138,22 @@ class PayrollController extends Controller {
             if (preg_match('/^\d{4}-\d{2}$/', $month)) {
                 // Check if run already exists
                 $existing = $this->payrollModel->getPayrollRunByMonth($month);
-                if ($existing) {
-                    $_SESSION['payroll_error'] = "Payroll for {$month} has already been generated.";
+                if ($existing && $existing->status !== 'generated') {
+                    $_SESSION['payroll_error'] = "Payroll for {$month} is in " . strtoupper($existing->status) . " status and cannot be regenerated.";
                     $this->redirect('index.php?route=payroll/processing&run_id=' . $existing->payroll_run_id);
                     return;
                 }
 
-                $runId = $this->payrollModel->createPayrollRun($month, $_SESSION['user_id']);
+                $db = Database::getInstance()->getConnection();
+                if ($existing) {
+                    $runId = $existing->payroll_run_id;
+                    // Delete existing details so we can recalculate/regenerate them
+                    $stmt = $db->prepare("DELETE FROM payroll_details WHERE payroll_run_id = :rid");
+                    $stmt->execute([':rid' => $runId]);
+                } else {
+                    $runId = $this->payrollModel->createPayrollRun($month, $_SESSION['user_id']);
+                }
+
                 if ($runId) {
                     $employees = $this->payrollModel->getActiveEmployees();
                     
@@ -252,13 +242,9 @@ class PayrollController extends Controller {
         $this->redirect('index.php?route=payroll/processing');
     }
 
-    // Approve payroll run (Admin/HR only)
+    // Approve payroll run (Admin/HR/Finance can approve prep)
     public function run_approve($runId) {
-        $role = $_SESSION['user_role'];
-        if (!in_array($role, ['admin', 'hr'], true)) {
-            $this->redirect('index.php?route=payroll/dashboard');
-            return;
-        }
+        $this->requirePermission('payroll', 'create');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($this->payrollModel->updateRunStatus($runId, 'approved', 'approved_by', $_SESSION['user_id'])) {
@@ -272,11 +258,7 @@ class PayrollController extends Controller {
 
     // Lock payroll run (Finance only)
     public function run_lock($runId) {
-        $role = $_SESSION['user_role'];
-        if (!in_array($role, ['admin', 'finance'], true)) {
-            $this->redirect('index.php?route=payroll/dashboard');
-            return;
-        }
+        $this->requirePermission('payroll', 'approve');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($this->payrollModel->updateRunStatus($runId, 'locked')) {
@@ -290,11 +272,7 @@ class PayrollController extends Controller {
 
     // Release payslips and execute payments (Finance only)
     public function run_release($runId) {
-        $role = $_SESSION['user_role'];
-        if (!in_array($role, ['admin', 'finance'], true)) {
-            $this->redirect('index.php?route=payroll/dashboard');
-            return;
-        }
+        $this->requirePermission('payroll', 'approve');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($this->payrollModel->updateRunStatus($runId, 'released', 'released_by', $_SESSION['user_id'])) {
@@ -310,11 +288,7 @@ class PayrollController extends Controller {
 
     // Export bank transfer file (NEFT/RTGS CSV format)
     public function export_bank_file($runId) {
-        $role = $_SESSION['user_role'];
-        if (!in_array($role, ['admin', 'finance'], true)) {
-            $this->redirect('index.php?route=payroll/dashboard');
-            return;
-        }
+        $this->requirePermission('payroll', 'approve');
 
         $run = $this->payrollModel->getPayrollRunById($runId);
         if (!$run) {
@@ -385,6 +359,52 @@ class PayrollController extends Controller {
         ];
 
         $this->viewWithLayout('payroll/payslips', 'main', $data);
+    }
+
+    // Bulk Email Payslips to employees in a run
+    public function bulk_email_payslips() {
+        $this->requirePermission('payroll', 'create');
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
+            $runId = (int)($_POST['run_id'] ?? 0);
+
+            if ($runId > 0) {
+                $run = $this->payrollModel->getPayrollRunById($runId);
+                if ($run) {
+                    $details = $this->payrollModel->getPayrollDetailsByRunId($runId);
+                    
+                    $sentCount = 0;
+                    foreach ($details as $slip) {
+                        if (!empty($slip->email) && filter_var($slip->email, FILTER_VALIDATE_EMAIL)) {
+                            $subject = "Payslip Released for " . $run->month_year;
+                            $payslipUrl = URLROOT . '/index.php?route=payroll/payslip_view/' . $slip->payroll_detail_id;
+                            
+                            $body = "Hello " . htmlspecialchars($slip->name) . ",\n\n" .
+                                    "Your payslip for the payroll period " . $run->month_year . " has been released.\n\n" .
+                                    "Summary:\n" .
+                                    "- Employee Code: " . $slip->employee_code . "\n" .
+                                    "- Gross Salary: Rs. " . number_format((float)$slip->gross_salary, 2) . "\n" .
+                                    "- Total Deductions: Rs. " . number_format((float)$slip->total_deductions, 2) . "\n" .
+                                    "- Net Salary: Rs. " . number_format((float)$slip->net_salary, 2) . "\n\n" .
+                                    "Please click the link below to view or print your detailed payslip:\n" .
+                                    $payslipUrl . "\n\n" .
+                                    "Thank you!\n\n" .
+                                    "Best regards,\nRaptor Payroll Team";
+                            
+                            @mail($slip->email, $subject, $body);
+                            $sentCount++;
+                        }
+                    }
+                    $_SESSION['payroll_success'] = "Successfully emailed payslips to {$sentCount} employees.";
+                } else {
+                    $_SESSION['payroll_error'] = "Invalid payroll run.";
+                }
+                $this->redirect('index.php?route=payroll/payslips&run_id=' . $runId);
+                return;
+            }
+        }
+        $this->redirect('index.php?route=payroll/payslips');
     }
 
     // View Single Payslip (Print/Download friendly)
@@ -522,6 +542,39 @@ class PayrollController extends Controller {
 
             if ($status && $this->payrollModel->updateReimbursementStatus($claimId, $status, $roleField, $_SESSION['user_id'])) {
                 $_SESSION['payroll_success'] = 'Reimbursement status updated successfully.';
+                
+                // If newly approved by finance, sync it directly into the active payroll run (if generated and editable)
+                if ($status === 'finance_approved') {
+                    try {
+                        $db = Database::getInstance()->getConnection();
+                        $claim = $this->payrollModel->getReimbursementById($claimId);
+                        if ($claim) {
+                            $claimMonth = date('Y-m', strtotime($claim->created_at));
+                            $runStmt = $db->prepare("SELECT payroll_run_id, status FROM payroll_runs WHERE month_year = :month");
+                            $runStmt->execute([':month' => $claimMonth]);
+                            $run = $runStmt->fetch(PDO::FETCH_ASSOC);
+                            if ($run && in_array($run['status'], ['generated', 'approved'], true)) {
+                                $runId = (int)$run['payroll_run_id'];
+                                $detailStmt = $db->prepare("SELECT * FROM payroll_details WHERE payroll_run_id = :rid AND employee_id = :emp_id");
+                                $detailStmt->execute([':rid' => $runId, ':emp_id' => $claim->employee_id]);
+                                $detail = $detailStmt->fetch(PDO::FETCH_ASSOC);
+                                if ($detail) {
+                                    $newOther = (float)$detail['other_earnings'] + (float)$claim->amount;
+                                    $newGross = (float)$detail['gross_salary'] + (float)$claim->amount;
+                                    $newNet = (float)$detail['net_salary'] + (float)$claim->amount;
+                                    
+                                    $updStmt = $db->prepare("UPDATE payroll_details SET other_earnings = :other, gross_salary = :gross, net_salary = :net WHERE payroll_detail_id = :did");
+                                    $updStmt->execute([
+                                        ':other' => $newOther,
+                                        ':gross' => $newGross,
+                                        ':net' => $newNet,
+                                        ':did' => $detail['payroll_detail_id']
+                                    ]);
+                                }
+                            }
+                        }
+                    } catch (Exception $ex) {}
+                }
             } elseif ($status) {
                 $_SESSION['payroll_error'] = 'Failed to update reimbursement status.';
             }
@@ -555,11 +608,7 @@ class PayrollController extends Controller {
 
     // Add Bonus
     public function add_bonus() {
-        $role = $_SESSION['user_role'];
-        if (!in_array($role, ['admin', 'hr', 'finance'], true)) {
-            $this->redirect('index.php?route=payroll/bonuses');
-            return;
-        }
+        $this->requirePermission('payroll', 'create');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
@@ -584,11 +633,7 @@ class PayrollController extends Controller {
 
     // Approve/Pay Bonus
     public function approve_bonus($bonusId) {
-        $role = $_SESSION['user_role'];
-        if (!in_array($role, ['admin', 'hr', 'finance'], true)) {
-            $this->redirect('index.php?route=payroll/bonuses');
-            return;
-        }
+        $this->requirePermission('payroll', 'approve');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
