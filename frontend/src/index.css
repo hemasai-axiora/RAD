@@ -1,0 +1,234 @@
+@import "tailwindcss";
+
+/* ============================================================
+   RAD SUPERMARKET — GLOBAL THEME SYSTEM
+   Dark Theme: Deep Green-Black  |  Light Theme: White-Green
+   ============================================================ */
+
+/* ── CSS Variable Definitions ──────────────────────────── */
+:root {
+  --bg-base:               #0a0f1a;
+  --bg-sidebar:            #0d1520;
+  --bg-card:               #111c2d;
+  --bg-card-hover:         #162236;
+  --bg-input:              #0d1520;
+  --text-primary:          #e8f5e9;
+  --text-secondary:        #86efac;
+  --text-muted:            #4a7a60;
+  --border:                #1e3a2f;
+  --accent:                #10b981;
+  --accent-hover:          #059669;
+  --accent-text:           #ffffff;
+  --accent-subtle:         rgba(16,185,129,0.10);
+  --accent-subtle-border:  rgba(16,185,129,0.22);
+  --danger:                #ef4444;
+  --warning:               #f59e0b;
+  --success:               #22c55e;
+}
+
+[data-theme="light"] {
+  --bg-base:               #f0fdf4;
+  --bg-sidebar:            #dcfce7;
+  --bg-card:               #ffffff;
+  --bg-card-hover:         #f0fdf4;
+  --bg-input:              #ffffff;
+  --text-primary:          #052e16;
+  --text-secondary:        #166534;
+  --text-muted:            #4ade80;
+  --border:                #bbf7d0;
+  --accent:                #059669;
+  --accent-hover:          #047857;
+  --accent-text:           #ffffff;
+  --accent-subtle:         rgba(5,150,105,0.08);
+  --accent-subtle-border:  rgba(5,150,105,0.20);
+  --danger:                #dc2626;
+  --warning:               #d97706;
+  --success:               #16a34a;
+}
+
+/* ── Base Reset ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0; padding: 0;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  transition: background-color 0.25s ease, color 0.25s ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── TAILWIND → CSS VARIABLE OVERRIDES (Dark mode default) ── */
+
+/* Page backgrounds */
+.bg-slate-950  { background-color: var(--bg-base) !important; }
+.bg-slate-900  { background-color: var(--bg-sidebar) !important; }
+.bg-slate-900\/40, .bg-slate-900\/50, .bg-slate-900\/60 {
+  background-color: var(--bg-card) !important;
+}
+.bg-slate-950\/30, .bg-slate-950\/40, .bg-slate-950\/50, .bg-slate-950\/60 {
+  background-color: var(--bg-input) !important;
+}
+.bg-slate-800, .bg-slate-800\/50 {
+  background-color: var(--bg-card-hover) !important;
+}
+
+/* Borders */
+.border-slate-800, .border-slate-850, .border-slate-700 {
+  border-color: var(--border) !important;
+}
+.divide-slate-850 > * + * { border-color: var(--border) !important; }
+.divide-y { --tw-divide-opacity: 1; }
+
+/* Text */
+.text-slate-100, .text-slate-200, .text-slate-300 { color: var(--text-primary) !important; }
+.text-slate-400, .text-slate-450, .text-slate-500 { color: var(--text-secondary) !important; }
+.text-slate-550, .text-slate-600 { color: var(--text-muted) !important; }
+
+/* Accent GREEN */
+.bg-indigo-600  { background-color: var(--accent) !important; }
+.bg-indigo-500  { background-color: var(--accent-hover) !important; }
+.hover\:bg-indigo-500:hover { background-color: var(--accent-hover) !important; }
+.text-indigo-400, .text-indigo-300 { color: var(--accent) !important; }
+.border-indigo-600\/10, .border-indigo-500\/20, .border-indigo-500\/50 {
+  border-color: var(--accent-subtle-border) !important;
+}
+.bg-indigo-600\/10 { background-color: var(--accent-subtle) !important; }
+.shadow-indigo-600\/10, .shadow-indigo-600\/20, .shadow-indigo-600\/30 {
+  --tw-shadow-color: rgba(16,185,129,0.2);
+}
+.focus\:border-indigo-500:focus { border-color: var(--accent) !important; }
+.focus\:ring-indigo-500:focus { --tw-ring-color: var(--accent) !important; }
+
+/* Hover bg */
+.hover\:bg-slate-800:hover,
+.hover\:bg-slate-700:hover,
+.hover\:bg-slate-850:hover,
+.hover\:bg-slate-850\/10:hover,
+.hover\:bg-slate-850\/20:hover,
+.hover\:bg-slate-850\/30:hover,
+.hover\:bg-slate-800\/60:hover {
+  background-color: var(--accent-subtle) !important;
+}
+.hover\:text-slate-200:hover { color: var(--text-primary) !important; }
+
+/* ── LIGHT MODE CONTRAST FIXES ─────────────────────────── */
+
+/* Override text-white in light mode except inside buttons/badges */
+[data-theme="light"] .text-white {
+  color: var(--text-primary) !important;
+}
+
+/* Keep white text inside filled accent/danger buttons */
+[data-theme="light"] button.bg-indigo-600,
+[data-theme="light"] button.bg-indigo-500,
+[data-theme="light"] .bg-indigo-600 button,
+[data-theme="light"] .bg-red-600,
+[data-theme="light"] .bg-red-500,
+[data-theme="light"] .bg-emerald-600 {
+  color: #ffffff !important;
+}
+
+/* Ensure all text inside filled green buttons stays white */
+[data-theme="light"] .bg-indigo-600 *,
+[data-theme="light"] .bg-indigo-500 *,
+[data-theme="light"] .bg-emerald-600 * {
+  color: #ffffff !important;
+}
+
+/* Fix active sidebar nav item text */
+[data-theme="light"] a.bg-indigo-600,
+[data-theme="light"] a.bg-indigo-600 * {
+  color: #ffffff !important;
+}
+
+/* Tab active border color */
+[data-theme="light"] .border-indigo-600 {
+  border-color: var(--accent) !important;
+}
+
+/* ── INPUTS (Light mode) ────────────────────────────────── */
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: #9ca3af !important;
+}
+[data-theme="light"] select option {
+  background-color: #ffffff !important;
+  color: var(--text-primary) !important;
+}
+
+/* ── RECHARTS CONTRAST FIX ─────────────────────────────── */
+[data-theme="light"] .recharts-text {
+  fill: var(--text-secondary) !important;
+}
+[data-theme="light"] .recharts-cartesian-grid-horizontal line,
+[data-theme="light"] .recharts-cartesian-grid-vertical line {
+  stroke: var(--border) !important;
+}
+[data-theme="light"] .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ── MODALS ─────────────────────────────────────────────── */
+[data-theme="light"] .backdrop-blur-sm {
+  background-color: rgba(0,0,0,0.55) !important;
+}
+
+/* ── TABLES ─────────────────────────────────────────────── */
+[data-theme="light"] table { color: var(--text-primary) !important; }
+[data-theme="light"] th { color: var(--text-secondary) !important; }
+[data-theme="light"] td { color: var(--text-primary) !important; }
+[data-theme="light"] .hover\:bg-slate-850\/10:hover td {
+  color: var(--text-primary) !important;
+}
+
+/* ── BADGES (status chips) ──────────────────────────────── */
+.bg-emerald-500\/20 { background-color: rgba(34,197,94,0.12) !important; }
+.text-emerald-400, .text-emerald-300 { color: #4ade80 !important; }
+.border-emerald-500\/20, .border-emerald-500\/30 { border-color: rgba(34,197,94,0.3) !important; }
+
+.bg-red-500\/20, .bg-red-500\/10 { background-color: rgba(239,68,68,0.12) !important; }
+.text-red-400, .text-red-200 { color: #fca5a5 !important; }
+.border-red-500\/30 { border-color: rgba(239,68,68,0.3) !important; }
+
+.bg-amber-500\/10 { background-color: rgba(245,158,11,0.12) !important; }
+.text-amber-400, .text-amber-500 { color: #fbbf24 !important; }
+.border-amber-500\/20 { border-color: rgba(245,158,11,0.3) !important; }
+
+.bg-indigo-500\/10 { background-color: var(--accent-subtle) !important; }
+.border-indigo-500\/20 { border-color: var(--accent-subtle-border) !important; }
+
+/* ── SCROLLBAR ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ── PRINT ──────────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+  body {
+    background: white !important; color: black !important;
+    font-family: 'Courier New', monospace !important;
+    font-size: 12px !important;
+  }
+  .print-area {
+    display: block !important;
+    width: 80mm !important;
+    margin: 0 auto;
+    padding: 2mm;
+  }
+}
