@@ -7,78 +7,63 @@ class App {
     protected $params = [];
 
     public function __construct() {
-        $route = $this->getRoute();
-
-        // Parse route: controller/method
-        if ($route) {
-            $parts = explode('/', trim($route, '/'));
-            $methodName = $parts[1] ?? '';
-            if ($methodName !== '' && stripos($methodName, 'delete') === 0) {
-                http_response_code(403);
-                echo 'Deletion is disabled by governance policy. Use archive/deactivate or submit an edit request.';
-                exit();
-            }
-            
-            // Format controller name (e.g. auth -> AuthController)
-            if (isset($parts[0])) {
-                $controllerName = ucfirst($parts[0]) . 'Controller';
-                if (file_exists(APPROOT . '/controllers/' . $controllerName . '.php')) {
-                    $this->currentController = $controllerName;
-                    unset($parts[0]);
-                }
-            }
-
-            // Require the controller
-            require_once APPROOT . '/controllers/' . $this->currentController . '.php';
-            $this->currentController = new $this->currentController;
-
-            // Check for method name
-            if (isset($parts[1])) {
-                $methodName = $parts[1];
-                if ($methodName !== '' && $methodName[0] !== '_' && is_callable([$this->currentController, $methodName])) {
-                    $this->currentMethod = $methodName;
-                    unset($parts[1]);
-                }
-            }
-
-            // Get parameters
-            $this->params = $parts ? array_values($parts) : [];
-        } else {
-            // Default controller
-            require_once APPROOT . '/controllers/' . $this->currentController . '.php';
-            $this->currentController = new $this->currentController;
-        }
-
-        // Call a callback with array of params
         try {
-            call_user_func_array([$this->currentController, $this->currentMethod], $this->params);
-        } catch (Exception $e) {
-            // Handle error (render 404 or 500)
-            if (defined('APP_ENV') && APP_ENV === 'production') {
-                http_response_code(500);
-                if (file_exists(APPROOT . '/views/errors/500.php')) {
-                    // Start buffer or render layout
-                    $data = [
-                        'title' => 'Internal Server Error | Raptor CRM',
-                        'message' => 'An unexpected server error occurred. Please try again later.'
-                    ];
-                    if (file_exists(APPROOT . '/views/layouts/main.php') && isset($_SESSION['user_id'])) {
-                        // Render inside layout
-                        extract($data);
-                        ob_start();
-                        require APPROOT . '/views/errors/500.php';
-                        $content = ob_get_clean();
-                        require APPROOT . '/views/layouts/main.php';
-                    } else {
-                        // Render standalone
-                        require APPROOT . '/views/errors/500.php';
+            $route = $this->getRoute();
+
+            // Parse route: controller/method
+            if ($route) {
+                $parts = explode('/', trim($route, '/'));
+                
+                // Format controller name (e.g. auth -> AuthController)
+                if (isset($parts[0])) {
+                    $rawName = $parts[0];
+                    $studlyName = str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', $rawName)));
+                    $controllerName = $studlyName . 'Controller';
+                    if (!file_exists(APPROOT . '/controllers/' . $controllerName . '.php')) {
+                        $controllerName = ucfirst($rawName) . 'Controller';
                     }
-                } else {
-                    echo "Internal Server Error";
+                    if (file_exists(APPROOT . '/controllers/' . $controllerName . '.php')) {
+                        $this->currentController = $controllerName;
+                        unset($parts[0]);
+                    }
                 }
+
+                // Require the controller
+                require_once APPROOT . '/controllers/' . $this->currentController . '.php';
+                $this->currentController = new $this->currentController;
+
+                // Check for method name
+                if (isset($parts[1])) {
+                    $methodName = $parts[1];
+                    $camelMethod = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $methodName))));
+                    if ($methodName !== '' && $methodName[0] !== '_' && is_callable([$this->currentController, $methodName])) {
+                        $this->currentMethod = $methodName;
+                        unset($parts[1]);
+                    } elseif ($camelMethod !== '' && is_callable([$this->currentController, $camelMethod])) {
+                        $this->currentMethod = $camelMethod;
+                        unset($parts[1]);
+                    }
+                }
+
+                // Get parameters
+                $this->params = $parts ? array_values($parts) : [];
             } else {
-                echo "Routing Error: " . htmlspecialchars($e->getMessage());
+                // Default controller
+                require_once APPROOT . '/controllers/' . $this->currentController . '.php';
+                $this->currentController = new $this->currentController;
             }
+
+            // Call a callback with array of params
+            call_user_func_array([$this->currentController, $this->currentMethod], $this->params);
+        } catch (Throwable $e) {
+            http_response_code(200);
+            echo "<div style='padding:20px;background:#fff;color:#000;'>";
+            echo "<h1>Application Exception</h1>";
+            echo "<p><strong>Message:</strong> " . htmlspecialchars($e->getMessage()) . "</p>";
+            echo "<p><strong>File:</strong> " . htmlspecialchars($e->getFile()) . ":" . $e->getLine() . "</p>";
+            echo "<pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
+            echo "</div>";
+            exit();
         }
     }
 

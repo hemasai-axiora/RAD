@@ -55,7 +55,7 @@ class CalendarController extends Controller {
                 $tWhere .= ' AND assigned_to_user_id IN (' . implode(',', array_map('intval', $visible)) . ')';
             }
         }
-        $tStmt = $db->prepare("SELECT task_id, title, start_date, deadline, priority, status FROM tasks WHERE $tWhere");
+        $tStmt = $db->prepare("SELECT task_id, title, IFNULL(start_date, created_at) AS start_date, deadline, priority, status FROM tasks WHERE $tWhere");
         $tStmt->execute();
         $tasks = $tStmt->fetchAll(PDO::FETCH_OBJ);
 
@@ -138,6 +138,17 @@ class CalendarController extends Controller {
         $endDate = $_POST['end_date'] ?? '';
 
         if ($title !== '' && $startDate !== '' && $endDate !== '') {
+            if (!preg_match('/[a-zA-Z0-9]/', $title)) {
+                $_SESSION['calendar_error'] = 'Event Title must contain alphanumeric characters.';
+                $this->redirect('index.php?route=calendar/index');
+                return;
+            }
+            if ($description !== '' && !preg_match('/[a-zA-Z0-9]/', $description)) {
+                $_SESSION['calendar_error'] = 'Event Description must contain alphanumeric characters if provided.';
+                $this->redirect('index.php?route=calendar/index');
+                return;
+            }
+
             $startTs = strtotime($startDate);
             $endTs = strtotime($endDate);
 

@@ -15,9 +15,15 @@ class PerformanceController extends Controller {
     }
     public function index() {
         $period = $_GET['period'] ?? 'weekly';
-        if (!in_array($period, ['weekly', 'monthly'], true)) {
+        if (!in_array($period, ['daily', 'weekly', 'monthly'], true)) {
             $period = 'weekly';
         }
+
+        // Auto-recompute all periods so performance scores calculate themselves in real time
+        $this->performanceModel->recompute('daily');
+        $this->performanceModel->recompute('weekly');
+        $this->performanceModel->recompute('monthly');
+
         [$start, $end] = $this->performanceModel->periodRange($period, $_GET['start'] ?? null, $_GET['end'] ?? null);
 
         $data = [
@@ -26,7 +32,7 @@ class PerformanceController extends Controller {
             'period' => $period,
             'start' => $start,
             'end' => $end,
-            'scores' => $this->performanceModel->getScores($period, $start, $end, $this->visibleUserIds()),
+            'scores' => $this->performanceModel->getScores($period, $start, $end, null),
             'weights' => $this->performanceModel->getWeights(),
             'can_manage' => in_array($_SESSION['user_role'], ['admin', 'manager', 'team_leader'], true),
             'is_admin' => $_SESSION['user_role'] === 'admin',
@@ -37,11 +43,13 @@ class PerformanceController extends Controller {
 
     public function profile($userId = 0) {
         $userId = (int) ($userId ?: $_SESSION['user_id']);
-        $scope = $this->visibleUserIds();
-        if ($scope !== null && !in_array($userId, $scope, true)) {
+
+        $userRole = strtolower($_SESSION['user_role'] ?? '');
+        $isManagerOrAdmin = in_array($userRole, ['admin', 'manager', 'team_leader'], true);
+        if (!$isManagerOrAdmin && $userId !== (int) $_SESSION['user_id']) {
             $this->viewWithLayout('errors/403', 'main', [
                 'title' => 'Access Denied',
-                'message' => 'This performance profile is outside your team scope.'
+                'message' => 'You are only authorized to view your own performance profile.'
             ]);
             return;
         }

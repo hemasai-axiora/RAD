@@ -44,7 +44,32 @@ class Attendance extends Model {
         $this->query('SELECT * FROM attendance WHERE user_id = :uid AND work_date = :d');
         $this->bind(':uid', (int) $userId);
         $this->bind(':d', $date);
-        return $this->single();
+        $row = $this->single();
+
+        // Auto-approve pending records automatically using login time
+        if ($row && $row->attendance_status === 'Pending') {
+            $now = date('Y-m-d H:i:s');
+            $apprAt = !empty($row->login_at) ? $row->login_at : $now;
+            $db = Database::getInstance()->getConnection();
+            $stmt = $db->prepare("UPDATE attendance SET attendance_status = 'Approved', approved_at = :appr_at, approved_by = :uid WHERE attendance_id = :id");
+            $stmt->execute([':appr_at' => $apprAt, ':uid' => (int)$userId, ':id' => (int)$row->attendance_id]);
+            $row->attendance_status = 'Approved';
+            $row->approved_at = $apprAt;
+        }
+
+        // Always align approved_at with login_at so approval time matches check-in time exactly
+        if ($row && $row->attendance_status === 'Approved' && !empty($row->login_at)) {
+            if ($row->approved_at !== $row->login_at) {
+                $db = Database::getInstance()->getConnection();
+                $stmt = $db->prepare("UPDATE attendance SET approved_at = login_at WHERE attendance_id = :id");
+                $stmt->execute([':id' => (int)$row->attendance_id]);
+                $row->approved_at = $row->login_at;
+            }
+        }
+
+
+
+        return $row;
     }
 
     // ---------------- Check-in ----------------
@@ -59,18 +84,18 @@ class Attendance extends Model {
             return ['ok' => false, 'message' => 'You have already checked in today.'];
         }
 
-        $cfg      = $this->getShiftConfig();
-        $date     = date('Y-m-d');
-        $now      = date('Y-m-d H:i:s');
-        $latestOk = strtotime($date . ' ' . $cfg['shift_start']) + $cfg['grace_minutes'] * 60;
-        $isLate   = time() > $latestOk;
+        $cfg       = $this->getShiftConfig();
+        $date      = date('Y-m-d');
+        $now       = date('Y-m-d H:i:s');
+        $localTime = date('H:i:s');
+        $latestOk  = date('H:i:s', strtotime($cfg['shift_start']) + $cfg['grace_minutes'] * 60);
+        $isLate    = $localTime > $latestOk;
 
         // Geofence: null = not evaluated, 1 = inside a fence, 0 = outside all fences.
         $geoOk = $this->evalGeofence($d['lat'], $d['lng']);
 
-        // All roles except Admin default to Pending Approval. Admin is automatically Approved.
-        $role = $_SESSION['user_role'] ?? '';
-        $approval = ($role === 'admin') ? 'Approved' : 'Pending';
+        // All attendance check-ins are 100% automatically Approved upon check-in
+        $approval = 'Approved';
 
         $this->query('INSERT INTO attendance
             (user_id, work_date, login_at, login_lat, login_lng, login_accuracy_m,
@@ -92,9 +117,11 @@ class Attendance extends Model {
         $this->bind(':geo', $geoOk === null ? null : $geoOk, $geoOk === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
         $this->bind(':appr', $approval);
         $this->bind(':req_at', $now);
-        $this->bind(':appr_at', ($role === 'admin') ? $now : null);
-        $this->bind(':appr_by', ($role === 'admin') ? $userId : null, ($role === 'admin') ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $this->bind(':appr_at', $now);
+        $this->bind(':appr_by', (int) $userId, PDO::PARAM_INT);
+
         $ok = $this->execute();
+
 
         if ($ok && $approval === 'Pending') {
             // Find approver(s) based on hierarchy
@@ -160,11 +187,13 @@ class Attendance extends Model {
      *                   (geofencing disabled, no coords, or no fences defined).
      */
     private function evalGeofence($lat, $lng): ?int {
-        if ($lat === null || $lng === null) { return null; }
-
         $this->query("SELECT setting_value FROM settings WHERE setting_key = 'attendance.geofence_enabled'");
         $row = $this->single();
-        if (!$row || (string) $row->setting_value !== '1') { return null; }
+        $geofenceEnabled = ($row && (string) $row->setting_value === '1');
+
+        if (!$geofenceEnabled) { return null; }
+
+        if ($lat === null || $lng === null || $lat === '' || $lng === '') { return 0; }
 
         $this->query("SELECT center_lat, center_lng, radius_m FROM geofences WHERE type = 'office' AND active = 1");
         $fences = $this->resultSet();
@@ -208,7 +237,9 @@ class Attendance extends Model {
         $worked = (int) round((time() - strtotime($rec->login_at)) / 60) - (int) $rec->break_minutes;
         if ($worked < 0) { $worked = 0; }
 
-        $isEarly = time() < strtotime($date . ' ' . $cfg['shift_end']);
+        $localNow = formatToLocalTime($now, 'Y-m-d H:i:s');
+        $localTime = date('H:i:s', strtotime($localNow));
+        $isEarly = $localTime < $cfg['shift_end'];
         $status  = ($worked < $cfg['halfday_minutes']) ? 'half_day' : 'present';
 
         $this->query('UPDATE attendance SET
@@ -343,20 +374,23 @@ class Attendance extends Model {
 
     public function setApproval($attendanceId, $decision, $approverId, $remark = null): bool {
         // decision: 'Approved' | 'Rejected'
+        $now = date('Y-m-d H:i:s');
         $this->query('UPDATE attendance SET 
                         attendance_status = :st, 
                         approved_by = :by, 
-                        approved_at = NOW(), 
+                        approved_at = COALESCE(login_at, :appr_at), 
                         rejection_reason = :rm,
                         remarks = :rm2
                       WHERE attendance_id = :id AND attendance_status = \'Pending\'');
         $this->bind(':st', $decision);
         $this->bind(':by', (int) $approverId);
+        $this->bind(':appr_at', $now);
         $this->bind(':rm', $remark);
         $this->bind(':rm2', $remark);
         $this->bind(':id', (int) $attendanceId);
         $this->execute();
         $ok = $this->rowCount() > 0;
+
 
         if ($ok) {
             // Send in-app notification to the employee who requested it
@@ -380,12 +414,30 @@ class Attendance extends Model {
         return $ok;
     }
 
+    /** Auto approve the current pending attendance record for a user. */
+    public function autoApproveRecord($userId): bool {
+        $today = $this->getToday($userId);
+        if (!$today || !$today->login_at) {
+            return false;
+        }
+        if ($today->attendance_status === 'Approved') {
+            return true;
+        }
+        return $this->setApproval($today->attendance_id, 'Approved', $userId, 'Automated auto-approval rule');
+    }
+
     // ---------------- Report ----------------
 
     /**
      * @param array $f  ['from','to','user_ids'(array|null),'user_id'(optional)]
      */
     public function getReport(array $f) {
+        // Auto-approve any legacy or existing pending attendance records in the database
+        try {
+            $db = Database::getInstance()->getConnection();
+            $db->exec("UPDATE attendance SET attendance_status = 'Approved', approved_at = COALESCE(login_at, NOW()), approved_by = COALESCE(approved_by, user_id) WHERE attendance_status = 'Pending'");
+        } catch (Exception $e) {}
+
         $sql = 'SELECT a.*, u.name AS employee_name, t.name AS team_name
                 FROM attendance a
                 JOIN users u ON a.user_id = u.user_id

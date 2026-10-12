@@ -3,6 +3,62 @@
 
 class AnalyticsEntry extends Model {
     
+    public function __construct() {
+        parent::__construct();
+        $this->ensureLeadColumns();
+        $this->ensureLinkTrackingTables();
+    }
+
+    /** Ensure lead generation columns exist in analytics_entries and analytics_history */
+    private function ensureLeadColumns() {
+        $cols = [
+            'leads_generated' => 'INT DEFAULT 0',
+            'lead_details' => 'TEXT NULL'
+        ];
+        foreach (['analytics_entries', 'analytics_history'] as $tbl) {
+            foreach ($cols as $colName => $colDef) {
+                try {
+                    $this->query("ALTER TABLE $tbl ADD COLUMN $colName $colDef");
+                    $this->execute();
+                } catch (Exception $e) {
+                    // Column already exists
+                }
+            }
+        }
+    }
+
+    /** Ensure link tracking and click logging tables exist in database */
+    private function ensureLinkTrackingTables() {
+        try {
+            $this->query("CREATE TABLE IF NOT EXISTS tracked_links (
+                link_id INT AUTO_INCREMENT PRIMARY KEY,
+                short_code VARCHAR(32) UNIQUE NOT NULL,
+                target_url VARCHAR(500) NOT NULL,
+                platform_id INT DEFAULT NULL,
+                account_id INT DEFAULT NULL,
+                created_by_user_id INT NOT NULL,
+                title VARCHAR(255) DEFAULT 'Marketing Link',
+                click_count INT DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $this->execute();
+
+            $this->query("CREATE TABLE IF NOT EXISTS link_clicks (
+                click_id INT AUTO_INCREMENT PRIMARY KEY,
+                link_id INT DEFAULT NULL,
+                short_code VARCHAR(32) DEFAULT NULL,
+                target_url VARCHAR(500) NOT NULL,
+                ip_address VARCHAR(45) DEFAULT NULL,
+                user_agent VARCHAR(255) DEFAULT NULL,
+                referrer VARCHAR(255) DEFAULT NULL,
+                clicked_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $this->execute();
+        } catch (Exception $e) {
+            // Tables exist
+        }
+    }
+    
     // Log a new analytics entry (updates the latest entries table and inserts to history)
     public function logEntry($data) {
         $db = $this->db;
@@ -15,6 +71,9 @@ class AnalyticsEntry extends Model {
             $shares = (int)($data['shares'] ?? 0);
             $views = (int)($data['views'] ?? 1);
             if ($views <= 0) $views = 1;
+
+            $leads_generated = (int)($data['leads_generated'] ?? 0);
+            $lead_details = !empty($data['lead_details']) ? trim($data['lead_details']) : null;
             
             $engagement_rate = $data['engagement_rate'] ?? (($likes + $comments + $shares) / $views * 100);
             $engagement_rate = round(min(100.0, max(0.0, $engagement_rate)), 2);
@@ -36,8 +95,8 @@ class AnalyticsEntry extends Model {
                 $this->query('UPDATE analytics_entries 
                               SET likes = :likes, comments = :comments, shares = :shares, views = :views, 
                                   reach = :reach, impressions = :impressions, clicks = :clicks, 
-                                  followers_gained = :followers_gained, engagement_rate = :engagement_rate, 
-                                  custom_notes = :custom_notes, updated_by = :updated_by, updated_at = NOW()
+                                  followers_gained = :followers_gained, leads_generated = :leads_generated, lead_details = :lead_details,
+                                  engagement_rate = :engagement_rate, custom_notes = :custom_notes, updated_by = :updated_by, updated_at = NOW()
                               WHERE entry_id = :entry_id');
                 $this->bind(':likes', $likes);
                 $this->bind(':comments', $comments);
@@ -47,6 +106,8 @@ class AnalyticsEntry extends Model {
                 $this->bind(':impressions', (int)($data['impressions'] ?? 0));
                 $this->bind(':clicks', (int)($data['clicks'] ?? 0));
                 $this->bind(':followers_gained', (int)($data['followers_gained'] ?? 0));
+                $this->bind(':leads_generated', $leads_generated);
+                $this->bind(':lead_details', $lead_details);
                 $this->bind(':engagement_rate', $engagement_rate);
                 $this->bind(':custom_notes', $data['custom_notes'] ?? null);
                 $this->bind(':updated_by', $data['updated_by']);
@@ -55,8 +116,8 @@ class AnalyticsEntry extends Model {
             } else {
                 // Insert new latest entry
                 $this->query('INSERT INTO analytics_entries 
-                              (platform_id, account_id, post_id, likes, comments, shares, views, reach, impressions, clicks, followers_gained, engagement_rate, custom_notes, updated_by) 
-                              VALUES (:platform_id, :account_id, :post_id, :likes, :comments, :shares, :views, :reach, :impressions, :clicks, :followers_gained, :engagement_rate, :custom_notes, :updated_by)');
+                              (platform_id, account_id, post_id, likes, comments, shares, views, reach, impressions, clicks, followers_gained, leads_generated, lead_details, engagement_rate, custom_notes, updated_by) 
+                              VALUES (:platform_id, :account_id, :post_id, :likes, :comments, :shares, :views, :reach, :impressions, :clicks, :followers_gained, :leads_generated, :lead_details, :engagement_rate, :custom_notes, :updated_by)');
                 $this->bind(':platform_id', $data['platform_id']);
                 $this->bind(':account_id', $data['account_id']);
                 $this->bind(':post_id', $data['post_id'] ?? null);
@@ -68,6 +129,8 @@ class AnalyticsEntry extends Model {
                 $this->bind(':impressions', (int)($data['impressions'] ?? 0));
                 $this->bind(':clicks', (int)($data['clicks'] ?? 0));
                 $this->bind(':followers_gained', (int)($data['followers_gained'] ?? 0));
+                $this->bind(':leads_generated', $leads_generated);
+                $this->bind(':lead_details', $lead_details);
                 $this->bind(':engagement_rate', $engagement_rate);
                 $this->bind(':custom_notes', $data['custom_notes'] ?? null);
                 $this->bind(':updated_by', $data['updated_by']);
@@ -77,8 +140,8 @@ class AnalyticsEntry extends Model {
 
             // Insert into history (stores every single log event)
             $this->query('INSERT INTO analytics_history 
-                          (entry_id, platform_id, account_id, post_id, likes, comments, shares, views, reach, impressions, clicks, followers_gained, engagement_rate, custom_notes, updated_by, created_at) 
-                          VALUES (:entry_id, :platform_id, :account_id, :post_id, :likes, :comments, :shares, :views, :reach, :impressions, :clicks, :followers_gained, :engagement_rate, :custom_notes, :updated_by, NOW())');
+                          (entry_id, platform_id, account_id, post_id, likes, comments, shares, views, reach, impressions, clicks, followers_gained, leads_generated, lead_details, engagement_rate, custom_notes, updated_by, created_at) 
+                          VALUES (:entry_id, :platform_id, :account_id, :post_id, :likes, :comments, :shares, :views, :reach, :impressions, :clicks, :followers_gained, :leads_generated, :lead_details, :engagement_rate, :custom_notes, :updated_by, NOW())');
             $this->bind(':entry_id', $entryId);
             $this->bind(':platform_id', $data['platform_id']);
             $this->bind(':account_id', $data['account_id']);
@@ -91,6 +154,8 @@ class AnalyticsEntry extends Model {
             $this->bind(':impressions', (int)($data['impressions'] ?? 0));
             $this->bind(':clicks', (int)($data['clicks'] ?? 0));
             $this->bind(':followers_gained', (int)($data['followers_gained'] ?? 0));
+            $this->bind(':leads_generated', $leads_generated);
+            $this->bind(':lead_details', $lead_details);
             $this->bind(':engagement_rate', $engagement_rate);
             $this->bind(':custom_notes', $data['custom_notes'] ?? null);
             $this->bind(':updated_by', $data['updated_by']);
@@ -99,8 +164,11 @@ class AnalyticsEntry extends Model {
             $db->commit();
             return true;
         } catch (Exception $e) {
-            $db->rollBack();
-            throw $e;
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log("AnalyticsEntry::logEntry error: " . $e->getMessage());
+            return false;
         }
     }
 
@@ -126,14 +194,17 @@ class AnalyticsEntry extends Model {
 
     // Get complete chronological updates history timeline for visible scoping
     public function getCompleteHistory($userIds = null) {
-        $sql = 'SELECT h.*, u.name as updated_by_name, p.name as platform_name, s.profile_name, pt.content as post_content
+        $sql = 'SELECT h.*, u.name as updated_by_name,
+                       COALESCE(p.name, pt.platform, "LinkedIn") as platform_name,
+                       COALESCE(s.profile_name, "Official Account") as profile_name,
+                       COALESCE(pt.post_code, pt.title, pt.content) as post_content
                 FROM analytics_history h
                 JOIN users u ON h.updated_by = u.user_id
-                JOIN platforms p ON h.platform_id = p.platform_id
-                JOIN social_accounts s ON h.account_id = s.account_id
+                LEFT JOIN platforms p ON h.platform_id = p.platform_id
+                LEFT JOIN social_accounts s ON h.account_id = s.account_id
                 LEFT JOIN posts pt ON h.post_id = pt.post_id';
         
-        if ($userIds !== null) {
+        if ($userIds !== null && !empty($userIds)) {
             $sql .= ' WHERE h.updated_by IN (' . implode(',', array_map('intval', $userIds)) . ')';
         }
         
@@ -282,5 +353,50 @@ class AnalyticsEntry extends Model {
             }
         }
         return $rows;
+    }
+
+    // Log a link click event into database
+    public function logLinkClick($linkId, $shortCode, $targetUrl, $ip = null, $ua = null, $referrer = null) {
+        try {
+            if ($linkId) {
+                $this->query("UPDATE tracked_links SET click_count = click_count + 1 WHERE link_id = :lid");
+                $this->bind(':lid', (int)$linkId);
+                $this->execute();
+            } elseif ($shortCode) {
+                $this->query("UPDATE tracked_links SET click_count = click_count + 1 WHERE short_code = :sc");
+                $this->bind(':sc', $shortCode);
+                $this->execute();
+            }
+
+            $this->query("INSERT INTO link_clicks (link_id, short_code, target_url, ip_address, user_agent, referrer)
+                          VALUES (:lid, :sc, :url, :ip, :ua, :ref)");
+            $this->bind(':lid', $linkId ? (int)$linkId : null);
+            $this->bind(':sc', $shortCode ?: null);
+            $this->bind(':url', $targetUrl);
+            $this->bind(':ip', $ip ?: ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'));
+            $this->bind(':ua', $ua ?: ($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown'));
+            $this->bind(':ref', $referrer ?: ($_SERVER['HTTP_REFERER'] ?? 'Direct'));
+            $this->execute();
+            return true;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    // Get click history logs from database
+    public function getLinkClicks($linkId = null, $limit = 100) {
+        $sql = "SELECT lc.*, tl.title as link_title 
+                FROM link_clicks lc
+                LEFT JOIN tracked_links tl ON lc.link_id = tl.link_id";
+        if ($linkId) {
+            $sql .= " WHERE lc.link_id = :lid";
+        }
+        $sql .= " ORDER BY lc.clicked_at DESC LIMIT " . (int)$limit;
+
+        $this->query($sql);
+        if ($linkId) {
+            $this->bind(':lid', (int)$linkId);
+        }
+        return $this->resultSet();
     }
 }

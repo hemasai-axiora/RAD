@@ -47,7 +47,7 @@
                 <?php else: ?>
                     <?php foreach ($bonuses as $b): ?>
                         <tr>
-                            <td><?php echo date('Y-m-d', strtotime($b->created_at)); ?></td>
+                            <td><?php echo formatToLocalTime($b->created_at, 'Y-m-d'); ?></td>
                             <?php if (in_array($role, ['admin', 'hr', 'finance'], true)): ?>
                                 <td>
                                     <strong><?php echo htmlspecialchars($b->employee_name); ?></strong><br>
@@ -55,7 +55,7 @@
                                 </td>
                             <?php endif; ?>
                             <td><span class="badge bg-info-subtle text-info border border-info-subtle"><?php echo htmlspecialchars($b->bonus_type); ?></span></td>
-                            <td class="font-weight-bold text-success font-monospace">Rs. <?php echo number_format($b->amount, 2); ?></td>
+                            <td class="font-weight-bold text-success font-monospace">Rs. <?php echo number_format($b->amount); ?></td>
                             <td><?php echo htmlspecialchars($b->description ?: 'N/A'); ?></td>
                             <td>
                                 <?php
@@ -127,7 +127,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label text-secondary">Amount (Rs.) *</label>
-                            <input type="number" step="0.01" name="amount" class="form-control bg-dark border-secondary text-white" placeholder="0.00" required>
+                            <input type="number" step="1" name="amount" class="form-control bg-dark border-secondary text-white" placeholder="e.g. 5000" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label text-secondary">Description / Remarks</label>

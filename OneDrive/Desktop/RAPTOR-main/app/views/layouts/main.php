@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <?php
+        $role = $_SESSION['user_role'] ?? $_SESSION['role_name'] ?? '';
         $page_title = isset($title) ? htmlspecialchars($title) : 'RAPTOR';
         $page_title = str_ireplace('Raptor CRM', 'RAPTOR', $page_title);
     ?>
@@ -106,6 +107,10 @@
            RAPTOR HRMS — Professional Light Theme
            Primary: #2563EB | Background: #F8FAFC | Cards: #FFFFFF
            ═══════════════════════════════════════════════════════════ */
+        html {
+            font-size: 83.5%; /* Scaled down base rem size for global 25-30% application density */
+        }
+
         :root {
             color-scheme: light;
             /* Surfaces */
@@ -135,9 +140,9 @@
             --shadow-soft:  0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(37,99,235,0.07);
             --shadow-hover: 0 4px 20px rgba(37,99,235,0.15);
 
-            /* Layout */
-            --sidebar-width:  260px;
-            --topbar-height:  70px;
+            /* Layout Density */
+            --sidebar-width:  230px;
+            --topbar-height:  54px;
         }
 
         html[data-theme="dark"] {
@@ -181,6 +186,46 @@
             color: var(--text-primary);
             overflow-x: hidden;
             margin: 0;
+            line-height: 1.45;
+        }
+
+        /* High-density Table & Form Global Overrides */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 8px;
+        }
+
+        .table {
+            font-size: 0.85rem;
+            margin-bottom: 0;
+        }
+
+        .table th {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+            padding: 0.55rem 0.65rem;
+        }
+
+        .table td {
+            padding: 0.5rem 0.65rem;
+            vertical-align: middle;
+        }
+
+        .form-control, .form-select {
+            font-size: 0.85rem;
+            padding: 0.35rem 0.65rem;
+            border-radius: 6px;
+        }
+
+        .btn {
+            font-size: 0.85rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            min-height: 32px;
         }
 
         /* Layout Grid */
@@ -197,10 +242,15 @@
             background-color: var(--panel-dark);
             border-right: 1px solid var(--border-color);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 100;
+            z-index: 1000;
             display: flex;
             flex-direction: column;
             overflow-y: auto;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            height: 100vh;
         }
 
         #sidebar.collapsed {
@@ -371,6 +421,8 @@
             display: flex;
             flex-direction: column;
             min-width: 0;
+            margin-left: var(--sidebar-width);
+            transition: margin-left 0.3s ease;
         }
 
         #topbar {
@@ -503,7 +555,7 @@
            overrides make the whole frontend follow the white/blue theme while
            still supporting dark mode from one toggle. */
         .text-white { color: var(--text-primary) !important; }
-        .text-secondary, .text-secondary-emphasis, .text-muted { color: var(--text-secondary) !important; }
+        .text-secondary, .text-secondary-emphasis, .text-muted, .text-light-50, .text-white-50, .text-muted-custom { color: var(--text-secondary) !important; }
         .bg-dark { background-color: var(--surface-muted) !important; }
         .bg-opacity-25, .bg-opacity-35, .bg-opacity-50 { --bs-bg-opacity: 1; }
         .border-secondary, .border-secondary-subtle { border-color: var(--border-color) !important; }
@@ -589,10 +641,60 @@
             color: var(--text-primary) !important;
             border-color: var(--border-color) !important;
         }
+        /* ── Comprehensive Modal & Dynamic UI Theme Synchronization ── */
         .dropdown-menu, .modal-content {
-            background-color: var(--panel-dark);
-            color: var(--text-primary);
-            border-color: var(--border-color);
+            background-color: var(--panel-dark) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
+        }
+        .modal-content .modal-header,
+        .modal-content .modal-footer {
+            border-color: var(--border-color) !important;
+        }
+        .modal-content .modal-title {
+            color: var(--text-primary) !important;
+        }
+        .modal-content p,
+        .modal-content .text-secondary,
+        .modal-content .text-muted,
+        .modal-content .form-label,
+        .modal-content span.text-secondary {
+            color: var(--text-secondary) !important;
+        }
+        .modal-content h1, .modal-content h2, .modal-content h3,
+        .modal-content h4, .modal-content h5, .modal-content h6,
+        .modal-content .fw-bold, .modal-content .text-white {
+            color: var(--text-primary) !important;
+        }
+        .modal-content .form-control,
+        .modal-content .form-select {
+            background-color: var(--surface-soft) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-primary) !important;
+        }
+        .modal-content .bg-dark,
+        .modal-content .card.bg-dark,
+        .modal-content .card-body.bg-dark {
+            background-color: var(--surface-soft) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-primary) !important;
+        }
+        .modal-content .border-secondary {
+            border-color: var(--border-color) !important;
+        }
+        html[data-theme="light"] .modal-content .btn-close-white {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+        html[data-theme="light"] .modal-content div[style*="background: rgba"],
+        html[data-theme="light"] .modal-content div[style*="background:rgba"] {
+            background: var(--surface-soft) !important;
+            border-color: var(--border-color) !important;
+        }
+        html[data-theme="light"] .modal-content code.text-info {
+            color: #0284C7 !important;
+            background-color: #E0F2FE;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
         }
         .theme-toggle {
             border: 1px solid var(--border-color);
@@ -685,27 +787,44 @@
                 margin-left: calc(-1 * var(--sidebar-width));
                 box-shadow: 4px 0 30px rgba(0,0,0,0.4);
                 overflow-y: auto;
+                z-index: 1050;
             }
-            #sidebar.mobile-open { margin-left: 0; }
+            #sidebar.mobile-open { margin-left: 0 !important; }
             #sidebar.mobile-open + #sidebar-overlay,
-            body.drawer-open #sidebar-overlay { display: block; }
+            body.drawer-open #sidebar-overlay { display: block; z-index: 1040; }
 
-            #content-wrapper { width: 100%; }
-            .main-content { padding: 1rem; padding-bottom: 80px; /* clear bottom nav */ }
+            #content-wrapper { width: 100% !important; margin-left: 0 !important; }
+            .main-content { padding: 0.85rem; padding-bottom: 80px; /* clear bottom nav */ }
 
-            #bottom-nav { display: flex; }
+            #bottom-nav { display: flex; z-index: 1030; }
+
+            #topbar {
+                padding: 0.5rem 0.75rem;
+                flex-wrap: nowrap;
+                gap: 0.5rem;
+            }
+            .page-title {
+                font-size: 0.95rem;
+                max-width: 150px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
 
             /* Hide desktop-only topbar filters to save space */
             .topbar-right { gap: 0.5rem; }
-            #client-selector, #date-range { max-width: 130px; }
+            #client-selector, #date-range { max-width: 110px; }
         }
 
         /* Phones */
         @media (max-width: 575.98px) {
-            :root { --topbar-height: 60px; }
-            .page-title { font-size: 1.05rem; }
+            :root { --topbar-height: 56px; }
+            #topbar { padding: 0.4rem 0.65rem; }
+            .page-title { font-size: 0.88rem; max-width: 120px; }
+            .btn-toggle-sidebar { margin-right: 0.5rem; }
             .topbar-right { display: none; } /* filters move into page content on phones */
-            .pulse-card { padding: 1.1rem; border-radius: 12px; }
+            .pulse-card { padding: 0.85rem; border-radius: 12px; }
+            .main-content { padding: 0.65rem; padding-bottom: 75px; }
             /* Stack Bootstrap tables into cards when marked .table-stack */
             table.table-stack thead { display: none; }
             table.table-stack, table.table-stack tbody, table.table-stack tr, table.table-stack td {
@@ -737,6 +856,9 @@
             #sidebar.collapsed {
                 width: 70px !important;
                 margin-left: 0 !important;
+            }
+            #sidebar.collapsed ~ #content-wrapper {
+                margin-left: 70px !important;
             }
             #sidebar.collapsed .sidebar-brand {
                 align-items: center !important;
@@ -778,14 +900,31 @@
                 margin-right: 0 !important;
                 font-size: 1.15rem !important;
             }
+
+            /* Active Section Icon Highlight in Collapsed & Expanded Modes */
+            .menu-section.has-active > .menu-section-header,
+            .menu-section:has(.menu-item.active) > .menu-section-header {
+                color: var(--primary) !important;
+                background-color: var(--primary-soft);
+            }
+            #sidebar.collapsed .menu-section.has-active > .menu-section-header,
+            #sidebar.collapsed .menu-section:has(.menu-item.active) > .menu-section-header {
+                background-color: var(--primary-soft) !important;
+                border-left: 3px solid var(--primary) !important;
+                border-radius: 8px !important;
+            }
+            #sidebar.collapsed .menu-section.has-active .section-icon,
+            #sidebar.collapsed .menu-section:has(.menu-item.active) .section-icon {
+                color: var(--primary) !important;
+            }
         }
     </style>
 </head>
 <body>
     <?php
-        $role = $_SESSION['user_role'] ?? '';
-        $isEmployee = Policy::isEmployee();
-        $salesRoles = ['admin', 'manager', 'team_leader', 'employee', 'sales_person', 'hr', 'finance'];
+        $role = $_SESSION['user_role'] ?? $_SESSION['role_name'] ?? '';
+        $isEmployee = class_exists('Policy') ? Policy::isEmployee() : ($role === 'employee');
+        $salesRoles = ['admin', 'manager', 'team_leader', 'employee', 'sales_person', 'hr', 'finance', 'analyst'];
     ?>
     <div id="wrapper">
         <!-- Sidebar Navigation -->
@@ -804,19 +943,19 @@
             <ul class="sidebar-menu">
                 <!-- 1. Dashboard Accordion Group -->
                 <li class="menu-section" data-section="dashboard">
-                    <div class="menu-section-header">
+                    <div class="menu-section-header" title="Dashboard">
                         <i class="fa-solid fa-chart-line section-icon"></i>
                         <span class="section-text">Dashboard</span>
                         <i class="fa-solid fa-chevron-right section-arrow"></i>
                     </div>
                     <ul class="menu-section-items">
-                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'dashboard_module') ? 'active' : ''; ?>">
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'dashboard_module' && (!isset($data['title']) || strpos($data['title'], 'Templates') === false)) ? 'active' : ''; ?>">
                             <a href="index.php?route=dashboard/index">
                                 <i class="fa-solid fa-table-columns"></i><span>Dashboard Module</span>
                             </a>
                         </li>
                         <?php if (Policy::canCreateDashboardTemplate()): ?>
-                        <li class="menu-item <?php echo ($data['title'] === 'Dashboard Templates | Raptor CRM') ? 'active' : ''; ?>">
+                        <li class="menu-item <?php echo (isset($data['title']) && strpos($data['title'], 'Templates') !== false) ? 'active' : ''; ?>">
                             <a href="index.php?route=dashboard/templates">
                                 <i class="fa-solid fa-sliders"></i><span>Dashboard Templates</span>
                             </a>
@@ -849,7 +988,7 @@
                 <!-- 2. My Day Accordion Group -->
                 <?php if (in_array($role, $salesRoles, true)): ?>
                 <li class="menu-section" data-section="myday">
-                    <div class="menu-section-header">
+                    <div class="menu-section-header" title="My Day">
                         <i class="fa-solid fa-calendar-day section-icon"></i>
                         <span class="section-text">My Day</span>
                         <i class="fa-solid fa-chevron-right section-arrow"></i>
@@ -878,20 +1017,15 @@
                                 <i class="fa-solid fa-route"></i><span>My Route</span>
                             </a>
                         </li>
-                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'social_update') ? 'active' : ''; ?>">
-                            <a href="index.php?route=social/update">
-                                <i class="fa-brands fa-instagram"></i><span>Log Social Stats</span>
-                            </a>
-                        </li>
                         <?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
 
                 <!-- 3. Monitoring Accordion Group -->
-                <?php if (in_array($_SESSION['user_role'], ['admin', 'manager', 'team_leader', 'hr'], true)): ?>
+                <?php if (in_array($_SESSION['user_role'], ['admin', 'ceo', 'employer', 'manager', 'team_leader', 'hr'], true)): ?>
                 <li class="menu-section" data-section="monitoring">
-                    <div class="menu-section-header">
+                    <div class="menu-section-header" title="Monitoring">
                         <i class="fa-solid fa-desktop section-icon"></i>
                         <span class="section-text">Monitoring</span>
                         <i class="fa-solid fa-chevron-right section-arrow"></i>
@@ -926,10 +1060,70 @@
                 </li>
                 <?php endif; ?>
 
-                <!-- 4. Operations Accordion Group -->
-                <?php if (in_array($_SESSION['user_role'], ['admin', 'manager', 'team_leader'], true)): ?>
+                <!-- 4. Marketing Accordion Group -->
+                <?php if (isset($_SESSION['user_role'])): ?>
+                <li class="menu-section" data-section="marketing">
+                    <div class="menu-section-header" title="Marketing">
+                        <i class="fa-solid fa-share-nodes section-icon"></i>
+                        <span class="section-text">Marketing</span>
+                        <i class="fa-solid fa-chevron-right section-arrow"></i>
+                    </div>
+                    <ul class="menu-section-items">
+                        <li class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'] ?? '', 'campaigns/') !== false || (isset($_GET['route']) && strpos($_GET['route'], 'campaigns') !== false)) ? 'active' : ''; ?>">
+                            <a href="index.php?route=campaigns/index">
+                                <i class="fa-solid fa-bullhorn"></i><span>Campaign Registry</span>
+                            </a>
+                        </li>
+                        <li class="menu-item <?php echo (isset($_GET['route']) && strpos($_GET['route'], 'posts') !== false) ? 'active' : ''; ?>">
+                            <a href="index.php?route=posts/index">
+                                <i class="fa-solid fa-rectangle-list"></i><span>Content Management & Analytics</span>
+                            </a>
+                        </li>
+                        <?php if (in_array($_SESSION['user_role'], ['admin', 'manager'])): ?>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'social_manager') ? 'active' : ''; ?>">
+                            <a href="index.php?route=social/manager">
+                                <i class="fa-solid fa-user-gear"></i><span>Manager Performance</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'social_admin') ? 'active' : ''; ?>">
+                            <a href="index.php?route=social/admin">
+                                <i class="fa-solid fa-folder-tree"></i><span>Accounts Directory</span>
+                            </a>
+                        </li>
+                        <?php if (!Policy::isEmployee()): ?>
+                        <li class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'] ?? '', 'website_analytics/') !== false || (isset($_GET['route']) && strpos($_GET['route'], 'website_analytics') !== false)) ? 'active' : ''; ?>">
+                            <a href="index.php?route=website_analytics/index">
+                                <i class="fa-solid fa-chart-pie"></i><span>Website Analytics</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                    </ul>
+                </li>
+                <?php endif; ?>
+
+                <!-- 5. Finance Accordion Group -->
+                <?php if (in_array($_SESSION['user_role'], ['admin', 'manager', 'finance'], true)): ?>
+                <li class="menu-section" data-section="finance">
+                    <div class="menu-section-header" title="Finance">
+                        <i class="fa-solid fa-file-invoice-dollar section-icon"></i>
+                        <span class="section-text">Finance</span>
+                        <i class="fa-solid fa-chevron-right section-arrow"></i>
+                    </div>
+                    <ul class="menu-section-items">
+                        <li class="menu-item <?php echo (strpos($data['title'], 'Invoice') !== false || $data['title'] === 'Billing Ledger | Raptor CRM') ? 'active' : ''; ?>">
+                            <a href="index.php?route=invoices/index">
+                                <i class="fa-solid fa-file-invoice-dollar"></i><span>Invoicing</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <?php endif; ?>
+
+                <!-- 6. Operations Accordion Group -->
+                <?php if (in_array($_SESSION['user_role'], ['admin', 'manager', 'team_leader', 'employee', 'sales_person', 'analyst', 'hr', 'finance'], true)): ?>
                 <li class="menu-section" data-section="operations">
-                    <div class="menu-section-header">
+                    <div class="menu-section-header" title="Operations">
                         <i class="fa-solid fa-briefcase section-icon"></i>
                         <span class="section-text">Operations</span>
                         <i class="fa-solid fa-chevron-right section-arrow"></i>
@@ -941,12 +1135,7 @@
                                 <i class="fa-solid fa-briefcase"></i><span>Clients Directory</span>
                             </a>
                         </li>
-                        <li class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'] ?? '', 'campaigns/') !== false || (isset($_GET['route']) && strpos($_GET['route'], 'campaigns') !== false)) ? 'active' : ''; ?>">
-                            <a href="index.php?route=campaigns/index">
-                                <i class="fa-solid fa-bullhorn"></i><span>Campaign Registry</span>
-                            </a>
-                        </li>
-                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'calendar') ? 'active' : ''; ?>">
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'calendar' && (!isset($_GET['route']) || strpos($_GET['route'], 'posts') === false)) ? 'active' : ''; ?>">
                             <a href="index.php?route=calendar/index">
                                 <i class="fa-solid fa-calendar-days"></i><span>Content Calendar</span>
                             </a>
@@ -957,6 +1146,16 @@
                         <li class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'] ?? '', 'leads/') !== false || (isset($_GET['route']) && strpos($_GET['route'], 'leads') !== false)) ? 'active' : ''; ?>">
                             <a href="index.php?route=leads/index">
                                 <i class="fa-solid fa-address-book"></i><span>Leads Manager</span>
+                            </a>
+                        </li>
+                        <li class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'] ?? '', 'customers/') !== false || (isset($_GET['route']) && strpos($_GET['route'], 'customers') !== false)) ? 'active' : ''; ?>">
+                            <a href="index.php?route=customers/index">
+                                <i class="fa-solid fa-address-card"></i><span>Customer Directory</span>
+                            </a>
+                        </li>
+                        <li class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'] ?? '', 'account_sales/') !== false || (isset($_GET['route']) && strpos($_GET['route'], 'account_sales') !== false)) ? 'active' : ''; ?>">
+                            <a href="index.php?route=account_sales/index">
+                                <i class="fa-solid fa-chart-line"></i><span>Account Sales</span>
                             </a>
                         </li>
                         <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'communications') ? 'active' : ''; ?>">
@@ -990,62 +1189,12 @@
                         <?php endif; ?>
                     </ul>
                 </li>
-                <?php endif; ?>
-
-                <!-- 5. Finance Accordion Group -->
-                <?php if (in_array($_SESSION['user_role'], ['admin', 'manager', 'finance'], true)): ?>
-                <li class="menu-section" data-section="finance">
-                    <div class="menu-section-header">
-                        <i class="fa-solid fa-file-invoice-dollar section-icon"></i>
-                        <span class="section-text">Finance</span>
-                        <i class="fa-solid fa-chevron-right section-arrow"></i>
-                    </div>
-                    <ul class="menu-section-items">
-                        <li class="menu-item <?php echo (strpos($data['title'], 'Invoice') !== false || $data['title'] === 'Billing Ledger | Raptor CRM') ? 'active' : ''; ?>">
-                            <a href="index.php?route=invoices/index">
-                                <i class="fa-solid fa-file-invoice-dollar"></i><span>Invoicing</span>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                <?php endif; ?>
-
-                <!-- 6. Marketing Accordion Group -->
-                <?php if (in_array($_SESSION['user_role'], ['admin', 'manager', 'team_leader', 'analyst'], true)): ?>
-                <li class="menu-section" data-section="marketing">
-                    <div class="menu-section-header">
-                        <i class="fa-solid fa-share-nodes section-icon"></i>
-                        <span class="section-text">Marketing</span>
-                        <i class="fa-solid fa-chevron-right section-arrow"></i>
-                    </div>
-                    <ul class="menu-section-items">
-                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'social_update') ? 'active' : ''; ?>">
-                            <a href="index.php?route=social/update">
-                                <i class="fa-solid fa-pen-to-square"></i><span>Update Social Stats</span>
-                            </a>
-                        </li>
-                        <?php if (in_array($_SESSION['user_role'], ['admin', 'manager'])): ?>
-                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'social_manager') ? 'active' : ''; ?>">
-                            <a href="index.php?route=social/manager">
-                                <i class="fa-solid fa-user-gear"></i><span>Manager Performance</span>
-                            </a>
-                        </li>
-                        <?php endif; ?>
-                        <?php if ($_SESSION['user_role'] === 'admin'): ?>
-                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'social_admin') ? 'active' : ''; ?>">
-                            <a href="index.php?route=social/admin">
-                                <i class="fa-solid fa-gears"></i><span>Social Configurations</span>
-                            </a>
-                        </li>
-                        <?php endif; ?>
-                    </ul>
-                </li>
                 <?php endif; ?> <!-- end Marketing -->
 
                 <!-- 7. Reports Accordion Group -->
                 <?php if (!Policy::isEmployee()): ?>
                 <li class="menu-section" data-section="reports">
-                    <div class="menu-section-header">
+                    <div class="menu-section-header" title="Reports">
                         <i class="fa-solid fa-chart-pie section-icon"></i>
                         <span class="section-text">Reports</span>
                         <i class="fa-solid fa-chevron-right section-arrow"></i>
@@ -1068,9 +1217,9 @@
                 <?php endif; ?> <!-- end Reports -->
 
                 <!-- 8. HR & Payroll Accordion Group -->
-                <?php if (in_array($role, ['admin', 'manager', 'team_leader', 'hr', 'finance', 'employee', 'sales_person'], true)): ?>
+                <?php if (in_array($role, ['admin', 'ceo', 'manager', 'team_leader', 'hr', 'finance', 'analyst', 'employee', 'sales_person'], true)): ?>
                 <li class="menu-section" data-section="hr">
-                    <div class="menu-section-header">
+                    <div class="menu-section-header" title="HR & Payroll">
                         <i class="fa-solid fa-users-gear section-icon"></i>
                         <span class="section-text">HR & Payroll</span>
                         <i class="fa-solid fa-chevron-right section-arrow"></i>
@@ -1084,6 +1233,14 @@
                         </li>
                         <?php endif; ?>
                         
+                        <?php if (in_array($role, ['admin', 'ceo', 'hr', 'manager'], true)): ?>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'leave_balances') ? 'active' : ''; ?>">
+                            <a href="index.php?route=leaves/balances">
+                                <i class="fa-solid fa-scale-balanced"></i><span>Leave Balances</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        
                         <?php if (Policy::canApproveDataEdit() || Policy::canRequestDataEdit()): ?>
                         <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'edit_requests') ? 'active' : ''; ?>">
                             <a href="index.php?route=editrequests/index">
@@ -1092,8 +1249,8 @@
                         </li>
                         <?php endif; ?>
                         
-                        <?php if (in_array($role, ['admin', 'manager'], true)): ?>
-                        <li class="menu-item <?php echo ($data['title'] === 'Organization | Raptor CRM') ? 'active' : ''; ?>">
+                        <?php if (in_array($role, ['admin', 'ceo', 'hr', 'manager', 'analyst', 'employee', 'sales_person'], true)): ?>
+                        <li class="menu-item <?php echo (($title ?? '') === 'Organization | Raptor CRM' || (isset($active_tab) && $active_tab === 'teams')) ? 'active' : ''; ?>">
                             <a href="index.php?route=teams/index">
                                 <i class="fa-solid fa-sitemap"></i><span>Organization</span>
                             </a>
@@ -1105,7 +1262,7 @@
                                 <i class="fa-solid fa-chart-line"></i><span>HRMS Dashboard</span>
                             </a>
                         </li>
-                        <?php if (in_array($role, ['admin', 'hr'], true)): ?>
+                        <?php if (in_array($role, ['admin', 'ceo', 'hr', 'analyst'], true)): ?>
                         <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'hrms_reports') ? 'active' : ''; ?>">
                             <a href="index.php?route=hrms/reports">
                                 <i class="fa-solid fa-file-invoice"></i><span>HRMS Reports</span>
@@ -1114,7 +1271,7 @@
                         <?php endif; ?>
 
                         <!-- New Payroll Items -->
-                        <?php if (in_array($role, ['admin', 'hr', 'finance', 'manager'], true)): ?>
+                        <?php if (in_array($role, ['admin', 'ceo', 'hr', 'finance', 'manager'], true)): ?>
                         <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'payroll_dashboard') ? 'active' : ''; ?>">
                             <a href="index.php?route=payroll/dashboard">
                                 <i class="fa-solid fa-chart-pie"></i><span>Payroll Dashboard</span>
@@ -1122,7 +1279,7 @@
                         </li>
                         <?php endif; ?>
 
-                        <?php if (in_array($role, ['admin', 'hr'], true)): ?>
+                        <?php if (in_array($role, ['admin', 'ceo', 'hr'], true)): ?>
                         <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'payroll_structures') ? 'active' : ''; ?>">
                             <a href="index.php?route=payroll/structures">
                                 <i class="fa-solid fa-calculator"></i><span>Salary Structures</span>
@@ -1130,7 +1287,12 @@
                         </li>
                         <?php endif; ?>
 
-                        <?php if (in_array($role, ['admin', 'hr', 'finance'], true)): ?>
+                        <?php if (in_array($role, ['admin', 'ceo', 'hr', 'finance'], true)): ?>
+                        <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'payroll_checklist') ? 'active' : ''; ?>">
+                            <a href="index.php?route=payroll/checklist">
+                                <i class="fa-solid fa-list-check"></i><span>Pre-Payroll Checklist</span>
+                            </a>
+                        </li>
                         <li class="menu-item <?php echo (isset($active_tab) && $active_tab === 'payroll_processing') ? 'active' : ''; ?>">
                             <a href="index.php?route=payroll/processing">
                                 <i class="fa-solid fa-file-invoice-dollar"></i><span>Payroll Runs</span>
@@ -1161,7 +1323,7 @@
 
                 <!-- 9. Settings Accordion Group -->
                 <li class="menu-section" data-section="settings">
-                    <div class="menu-section-header">
+                    <div class="menu-section-header" title="Settings">
                         <i class="fa-solid fa-sliders section-icon"></i>
                         <span class="section-text">Settings</span>
                         <i class="fa-solid fa-chevron-right section-arrow"></i>
@@ -1209,10 +1371,28 @@
 
 
             <div class="sidebar-footer">
-                <div class="user-widget">
-                    <div class="user-avatar">
-                        <?php echo strtoupper(substr($_SESSION['user_name'], 0, 2)); ?>
-                    </div>
+                <div class="user-widget" title="<?php echo htmlspecialchars(($_SESSION['user_name'] ?? '') . ' (' . Policy::roleLabel() . ')'); ?>">
+                    <?php
+                    $userPhoto = $_SESSION['user_photo'] ?? null;
+                    if (empty($userPhoto) && isset($_SESSION['user_id'])) {
+                        try {
+                            $dbConn = Database::getInstance()->getConnection();
+                            $stmtPhoto = $dbConn->prepare("SELECT profile_photo FROM employees WHERE user_id = :uid LIMIT 1");
+                            $stmtPhoto->execute([':uid' => $_SESSION['user_id']]);
+                            $userPhoto = $stmtPhoto->fetchColumn() ?: null;
+                            $_SESSION['user_photo'] = $userPhoto;
+                        } catch (Throwable $e) {
+                            $userPhoto = null;
+                        }
+                    }
+                    ?>
+                    <?php if (!empty($userPhoto)): ?>
+                        <img src="index.php?route=file/show&key=<?php echo urlencode($userPhoto); ?>" class="user-avatar" style="object-fit: cover; width: 38px; height: 38px; border-radius: 50%;" alt="<?php echo htmlspecialchars($_SESSION['user_name']); ?>">
+                    <?php else: ?>
+                        <div class="user-avatar">
+                            <?php echo strtoupper(substr($_SESSION['user_name'], 0, 2)); ?>
+                        </div>
+                    <?php endif; ?>
                     <div class="flex-grow-1 overflow-hidden" style="margin-right: 0.5rem;">
                         <div class="user-name"><?php echo htmlspecialchars($_SESSION['user_name']); ?></div>
                         <div class="user-role"><?php echo htmlspecialchars(Policy::roleLabel()); ?></div>
@@ -1278,7 +1458,7 @@
                             $stmtNotif = $dbConnection->prepare("SELECT * FROM notifications WHERE user_id = :uid AND is_read = 0 ORDER BY created_at DESC LIMIT 5");
                             $stmtNotif->execute([':uid' => $notifUser]);
                             $unreadNotifs = $stmtNotif->fetchAll(PDO::FETCH_OBJ) ?: [];
-                        } catch (Exception $e) { 
+                        } catch (Throwable $e) { 
                             $unreadNotifs = []; 
                             $totalUnreadCount = 0;
                         }
@@ -1305,7 +1485,7 @@
                                             <a href="<?php echo htmlspecialchars($notif->action_url ?: '#'); ?>" class="text-decoration-none d-block">
                                                 <div class="d-flex justify-content-between">
                                                     <span class="fw-bold small d-block" style="color: var(--text-primary);"><?php echo htmlspecialchars($notif->title); ?></span>
-                                                    <small class="text-secondary" style="font-size: 0.7rem;"><?php echo date('M d', strtotime($notif->created_at)); ?></small>
+                                                    <small class="text-secondary" style="font-size: 0.7rem;"><?php echo htmlspecialchars(formatToLocalTime($notif->created_at, 'M d H:i')); ?></small>
                                                 </div>
                                                 <span class="text-secondary small d-block mt-1" style="font-size: 0.78rem; line-height: 1.3;"><?php echo htmlspecialchars($notif->message); ?></span>
                                             </a>
@@ -1328,23 +1508,17 @@
             <main class="main-content flex-grow-1">
                 <?php echo $content; ?>
             </main>
-
-            <!-- Sticky branded page footer -->
-            <footer class="footer py-3 border-top" style="border-color: var(--border-color) !important; background-color: var(--panel-dark);">
-                <div class="container-fluid d-flex justify-content-between align-items-center px-4" style="font-size: 0.8rem; color: var(--text-secondary);">
-                    <span>&copy; 2026 <strong>RAPTOR</strong></span>
-                    <span>Powered by <strong>RAPTOR</strong></span>
-                </div>
-            </footer>
         </div>
     </div>
 
     <?php
         // Role-aware default dashboard target for the bottom nav "Home".
+        $role = $role ?? $_SESSION['user_role'] ?? $_SESSION['role_name'] ?? '';
         $homeRoute = Policy::isEmployee()
             ? 'attendance/index'
             : 'dashboard/index';
         $isOps = $role !== 'employer';
+        $salesRoles = ['admin', 'ceo', 'manager', 'team_leader', 'sales_person', 'employee', 'analyst'];
         $canLeads = in_array($role, $salesRoles, true);
         $salesSide = in_array($role, $salesRoles, true);
     ?>
@@ -1397,36 +1571,65 @@
 
             $('#close-sidebar-btn').on('click', closeDrawer);
 
-            // Accordion Logic for Sidebar Category Drawers
+            // Category Drawers Toggle (Keep open without auto-collapsing other sections to prevent jumping)
             $('.menu-section-header').on('click', function() {
                 if ($('#sidebar').hasClass('collapsed') && !isMobile()) {
-                    return;
+                    $('#sidebar').removeClass('collapsed');
+                    sessionStorage.setItem('sidebar_collapsed', '0');
                 }
 
                 var section = $(this).closest('.menu-section');
                 var isOpen = section.hasClass('expanded');
 
-                // Collapse all other sections (Accordion style)
-                $('.menu-section').not(section).removeClass('expanded').find('.menu-section-items').slideUp(200);
-
                 if (isOpen) {
                     section.removeClass('expanded');
-                    section.find('.menu-section-items').slideUp(200);
+                    section.find('.menu-section-items').slideUp(180);
                 } else {
                     section.addClass('expanded');
-                    section.find('.menu-section-items').slideDown(200);
+                    section.find('.menu-section-items').slideDown(180);
                 }
+
+                setTimeout(function() {
+                    sessionStorage.setItem('sidebar_scroll', $('#sidebar').scrollTop());
+                }, 200);
             });
 
-            // Expand active section on load
+            // Expand active section on load & highlight active section header
             var activeLink = $('.menu-section-items .menu-item.active');
             if (activeLink.length > 0) {
                 var activeSection = activeLink.closest('.menu-section');
-                activeSection.addClass('expanded');
+                activeSection.addClass('expanded has-active');
                 activeSection.find('.menu-section-items').show();
             } else {
-                $('.menu-section[data-section="dashboard"]').addClass('expanded').find('.menu-section-items').show();
+                $('.menu-section[data-section="dashboard"]').addClass('expanded has-active').find('.menu-section-items').show();
             }
+
+            // Restore sidebar scroll position so it stays exactly where the user left it
+            var savedScroll = sessionStorage.getItem('sidebar_scroll');
+            if (savedScroll !== null) {
+                $('#sidebar').scrollTop(parseInt(savedScroll, 10));
+                requestAnimationFrame(function() {
+                    $('#sidebar').scrollTop(parseInt(savedScroll, 10));
+                });
+            } else if (activeLink.length > 0) {
+                activeLink[0].scrollIntoView({ block: 'nearest' });
+            }
+
+            // Persist sidebar scroll position across clicks, scrolls, and page unloads
+            $('#sidebar').on('scroll', function() {
+                sessionStorage.setItem('sidebar_scroll', $(this).scrollTop());
+            });
+
+            $('#sidebar a').on('click', function() {
+                sessionStorage.setItem('sidebar_scroll', $('#sidebar').scrollTop());
+            });
+
+            window.addEventListener('beforeunload', function() {
+                var sidebar = document.getElementById('sidebar');
+                if (sidebar) {
+                    sessionStorage.setItem('sidebar_scroll', sidebar.scrollTop);
+                }
+            });
 
             // Topbar hamburger: on mobile open the drawer, on desktop collapse.
             $('#toggle-btn').on('click', function() {
@@ -1629,6 +1832,214 @@
         if (tz) {
             document.cookie = "user_timezone=" + encodeURIComponent(tz) + "; path=/; max-age=31536000; SameSite=Lax";
         }
+    })();
+    </script>
+
+    <!-- Session Activity Confirmation Modal -->
+    <div class="modal fade" id="sessionActivityModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="sessionActivityModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0" style="border-radius: 16px;">
+                <div class="modal-body text-center p-4">
+                    <div class="mb-3">
+                        <span style="font-size: 3rem; color: #F59E0B;"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                    </div>
+                    <h4 class="fw-bold mb-2">Are you still working?</h4>
+                    <p class="text-secondary small mb-3">
+                        Your 10-hour working session checkpoint has been reached. Please confirm if you wish to extend your working session by 2 hours.
+                    </p>
+                    <div class="alert alert-warning py-2 mb-4 fs-6 fw-bold" style="border-radius: 8px;">
+                        Auto-logout in <span id="session-countdown-timer">05:00</span>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button type="button" id="btn-session-extend" class="btn btn-primary px-4 fw-semibold" style="background: var(--primary); border: none; border-radius: 8px;">
+                            <i class="fa-solid fa-check me-2"></i>Yes, Extend Session
+                        </button>
+                        <button type="button" id="btn-session-logout" class="btn btn-outline-secondary px-4 fw-semibold" style="border-radius: 8px;">
+                            <i class="fa-solid fa-right-from-bracket me-2"></i>No, Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        if (typeof jQuery === 'undefined') return;
+
+        let mainTimer = null;
+        let countdownInterval = null;
+        let graceSecondsRemaining = 300;
+        let modalShown = false;
+        const csrfToken = <?php echo json_encode($_SESSION['csrf_token'] ?? ''); ?>;
+
+        function getApiUrl(endpoint) {
+            return 'index.php?route=api/' + endpoint;
+        }
+
+        function checkSessionStatus() {
+            fetch(getApiUrl('session_status'))
+                .then(r => r.json())
+                .then(d => {
+                    if (!d || !d.success) return;
+                    if (d.is_expired) {
+                        handleLogout('session_timeout');
+                        return;
+                    }
+
+                    if (d.show_popup || d.remaining_seconds <= 0) {
+                        triggerPopup(d.remaining_seconds);
+                    } else {
+                        scheduleMainTimer(d.remaining_seconds);
+                    }
+                })
+                .catch(err => {
+                    // Fallback using direct file if route alias fails
+                    fetch('api/session-status.php')
+                        .then(r => r.json())
+                        .then(d => {
+                            if (!d || !d.success) return;
+                            if (d.is_expired) {
+                                handleLogout('session_timeout');
+                                return;
+                            }
+                            if (d.show_popup || d.remaining_seconds <= 0) {
+                                triggerPopup(d.remaining_seconds);
+                            } else {
+                                scheduleMainTimer(d.remaining_seconds);
+                            }
+                        })
+                        .catch(() => {});
+                });
+        }
+
+        function scheduleMainTimer(seconds) {
+            if (mainTimer) clearTimeout(mainTimer);
+            const delayMs = Math.max(1000, seconds * 1000);
+            mainTimer = setTimeout(function () {
+                checkSessionStatus();
+            }, delayMs);
+        }
+
+        function triggerPopup(overdueSeconds) {
+            if (modalShown) return;
+            modalShown = true;
+
+            if (mainTimer) clearTimeout(mainTimer);
+
+            let initialGrace = 300;
+            if (typeof overdueSeconds === 'number' && overdueSeconds < 0) {
+                initialGrace = Math.max(0, 300 + overdueSeconds);
+            }
+
+            if (initialGrace <= 0) {
+                handleLogout('session_timeout');
+                return;
+            }
+
+            graceSecondsRemaining = Math.floor(initialGrace);
+            updateCountdownDisplay();
+
+            const modalEl = document.getElementById('sessionActivityModal');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                const bsModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
+                bsModal.show();
+            }
+
+            if (countdownInterval) clearInterval(countdownInterval);
+            countdownInterval = setInterval(function () {
+                graceSecondsRemaining--;
+                updateCountdownDisplay();
+                if (graceSecondsRemaining <= 0) {
+                    clearInterval(countdownInterval);
+                    handleLogout('session_timeout');
+                }
+            }, 1000);
+        }
+
+        function updateCountdownDisplay() {
+            const m = Math.floor(graceSecondsRemaining / 60);
+            const s = graceSecondsRemaining % 60;
+            const formatted = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+            $('#session-countdown-timer').text(formatted);
+        }
+
+        function handleExtend() {
+            $('#btn-session-extend').prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Extending...');
+            
+            const doExtend = function(url) {
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken
+                    }
+                })
+                .then(r => r.json())
+                .then(d => {
+                    $('#btn-session-extend').prop('disabled', false).html('<i class="fa-solid fa-check me-2"></i>Yes, Extend Session');
+                    if (d.success) {
+                        if (countdownInterval) clearInterval(countdownInterval);
+                        modalShown = false;
+                        const modalEl = document.getElementById('sessionActivityModal');
+                        if (modalEl && typeof bootstrap !== 'undefined') {
+                            const bsModal = bootstrap.Modal.getInstance(modalEl);
+                            if (bsModal) bsModal.hide();
+                        }
+                        scheduleMainTimer(d.remaining_seconds || 7200);
+                    } else {
+                        handleLogout('session_timeout');
+                    }
+                })
+                .catch(() => {
+                    if (url !== 'api/session-extend.php') {
+                        doExtend('api/session-extend.php');
+                    } else {
+                        $('#btn-session-extend').prop('disabled', false).html('<i class="fa-solid fa-check me-2"></i>Yes, Extend Session');
+                        handleLogout('session_timeout');
+                    }
+                });
+            };
+
+            doExtend(getApiUrl('session_extend'));
+        }
+
+        function handleLogout(trigger) {
+            if (countdownInterval) clearInterval(countdownInterval);
+            const bodyData = 'trigger=' + encodeURIComponent(trigger || 'user_logout') + '&csrf_token=' + encodeURIComponent(csrfToken);
+            
+            fetch(getApiUrl('session_logout'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: bodyData
+            })
+            .then(r => r.json())
+            .then(d => {
+                window.location.href = d.redirect || ('index.php?route=auth/login&reason=' + (trigger || 'user_logout'));
+            })
+            .catch(() => {
+                window.location.href = 'index.php?route=auth/login&reason=' + (trigger || 'user_logout');
+            });
+        }
+
+        $(function () {
+            $('#btn-session-extend').on('click', handleExtend);
+            $('#btn-session-logout').on('click', function () {
+                handleLogout('user_logout');
+            });
+
+            // Reschedule/trigger on tab focus (visibilitychange)
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden) {
+                    checkSessionStatus();
+                }
+            });
+
+            // Initial check
+            checkSessionStatus();
+        });
     })();
     </script>
 </body>

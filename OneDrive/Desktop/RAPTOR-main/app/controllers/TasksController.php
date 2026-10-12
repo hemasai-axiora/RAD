@@ -14,12 +14,16 @@ class TasksController extends Controller {
     public function index() {
         $filters = [
             'assigned_to_user_id' => $_GET['assigned_to_user_id'] ?? '',
+            'team_id' => $_GET['team_id'] ?? '',
             'review_status' => $_GET['review_status'] ?? '',
+            'start_date' => $_GET['start_date'] ?? '',
+            'end_date' => $_GET['end_date'] ?? '',
         ];
-        if (Policy::isEmployee()) {
-            $filters['assigned_to_user_id'] = $_SESSION['user_id'];
+        if (Policy::isEmployee() && empty($_GET['assigned_to_user_id'])) {
+            // Employee sees tasks assigned to them or their team via $visibleUserIds scoping
         }
 
+        $teamModel = $this->model('Team');
         $visible = $this->visibleUserIds();
         $data = [
             'title' => 'Task Board | Raptor CRM',
@@ -28,7 +32,9 @@ class TasksController extends Controller {
             'metrics' => $this->taskModel->completionMetrics($visible),
             'can_assign' => in_array($_SESSION['user_role'], ['admin', 'manager', 'team_leader'], true),
             'can_review' => in_array($_SESSION['user_role'], ['admin', 'manager', 'team_leader'], true),
+            'can_delete' => strtolower($_SESSION['user_role'] ?? '') === 'admin',
             'assignees' => $this->getAssignees(),
+            'teams' => $teamModel->getTeams(),
             'filters' => $filters,
             'review_statuses' => Task::REVIEW_STATUSES,
         ];
@@ -41,24 +47,68 @@ class TasksController extends Controller {
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
+            $title = strip_tags(trim($_POST['title'] ?? ''));
+            $assignedTo = trim($_POST['assigned_to_user_id'] ?? '');
+            $teamId = trim($_POST['team_id'] ?? '');
+            $startDate = $this->normalizeDatetime($_POST['start_date'] ?? '');
+            $deadline = $this->normalizeDatetime($_POST['deadline'] ?? '');
+
+            if (empty($title) || !preg_match('/[a-zA-Z]/', $title)) {
+                $_SESSION['task_error'] = 'Task Title must contain at least one letter.';
+                $this->redirect('index.php?route=tasks/index');
+                return;
+            }
+
+            if (empty($assignedTo) && empty($teamId)) {
+                $_SESSION['task_error'] = 'Please assign the task to an employee or a team.';
+                $this->redirect('index.php?route=tasks/index');
+                return;
+            }
+
+            if (empty($deadline)) {
+                $_SESSION['task_error'] = 'Deadline is required.';
+                $this->redirect('index.php?route=tasks/index');
+                return;
+            }
+
+            if (!empty($startDate) && strtotime($startDate) < strtotime(date('Y-m-d 00:00:00'))) {
+                $_SESSION['task_error'] = 'Start date & time cannot be in the past.';
+                $this->redirect('index.php?route=tasks/index');
+                return;
+            }
+
+            if (strtotime($deadline) < strtotime(date('Y-m-d 00:00:00'))) {
+                $_SESSION['task_error'] = 'Deadline date & time cannot be in the past.';
+                $this->redirect('index.php?route=tasks/index');
+                return;
+            }
+
+            if (!empty($startDate) && strtotime($deadline) < strtotime($startDate)) {
+                $_SESSION['task_error'] = 'Deadline cannot be earlier than start date.';
+                $this->redirect('index.php?route=tasks/index');
+                return;
+            }
+
             $data = [
-                'assigned_to_user_id' => trim($_POST['assigned_to_user_id'] ?? ''),
+                'assigned_to_user_id' => $assignedTo ?: null,
+                'team_id' => $teamId ?: null,
                 'created_by_user_id' => $_SESSION['user_id'],
-                'title' => strip_tags(trim($_POST['title'] ?? '')),
+                'title' => $title,
                 'description' => strip_tags(trim($_POST['description'] ?? '')),
-                'start_date' => $this->normalizeDatetime($_POST['start_date'] ?? ''),
+                'start_date' => $startDate,
                 'priority' => trim($_POST['priority'] ?? 'medium'),
-                'deadline' => $this->normalizeDatetime($_POST['deadline'] ?? ''),
+                'deadline' => $deadline,
                 'estimated_hours' => $_POST['estimated_hours'] ?? 0,
                 'remarks' => strip_tags(trim($_POST['remarks'] ?? '')),
                 'status' => 'pending',
             ];
 
-            if ($data['title'] !== '' && $data['assigned_to_user_id'] !== '' && $data['deadline']) {
-                $taskId = $this->taskModel->addTask($data);
-                if ($taskId) {
-                    $this->audit('Created task: ' . $data['title'], 'task', (int) $taskId, null, $data);
-                }
+            $taskId = $this->taskModel->addTask($data);
+            if ($taskId) {
+                $this->audit('Created task: ' . $data['title'], 'task', (int) $taskId, null, $data);
+                $_SESSION['task_success'] = 'Task created successfully.';
+            } else {
+                $_SESSION['task_error'] = 'Something went wrong while saving the task.';
             }
         }
         $this->redirect('index.php?route=tasks/index');
@@ -133,21 +183,93 @@ class TasksController extends Controller {
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
-            $decision = $_POST['decision'] ?? 'rejected';
+            $rawDecision = strtolower(trim($_POST['review_action'] ?? $_POST['decision'] ?? ''));
+            if (in_array($rawDecision, ['approve', 'approved'], true)) {
+                $decision = 'approved';
+            } else {
+                $decision = 'rejected';
+            }
+
             $remark = strip_tags(trim($_POST['review_remark'] ?? ''));
             if ($this->taskModel->review((int) $id, $decision, (int) $_SESSION['user_id'], $remark, $this->visibleUserIds())) {
                 $this->audit('Reviewed task #' . (int) $id . ' as ' . $decision, 'task', (int) $id);
+                $_SESSION['task_success'] = 'Task reviewed as ' . ucfirst($decision) . '.';
+            } else {
+                $_SESSION['task_error'] = 'Failed to review task.';
             }
         }
         $this->redirect('index.php?route=tasks/index');
     }
 
     public function delete($id) {
-        $this->requirePermission('tasks', 'assign');
+        $userRole = strtolower($_SESSION['user_role'] ?? '');
+        if ($userRole !== 'admin') {
+            $_SESSION['task_error'] = 'Access Denied: Only Admin users are authorized to delete tasks.';
+            $this->redirect('index.php?route=tasks/index');
+            return;
+        }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($this->taskModel->deleteTask((int) $id, $this->visibleUserIds())) {
                 $this->audit('Deleted task #' . (int) $id, 'task', (int) $id);
+                $_SESSION['task_success'] = 'Task deleted successfully.';
+            } else {
+                $_SESSION['task_error'] = 'Failed to delete task.';
+            }
+        }
+        $this->redirect('index.php?route=tasks/index');
+    }
+
+    public function deleteMultiple() {
+        $userRole = strtolower($_SESSION['user_role'] ?? '');
+        if ($userRole !== 'admin') {
+            $_SESSION['task_error'] = 'Access Denied: Only Admin users are authorized to delete tasks.';
+            $this->redirect('index.php?route=tasks/index');
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $rawIds = $_POST['task_ids'] ?? [];
+            if (is_string($rawIds)) {
+                $rawIds = explode(',', $rawIds);
+            }
+            $taskIds = array_filter(array_map('intval', (array)$rawIds), function($id) { return $id > 0; });
+
+            if (empty($taskIds)) {
+                $_SESSION['task_error'] = 'Please select at least one task to delete.';
+            } else {
+                $count = $this->taskModel->deleteMultipleTasks($taskIds, $this->visibleUserIds());
+                if ($count > 0) {
+                    $this->audit("Bulk deleted {$count} task(s)", 'task');
+                    $_SESSION['task_success'] = "Successfully deleted {$count} task(s).";
+                } else {
+                    $_SESSION['task_error'] = 'Failed to delete selected tasks.';
+                }
+            }
+        }
+        $this->redirect('index.php?route=tasks/index');
+    }
+
+    public function deleteByEmployee() {
+        $userRole = strtolower($_SESSION['user_role'] ?? '');
+        if ($userRole !== 'admin') {
+            $_SESSION['task_error'] = 'Access Denied: Only Admin users are authorized to delete tasks.';
+            $this->redirect('index.php?route=tasks/index');
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $employeeUserId = (int)($_POST['employee_user_id'] ?? 0);
+            if ($employeeUserId <= 0) {
+                $_SESSION['task_error'] = 'Please select a valid employee.';
+            } else {
+                $count = $this->taskModel->deleteTasksByEmployee($employeeUserId, $this->visibleUserIds());
+                if ($count > 0) {
+                    $this->audit("Deleted all {$count} task(s) for employee #{$employeeUserId}", 'task');
+                    $_SESSION['task_success'] = "Successfully deleted {$count} task(s) assigned to the selected employee.";
+                } else {
+                    $_SESSION['task_error'] = 'No tasks found for the selected employee or deletion failed.';
+                }
             }
         }
         $this->redirect('index.php?route=tasks/index');

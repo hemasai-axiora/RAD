@@ -6,7 +6,14 @@ class UsersController extends Controller {
 
     public function __construct() {
         $this->requireAuth();
-        $this->requirePermission('employees', 'view');
+        $role = $_SESSION['user_role'] ?? '';
+        if (!in_array($role, ['admin', 'manager', 'hr', 'ceo', 'analyst'], true)) {
+            if ($this->isAjax()) {
+                $this->jsonError('Access Denied: You do not have permission to access employee management.', 403);
+            }
+            $this->redirect('index.php?route=dashboard/index');
+            return;
+        }
 
         $this->userModel = $this->model('User');
     }
@@ -92,6 +99,11 @@ class UsersController extends Controller {
 
             if ($this->userModel->isEmployeeCodeExists($data['employee_code'])) {
                 $_SESSION['user_error'] = 'Employee ID already exists.';
+                $this->redirect('index.php?route=users/index');
+                return;
+            }
+            if (!empty($data['employee_code']) && !Validation::validateHasAlphanumeric($data['employee_code'])) {
+                $_SESSION['user_error'] = 'Employee ID must contain alphanumeric characters.';
                 $this->redirect('index.php?route=users/index');
                 return;
             }
@@ -423,6 +435,88 @@ class UsersController extends Controller {
     }
 
     /**
+     * Download / Export full employee details report (CSV).
+     */
+    public function export() {
+        $this->requirePermission('employees', 'view');
+        $users = $this->userModel->getUsers();
+
+        $filename = 'employee_details_' . date('Y-m-d_His') . '.csv';
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+        $output = fopen('php://output', 'w');
+
+        // Write CSV headers
+        fputcsv($output, [
+            'Emp_ID',
+            'Name',
+            'Email',
+            'Role',
+            'Job_Title',
+            'Department',
+            'Work_Location',
+            'Joining_Date',
+            'Status',
+            'Phone_Number',
+            'Salary',
+            'Employment_Type',
+            'Date_of_Birth',
+            'Emergency_Contact',
+            'Account_Holder_Name',
+            'Bank_Name',
+            'Account_Number',
+            'IFSC_Code',
+            'Branch_Name',
+            'Account_Type',
+            'PAN_Number',
+            'Aadhaar_Number',
+            'UAN',
+            'PF_Applicable',
+            'ESIC_Number',
+            'Pay_Grade'
+        ]);
+
+        $canViewSensitive = in_array($_SESSION['user_role'] ?? '', ['admin', 'hr', 'finance', 'ceo'], true);
+
+        foreach ($users as $user) {
+            $joiningDate = !empty($user->date_of_joining) ? date('Y-m-d', strtotime($user->date_of_joining)) : (!empty($user->created_at) ? date('Y-m-d', strtotime($user->created_at)) : '');
+            
+            fputcsv($output, [
+                $user->employee_code ?? 'N/A',
+                $user->name ?? '',
+                $user->email ?? '',
+                strtoupper($user->role_name ?? ''),
+                $user->job_title ?? '',
+                $user->department ?? 'Sales',
+                $user->work_location ?? 'Office',
+                $joiningDate,
+                ucfirst($user->status ?? 'active'),
+                $user->phone_number ?? '',
+                $canViewSensitive ? ($user->salary ?? '') : 'RESTRICTED',
+                $user->employment_type ?? 'Full-time',
+                $user->date_of_birth ?? '',
+                $user->emergency_contact ?? '',
+                $user->account_holder_name ?? '',
+                $user->bank_name ?? '',
+                $canViewSensitive ? ($user->account_number ?? '') : 'RESTRICTED',
+                $user->ifsc_code ?? '',
+                $user->branch_name ?? '',
+                $user->account_type ?? 'Savings',
+                $canViewSensitive ? ($user->pan_number ?? '') : 'RESTRICTED',
+                $canViewSensitive ? ($user->aadhaar_number ?? '') : 'RESTRICTED',
+                $user->uan ?? '',
+                ($user->pf_applicable ?? 0) == 1 ? 'Yes' : 'No',
+                $user->esic_number ?? '',
+                $user->pay_grade ?? ''
+            ]);
+        }
+
+        fclose($output);
+        exit;
+    }
+
+    /**
      * Download sample CSV template.
      */
     public function downloadTemplate() {
@@ -542,7 +636,10 @@ class UsersController extends Controller {
      * Parse and validate uploaded CSV.
      */
     public function bulkUpload() {
-        $this->requirePermission('employees', 'create');
+        $role = $_SESSION['user_role'] ?? '';
+        if (!in_array($role, ['admin', 'manager', 'hr', 'ceo'], true) && !$this->hasPermission('employees')) {
+            $this->requirePermission('employees', 'create');
+        }
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonError('Invalid request method.', 405);
         }
@@ -568,16 +665,16 @@ class UsersController extends Controller {
                 'fields' => [
                     'employee_code' => ['required' => false, 'type' => 'text', 'unique_in_file' => true],
                     'first_name' => ['required' => true, 'type' => 'text'],
-                    'last_name' => ['required' => true, 'type' => 'text'],
+                    'last_name' => ['required' => false, 'type' => 'text'],
                     'email' => ['required' => true, 'type' => 'email', 'unique_in_file' => true],
                     'phone_number' => ['required' => false, 'type' => 'text'],
-                    'department' => ['required' => true, 'type' => 'text'],
-                    'job_title' => ['required' => true, 'type' => 'text'],
+                    'department' => ['required' => false, 'type' => 'text'],
+                    'job_title' => ['required' => false, 'type' => 'text'],
                     'reporting_manager_email' => ['required' => false, 'type' => 'email'],
-                    'date_of_joining' => ['required' => true, 'type' => 'date'],
-                    'employment_type' => ['required' => false, 'type' => 'enum', 'allowed_values' => ['Full-time', 'Part-time', 'Contract', 'Intern']],
-                    'status' => ['required' => false, 'type' => 'enum', 'allowed_values' => ['active', 'inactive', 'suspended']],
-                    'work_location' => ['required' => false, 'type' => 'enum', 'allowed_values' => ['Office', 'Remote']],
+                    'date_of_joining' => ['required' => false, 'type' => 'date'],
+                    'employment_type' => ['required' => false, 'type' => 'text'],
+                    'status' => ['required' => false, 'type' => 'text'],
+                    'work_location' => ['required' => false, 'type' => 'text'],
                     'date_of_birth' => ['required' => false, 'type' => 'date'],
                     'bio' => ['required' => false, 'type' => 'text'],
                     'emergency_contact' => ['required' => false, 'type' => 'text'],
@@ -586,51 +683,36 @@ class UsersController extends Controller {
                     'account_number' => ['required' => false, 'type' => 'text'],
                     'ifsc_code' => ['required' => false, 'type' => 'text'],
                     'branch_name' => ['required' => false, 'type' => 'text'],
-                    'account_type' => ['required' => false, 'type' => 'enum', 'allowed_values' => ['Savings', 'Current']],
+                    'account_type' => ['required' => false, 'type' => 'text'],
                     'pan_number' => ['required' => false, 'type' => 'text'],
                     'aadhaar_number' => ['required' => false, 'type' => 'text'],
                     'uan' => ['required' => false, 'type' => 'text'],
                     'esic_number' => ['required' => false, 'type' => 'text'],
                     'salary' => ['required' => false, 'type' => 'number'],
                     'pay_grade' => ['required' => false, 'type' => 'text'],
-                    'pf_applicable' => ['required' => false, 'type' => 'enum', 'allowed_values' => ['0', '1']],
-                    'role_in_system' => ['required' => true, 'type' => 'enum', 'allowed_values' => ['admin', 'manager', 'analyst', 'employer']],
+                    'pf_applicable' => ['required' => false, 'type' => 'text'],
+                    'role_in_system' => ['required' => false, 'type' => 'text'],
                     'temp_password' => ['required' => false, 'type' => 'text']
                 ]
             ];
 
             // Setup lookups
             $db = Database::getInstance()->getConnection();
-            
-            // Get valid department list
-            $stmt = $db->query("SELECT DISTINCT department FROM employees WHERE department IS NOT NULL AND department != ''");
-            $existingDepts = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
-            if (empty($existingDepts)) {
-                $existingDepts = ['Sales', 'Marketing', 'Engineering', 'HR', 'Finance', 'Operations', 'Executive'];
-            }
 
             $callbacks = [
-                'validate_field_department' => function($val) use ($existingDepts) {
-                    $allowed = array_map('strtolower', $existingDepts);
-                    if (!in_array(strtolower($val), $allowed, true)) {
-                        return "Department does not exist. Choose from: " . implode(', ', $existingDepts);
-                    }
+                'validate_field_department' => function($val) {
                     return null;
                 },
                 'validate_field_date_of_joining' => function($val) {
-                    $today = new DateTime('today');
-                    $doj = DateTime::createFromFormat('Y-m-d', $val);
-                    if ($doj && $doj <= $today) {
-                        return "Date of joining must be a future date (greater than today).";
+                    if (empty(trim($val))) return null;
+                    $clean = str_replace('/', '-', trim($val));
+                    $ts = strtotime($clean);
+                    if (!$ts) {
+                        return "Date of joining must be a valid date.";
                     }
                     return null;
                 },
-                'validate_field_reporting_manager_email' => function($val) use ($db) {
-                    $stmt = $db->prepare("SELECT user_id FROM users WHERE email = :email");
-                    $stmt->execute([':email' => $val]);
-                    if (!$stmt->fetch()) {
-                        return "No employee matches this reporting manager email.";
-                    }
+                'validate_field_reporting_manager_email' => function($val) {
                     return null;
                 },
                 'db_duplicate_check' => function($mappedRow) use ($db) {
@@ -658,6 +740,25 @@ class UsersController extends Controller {
             // Run validator
             $results = $importer->validate($rows, $employeeConfig, $callbacks);
 
+            // Format structured errors array
+            $structuredErrors = [];
+            foreach ($results['rows'] as $r) {
+                if ($r['status'] === 'error') {
+                    foreach ($r['errors'] as $field => $errMsg) {
+                        $structuredErrors[] = [
+                            'row' => $r['index'],
+                            'field' => $field,
+                            'message' => $errMsg
+                        ];
+                    }
+                }
+            }
+            $results['structured_errors'] = $structuredErrors;
+
+            if (!empty($structuredErrors)) {
+                error_log("Bulk Upload Validation Errors (" . count($structuredErrors) . ") for file '" . ($file['name'] ?? 'csv') . "': " . json_encode($structuredErrors));
+            }
+
             // Store in session for the confirmation step
             $_SESSION['bulk_import_rows'] = $results['rows'];
             $_SESSION['bulk_import_metadata'] = [
@@ -667,7 +768,14 @@ class UsersController extends Controller {
 
             $this->json($results);
         } catch (Exception $e) {
-            $this->jsonError($e->getMessage());
+            error_log("[Bulk Upload Exception] " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine());
+            $this->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => [
+                    ['row' => 0, 'field' => 'file', 'message' => $e->getMessage()]
+                ]
+            ], 400);
         }
     }
 
@@ -707,9 +815,14 @@ class UsersController extends Controller {
         // Custom import callback specifically mapping multi-table models
         $importCallback = function($row, $action, $duplicateStrategy) use ($db) {
             // 1. Resolve role_id
-            $roleName = strtolower($row['role_in_system'] ?: 'employer');
-            $stmt = $db->prepare("SELECT role_id FROM roles WHERE LOWER(role_name) = :name");
-            $stmt->execute([':name' => $roleName]);
+            $rawRole = strtolower(trim($row['role_in_system'] ?? ''));
+            if (in_array($rawRole, ['sales', 'sales person', 'sales_person', 'employee'], true)) {
+                $roleName = 'sales_person';
+            } else {
+                $roleName = $rawRole ?: 'employer';
+            }
+            $stmt = $db->prepare("SELECT role_id FROM roles WHERE LOWER(role_name) = :name OR LOWER(role_name) = LOWER(REPLACE(:name2, ' ', '_'))");
+            $stmt->execute([':name' => $roleName, ':name2' => $roleName]);
             $role = $stmt->fetch(PDO::FETCH_ASSOC);
             $role_id = $role ? (int)$role['role_id'] : 4; // fallback to employer
 
@@ -964,5 +1077,56 @@ class UsersController extends Controller {
 
         fclose($output);
         exit();
+    }
+
+    public function importCsv() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_FILES['csv_file']['tmp_name'])) {
+            $handle = fopen($_FILES['csv_file']['tmp_name'], 'r');
+            if ($handle) {
+                $headers = fgetcsv($handle);
+                $imported = 0;
+                $db = Database::getInstance()->getConnection();
+
+                while (($row = fgetcsv($handle)) !== false) {
+                    if (empty($row[0]) && empty($row[1]) && empty($row[3])) continue;
+
+                    $email = trim($row[3] ?? $row[2] ?? '');
+                    if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        $email = 'emp_' . rand(10000, 99999) . '@raptor.local';
+                    }
+
+                    $name = trim(($row[1] ?? '') . ' ' . ($row[2] ?? ''));
+                    if (empty($name)) {
+                        $name = trim($row[0] ?? 'Imported Employee');
+                    }
+                    $empCode = trim($row[0] ?? ('EMP' . rand(1000, 9999)));
+
+                    // Check if email exists
+                    $stmt = $db->prepare("SELECT user_id FROM users WHERE email = :email");
+                    $stmt->execute([':email' => $email]);
+                    if ($stmt->fetch()) continue;
+
+                    $roleStmt = $db->query("SELECT role_id FROM roles WHERE role_name = 'employee' LIMIT 1");
+                    $roleId = (int)($roleStmt->fetchColumn() ?: 10);
+
+                    $hash = password_hash('Raptor@2026', PASSWORD_BCRYPT);
+                    $ins = $db->prepare("INSERT INTO users (role_id, name, email, password, status) VALUES (:r, :n, :e, :p, 'active')");
+                    if ($ins->execute([':r' => $roleId, ':n' => $name, ':e' => $email, ':p' => $hash])) {
+                        $uid = $db->lastInsertId();
+                        $dept = !empty($row[5]) ? trim($row[5]) : 'Sales';
+                        $job = !empty($row[6]) ? trim($row[6]) : 'Staff Member';
+
+                        $empIns = $db->prepare("INSERT INTO employees (user_id, employee_code, department, job_title, hire_date) VALUES (:u, :c, :d, :j, CURDATE())");
+                        $empIns->execute([':u' => $uid, ':c' => $empCode, ':d' => $dept, ':j' => $job]);
+                        $imported++;
+                    }
+                }
+                fclose($handle);
+                $_SESSION['user_success'] = "Bulk Upload Successful: $imported employee(s) imported into the system.";
+            } else {
+                $_SESSION['user_error'] = "Failed to parse uploaded CSV file.";
+            }
+        }
+        $this->redirect('index.php?route=users/index');
     }
 }

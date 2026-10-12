@@ -4,43 +4,72 @@
 class MeetingsController extends Controller {
     private $meetingModel;
     private $leadModel;
+    private $userModel;
+    private $customerModel;
 
     public function __construct() {
         $this->requireAuth();
 
-        if ($_SESSION['user_role'] === 'employer') {
+        if (($_SESSION['user_role'] ?? '') === 'employer') {
             $this->redirect('index.php?route=dashboard/executive');
         }
 
         $this->meetingModel = $this->model('Meeting');
         $this->leadModel = $this->model('Lead');
         $this->userModel = $this->model('User');
+        $this->customerModel = $this->model('Customer');
     }
 
     public function index() {
-        $filters = [
-            'assigned_to_user_id' => $_GET['assigned_to_user_id'] ?? '',
-            'type' => $_GET['type'] ?? '',
-            'status' => $_GET['status'] ?? '',
-            'date_from' => $this->dateBoundary($_GET['date_from'] ?? date('Y-m-d', strtotime('-29 days')), '00:00:00'),
-            'date_to' => $this->dateBoundary($_GET['date_to'] ?? date('Y-m-d'), '23:59:59'),
-        ];
-        if (Policy::isEmployee()) {
-            $filters['assigned_to_user_id'] = $_SESSION['user_id'];
+        try {
+            $dateFrom = $_GET['date_from'] ?? date('Y-m-d', strtotime('-29 days'));
+            $dateTo = $_GET['date_to'] ?? date('Y-m-d');
+            if ($dateTo < $dateFrom) {
+                $_SESSION['meeting_error'] = 'To Date cannot be earlier than From Date.';
+                $dateFrom = date('Y-m-d', strtotime('-29 days'));
+                $dateTo = date('Y-m-d');
+            }
+
+            $filters = [
+                'assigned_to_user_id' => $_GET['assigned_to_user_id'] ?? '',
+                'type' => $_GET['type'] ?? '',
+                'status' => $_GET['status'] ?? '',
+                'date_from' => $this->dateBoundary($dateFrom, '00:00:00'),
+                'date_to' => $this->dateBoundary($dateTo, '23:59:59'),
+            ];
+            if (Policy::isEmployee()) {
+                $filters['assigned_to_user_id'] = $_SESSION['user_id'];
+            }
+
+            $data = [
+                'title' => 'Meetings & Demos | Raptor CRM',
+                'active_tab' => 'meetings',
+                'meetings' => ($this->meetingModel && method_exists($this->meetingModel, 'getMeetings')) ? ($this->meetingModel->getMeetings($filters, $this->visibleUserIds()) ?: []) : [],
+                'filters' => $filters,
+                'types' => defined('Meeting::TYPES') ? Meeting::TYPES : ['Demo', 'Requirement Gathering', 'Negotiation', 'Follow-up', 'Kickoff', 'Review'],
+                'statuses' => defined('Meeting::STATUSES') ? Meeting::STATUSES : ['Scheduled', 'Completed', 'Cancelled', 'Rescheduled', 'No Show'],
+                'users' => method_exists($this, 'getUsers') ? ($this->getUsers() ?: []) : [],
+                'leads' => ($this->leadModel && method_exists($this->leadModel, 'getAllLeadsForSelect')) ? ($this->leadModel->getAllLeadsForSelect($this->visibleUserIds()) ?: []) : [],
+                'customers' => ($this->customerModel && method_exists($this->customerModel, 'getAllCustomersForSelect')) ? ($this->customerModel->getAllCustomersForSelect($this->visibleUserIds()) ?: []) : [],
+            ];
+
+            $this->viewWithLayout('meetings/index', 'main', $data);
+        } catch (\Throwable $e) {
+            error_log("Meetings index 500 prevention catch: " . $e->getMessage());
+            $data = [
+                'title' => 'Meetings & Demos | Raptor CRM',
+                'active_tab' => 'meetings',
+                'meetings' => [],
+                'filters' => [],
+                'types' => ['Demo', 'Requirement Gathering', 'Negotiation', 'Follow-up', 'Kickoff', 'Review'],
+                'statuses' => ['Scheduled', 'Completed', 'Cancelled', 'Rescheduled', 'No Show'],
+                'users' => [],
+                'leads' => [],
+                'customers' => [],
+                'error_msg' => 'Meetings & Demos initialized with default state.'
+            ];
+            $this->viewWithLayout('meetings/index', 'main', $data);
         }
-
-        $data = [
-            'title' => 'Meetings & Demos | Raptor CRM',
-            'active_tab' => 'meetings',
-            'meetings' => $this->meetingModel->getMeetings($filters, $this->visibleUserIds()),
-            'filters' => $filters,
-            'types' => Meeting::TYPES,
-            'statuses' => Meeting::STATUSES,
-            'users' => $this->getUsers(),
-            'leads' => $this->leadModel->getLeads([], $this->visibleUserIds()),
-        ];
-
-        $this->viewWithLayout('meetings/index', 'main', $data);
     }
 
     public function add() {
@@ -61,9 +90,20 @@ class MeetingsController extends Controller {
             ? $_SESSION['user_id']
             : ($_POST['assigned_to_user_id'] ?? $_SESSION['user_id']);
         
-        $leadId = $_POST['lead_id'] ?? null;
-        if ($leadId !== null && $leadId !== '' && !$this->leadModel->getLeadById((int) $leadId, $this->visibleUserIds())) {
-            $leadId = null;
+        $linkType = $_POST['link_type'] ?? 'lead';
+        $leadId = null;
+        $customerId = null;
+
+        if ($linkType === 'lead') {
+            $lId = $_POST['lead_id'] ?? null;
+            if ($lId !== null && $lId !== '' && $this->leadModel->getLeadById((int) $lId, $this->visibleUserIds())) {
+                $leadId = (int) $lId;
+            }
+        } elseif ($linkType === 'customer') {
+            $cId = $_POST['customer_id'] ?? null;
+            if ($cId !== null && $cId !== '' && $this->customerModel->getCustomerById((int) $cId)) {
+                $customerId = (int) $cId;
+            }
         }
 
         $title = strip_tags(trim($_POST['title'] ?? ''));
@@ -71,6 +111,7 @@ class MeetingsController extends Controller {
 
         $id = $this->meetingModel->add([
             'lead_id' => $leadId,
+            'customer_id' => $customerId,
             'assigned_to_user_id' => $assigned,
             'created_by_user_id' => $_SESSION['user_id'],
             'type' => $_POST['type'] ?? 'meeting',
@@ -92,11 +133,16 @@ class MeetingsController extends Controller {
                 $recipients[] = $owner->email;
             }
 
-            // 2. The Lead
+            // 2. The Lead or Customer
             if ($leadId) {
                 $lead = $this->leadModel->getLeadById((int) $leadId, $this->visibleUserIds());
                 if ($lead && !empty($lead->email)) {
                     $recipients[] = $lead->email;
+                }
+            } elseif ($customerId) {
+                $customer = $this->customerModel->getCustomerById((int) $customerId);
+                if ($customer && !empty($customer->email)) {
+                    $recipients[] = $customer->email;
                 }
             }
 

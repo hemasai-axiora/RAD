@@ -24,6 +24,7 @@ class Performance extends Model {
     public function getScores(string $period, string $start, string $end, ?array $visibleUserIds = null) {
         [$where, $params] = $this->scopeWhere($visibleUserIds, 'ps.user_id');
         $where[] = 'ps.period = :period AND ps.start_date = :start AND ps.end_date = :end';
+        $where[] = 'r.role_name IN ("employee", "sales_person")';
         $params[':period'] = $period;
         $params[':start'] = $start;
         $params[':end'] = $end;
@@ -31,6 +32,7 @@ class Performance extends Model {
         $this->query('SELECT ps.*, u.name AS user_name, t.name AS team_name
                       FROM performance_scores ps
                       JOIN users u ON ps.user_id = u.user_id
+                      JOIN roles r ON u.role_id = r.role_id
                       LEFT JOIN employees e ON u.user_id = e.user_id
                       LEFT JOIN teams t ON e.team_id = t.team_id
                       WHERE ' . implode(' AND ', $where) . '
@@ -145,6 +147,9 @@ class Performance extends Model {
         if ($start && $end) {
             return [$start, $end];
         }
+        if ($period === 'daily') {
+            return [date('Y-m-d'), date('Y-m-d')];
+        }
         if ($period === 'monthly') {
             return [date('Y-m-01'), date('Y-m-t')];
         }
@@ -155,7 +160,7 @@ class Performance extends Model {
         $this->query('SELECT u.user_id
                       FROM users u
                       JOIN roles r ON u.role_id = r.role_id
-                      WHERE u.status = "active" AND r.role_name IN ("employee","sales_person","team_leader")');
+                      WHERE u.status = "active" AND r.role_name IN ("employee","sales_person")');
         return $this->resultSet();
     }
 
@@ -182,8 +187,15 @@ class Performance extends Model {
 
     private function activityScore(int $uid, string $start, string $end): float {
         $comms = $this->scalarDateTime('SELECT COUNT(*) FROM communications WHERE user_id = :uid AND happened_at BETWEEN :start AND :end', $uid, $start, $end);
-        $tasks = $this->scalarDateTime('SELECT COUNT(*) FROM tasks WHERE assigned_to_user_id = :uid AND review_status = "approved" AND COALESCE(reviewed_at, completed_at, updated_at) BETWEEN :start AND :end', $uid, $start, $end);
-        return min(100, round((($comms / 30) * 70) + (($tasks / 10) * 30), 2));
+        $tasks = $this->scalarDateTime('SELECT COUNT(*) FROM tasks WHERE (assigned_to_user_id = :uid OR team_id IN (SELECT team_id FROM employees WHERE user_id = :uid)) AND (COALESCE(updated_at, start_date, deadline) BETWEEN :start AND :end OR status IN ("completed", "in_progress"))', $uid, $start, $end);
+        $followups = $this->scalarDateTime('SELECT COUNT(*) FROM follow_ups WHERE assigned_to_user_id = :uid AND COALESCE(updated_at, due_at) BETWEEN :start AND :end', $uid, $start, $end);
+        $leads = $this->scalarDateTime('SELECT COUNT(*) FROM leads WHERE (assigned_to_user_id = :uid OR created_by = :uid) AND COALESCE(updated_at, created_at) BETWEEN :start AND :end', $uid, $start, $end);
+
+        $totalActivity = $comms + $tasks + $followups + $leads;
+        if ($totalActivity <= 0) {
+            return 0.0;
+        }
+        return min(100.0, round(($totalActivity / 10.0) * 100.0, 2));
     }
 
     private function targetScore(int $uid, string $start, string $end): float {
@@ -191,13 +203,14 @@ class Performance extends Model {
                       FROM targets t
                       JOIN target_items ti ON t.target_id = ti.target_id
                       JOIN target_progress tp ON ti.target_item_id = tp.target_item_id
-                      WHERE t.owner_type = "employee" AND t.owner_user_id = :uid
-                        AND t.status = "approved" AND t.start_date <= :end AND t.end_date >= :start');
+                      WHERE (t.owner_type = "employee" AND t.owner_user_id = :uid)
+                        AND t.status IN ("approved", "completed") AND t.start_date <= :end AND t.end_date >= :start');
         $this->bind(':uid', $uid);
         $this->bind(':start', $start);
         $this->bind(':end', $end);
         $this->execute();
-        return min(100, (float) ($this->stmt->fetchColumn() ?: 0));
+        $avg = (float) ($this->stmt->fetchColumn() ?: 0);
+        return min(100, round($avg, 2));
     }
 
     private function leadScore(int $uid, string $start, string $end): float {
@@ -207,7 +220,10 @@ class Performance extends Model {
 
     private function followupScore(int $uid, string $start, string $end): float {
         $total = $this->scalarDateTime('SELECT COUNT(*) FROM follow_ups WHERE assigned_to_user_id = :uid AND due_at BETWEEN :start AND :end', $uid, $start, $end);
-        if ($total <= 0) { return 100.0; }
+        if ($total <= 0) {
+            $anyCompleted = $this->scalarDateTime('SELECT COUNT(*) FROM follow_ups WHERE assigned_to_user_id = :uid AND status = "completed" AND COALESCE(updated_at, due_at) BETWEEN :start AND :end', $uid, $start, $end);
+            return $anyCompleted > 0 ? min(100.0, (float)($anyCompleted * 20)) : 0.0;
+        }
         $good = $this->scalarDateTime('SELECT COUNT(*) FROM follow_ups WHERE assigned_to_user_id = :uid AND due_at BETWEEN :start AND :end AND status IN ("completed","scheduled")', $uid, $start, $end);
         return round(($good / $total) * 100, 2);
     }

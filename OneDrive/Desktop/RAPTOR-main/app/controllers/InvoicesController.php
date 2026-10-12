@@ -29,19 +29,25 @@ class InvoicesController extends Controller {
     // Create invoice
     public function add() {
         $this->requirePermission('invoices', 'create');
+        $customerModel = $this->model('Customer');
+        $customers = $customerModel->getCustomers();
         $clients = $this->clientModel->getClients();
 
         // Get single source of truth conversion rate from settings table
         $db = Database::getInstance()->getConnection();
         $stmt = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'billing.conversion_rate_usd_to_inr'");
-        $conversionRate = (float)($stmt->fetchColumn() ?: 83.50);
+        $conversionRate = (float)($stmt->fetchColumn() ?: 95.31);
+
+        $selectedCustomerId = trim($_GET['customer_id'] ?? $_POST['customer_id'] ?? '');
 
         $data = [
             'title' => 'Generate Invoice | Raptor CRM',
             'active_tab' => 'finance',
+            'customers' => $customers,
             'clients' => $clients,
-            'client_id' => '',
-            'invoice_number' => 'INV-' . time(),
+            'customer_id' => $selectedCustomerId,
+            'client_id' => trim($_GET['client_id'] ?? $_POST['client_id'] ?? ''),
+            'invoice_number' => $this->invoiceModel->generateInvoiceNumber(),
             'amount' => '',
             'status' => 'unpaid',
             'due_date' => date('Y-m-d', strtotime('+30 days')),
@@ -57,7 +63,11 @@ class InvoicesController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
 
+            $data['customer_id'] = trim($_POST['customer_id'] ?? '');
             $data['client_id'] = trim($_POST['client_id'] ?? '');
+            $data['customer_code'] = trim($_POST['customer_code'] ?? '');
+            $data['lead_id'] = trim($_POST['lead_id'] ?? '');
+            $data['lead_code'] = trim($_POST['lead_code'] ?? '');
             $data['invoice_number'] = trim($_POST['invoice_number'] ?? '');
             $data['amount'] = trim($_POST['amount'] ?? '');
             $data['status'] = trim($_POST['status'] ?? 'unpaid');
@@ -69,16 +79,22 @@ class InvoicesController extends Controller {
             $data['due_date_err'] = '';
 
             // Validate
-            if (empty($data['client_id'])) {
-                $data['client_err'] = 'Please select a client';
+            if (empty($data['customer_id']) && empty($data['client_id'])) {
+                $data['client_err'] = 'Please select a customer or client company';
             }
             if (empty($data['amount']) || !is_numeric($data['amount'])) {
                 $data['amount_err'] = 'Please enter a valid amount';
             }
             if (empty($data['due_date'])) {
                 $data['due_date_err'] = 'Please enter a due date';
-            } elseif (strtotime($data['due_date']) < strtotime(date('Y-m-d'))) {
-                $data['due_date_err'] = 'Due date cannot be earlier than invoice date';
+            } else {
+                $dueTs = strtotime($data['due_date']);
+                $todayTs = strtotime(date('Y-m-d'));
+                if (!$dueTs) {
+                    $data['due_date_err'] = 'Invalid due date format';
+                } elseif ($dueTs < $todayTs) {
+                    $data['due_date_err'] = 'Due date cannot be earlier than invoice creation date';
+                }
             }
 
             if (empty($data['amount_err']) && empty($data['client_err']) && empty($data['due_date_err'])) {
@@ -282,6 +298,37 @@ class InvoicesController extends Controller {
                 }
             } else {
                 $_SESSION['invoice_error'] = "Invoice record not found.";
+            }
+        }
+        $this->redirect('index.php?route=invoices/index');
+    }
+
+    // Admin direct status edit / reversal
+    public function updateAdminStatus() {
+        if (!Policy::isAdmin() && !Policy::isFinance()) {
+            $_SESSION['invoice_error'] = "Only Administrators can directly alter invoice payment status.";
+            $this->redirect('index.php?route=invoices/index');
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $invoiceId = (int)($_POST['invoice_id'] ?? 0);
+            $newStatus = trim($_POST['status'] ?? 'unpaid');
+            $reason = trim($_POST['reason'] ?? '');
+
+            if ($invoiceId > 0 && in_array($newStatus, ['unpaid', 'pending', 'paid', 'cancelled'], true)) {
+                $db = Database::getInstance()->getConnection();
+                if ($newStatus === 'unpaid' || $newStatus === 'pending') {
+                    $stmt = $db->prepare("UPDATE invoices SET status = :st, utr_number = NULL, cancel_reason = :rs WHERE invoice_id = :id");
+                    $stmt->execute([':st' => $newStatus, ':rs' => $reason ? "Status reverted: $reason" : null, ':id' => $invoiceId]);
+                } else {
+                    $stmt = $db->prepare("UPDATE invoices SET status = :st WHERE invoice_id = :id");
+                    $stmt->execute([':st' => $newStatus, ':id' => $invoiceId]);
+                }
+                $this->audit("Admin updated invoice #$invoiceId status to $newStatus", "invoices", $invoiceId);
+                $_SESSION['invoice_success'] = "Invoice status successfully updated to " . strtoupper($newStatus) . ".";
+            } else {
+                $_SESSION['invoice_error'] = "Invalid invoice status parameters.";
             }
         }
         $this->redirect('index.php?route=invoices/index');

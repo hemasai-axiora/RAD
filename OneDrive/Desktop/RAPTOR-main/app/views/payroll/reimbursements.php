@@ -95,7 +95,7 @@ $colCount         = $isPrivileged ? 8 : 7;
                     };
                     ?>
                     <tr>
-                        <td class="text-secondary small"><?php echo date('d M Y', strtotime($c->created_at)); ?></td>
+                        <td class="text-secondary small"><?php echo formatToLocalTime($c->created_at, 'd M Y'); ?></td>
                         <?php if ($isPrivileged): ?>
                             <td>
                                 <span class="text-white fw-semibold"><?php echo htmlspecialchars($c->employee_name ?? '—'); ?></span><br>
@@ -108,7 +108,7 @@ $colCount         = $isPrivileged ? 8 : 7;
                             </span>
                         </td>
                         <td class="fw-bold font-monospace" style="color:#6bdfb8;">
-                            &#8377;<?php echo number_format($c->amount, 2); ?>
+                            &#8377;<?php echo number_format($c->amount); ?>
                         </td>
                         <td class="text-secondary small" style="max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
                             title="<?php echo htmlspecialchars($c->description ?? ''); ?>">

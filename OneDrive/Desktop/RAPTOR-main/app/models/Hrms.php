@@ -21,6 +21,10 @@ class Hrms extends Model {
     }
 
     public function updateProfile(int $userId, array $data): bool {
+        // Self-healing columns check
+        try { $this->db->exec("ALTER TABLE employees ADD COLUMN date_of_birth DATE NULL"); } catch (Throwable $e) {}
+        try { $this->db->exec("ALTER TABLE employees ADD COLUMN profile_photo VARCHAR(255) NULL"); } catch (Throwable $e) {}
+
         // First check if employee record exists
         $this->query('SELECT employee_id FROM employees WHERE user_id = :uid');
         $this->bind(':uid', $userId);
@@ -33,7 +37,9 @@ class Hrms extends Model {
                             experience_years = :exp,
                             skills = :skills,
                             phone_number = :phone,
-                            emergency_contact = :emer
+                            emergency_contact = :emer,
+                            date_of_birth = :dob,
+                            profile_photo = COALESCE(:photo, profile_photo)
                           WHERE user_id = :uid');
             $this->bind(':bg', $data['blood_group']);
             $this->bind(':addr', $data['address']);
@@ -41,6 +47,8 @@ class Hrms extends Model {
             $this->bind(':skills', $data['skills']);
             $this->bind(':phone', $data['phone_number']);
             $this->bind(':emer', $data['emergency_contact']);
+            $this->bind(':dob', !empty($data['date_of_birth']) ? $data['date_of_birth'] : null);
+            $this->bind(':photo', !empty($data['profile_photo']) ? $data['profile_photo'] : null);
             $this->bind(':uid', $userId);
             return $this->execute();
         }
@@ -83,16 +91,17 @@ class Hrms extends Model {
             $stats['birthdays'] = $this->resultSet() ?: [];
 
             // Work anniversaries (next 30 days)
-            $this->query("SELECT u.name, e.date_of_joining, e.job_title, e.profile_photo, YEAR(NOW()) - YEAR(e.date_of_joining) AS years
+            $this->query("SELECT u.name, e.hire_date AS date_of_joining, e.job_title, e.profile_photo, YEAR(NOW()) - YEAR(e.hire_date) AS years
                           FROM employees e 
                           JOIN users u ON e.user_id = u.user_id
-                          WHERE DATE_FORMAT(e.date_of_joining, '%m-%d') BETWEEN DATE_FORMAT(NOW(), '%m-%d') AND DATE_FORMAT(DATE_ADD(NOW(), INTERVAL 30 DAY), '%m-%d')
-                            AND YEAR(e.date_of_joining) < YEAR(NOW())
-                          ORDER BY DATE_FORMAT(e.date_of_joining, '%m-%d') ASC");
+                          WHERE DATE_FORMAT(e.hire_date, '%m-%d') BETWEEN DATE_FORMAT(NOW(), '%m-%d') AND DATE_FORMAT(DATE_ADD(NOW(), INTERVAL 30 DAY), '%m-%d')
+                            AND YEAR(e.hire_date) < YEAR(NOW())
+                          ORDER BY DATE_FORMAT(e.hire_date, '%m-%d') ASC");
             $stats['anniversaries'] = $this->resultSet() ?: [];
 
             // Payroll runs
-            $stmt = $db->query("SELECT COUNT(*) FROM payroll_runs");
+            $stmt = $db->prepare("SELECT COUNT(*) FROM payroll_runs WHERE month_year <= :current_month");
+            $stmt->execute([':current_month' => date('Y-m')]);
             $stats['payroll_runs'] = (int) $stmt->fetchColumn();
         }
 

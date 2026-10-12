@@ -16,11 +16,25 @@ $canFinance = PermissionService::can('invoices', 'edit');
         </div>
     <?php endif; ?>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="text-white mb-0">Billing &amp; Invoices Ledger</h4>
         <a href="index.php?route=invoices/add" class="btn btn-primary btn-sm px-3 py-2" style="background: var(--primary); border: none; border-radius: 8px;">
             <i class="fa-solid fa-file-invoice me-2"></i>Generate Invoice
         </a>
+    </div>
+
+    <!-- Complete Invoice Status Filter -->
+    <div class="row g-2 mb-4">
+        <div class="col-md-4 col-lg-3">
+            <select id="invoice-status-filter" class="form-select bg-dark border-secondary text-white" style="border-radius: 8px;">
+                <option value="">All Invoice Statuses</option>
+                <option value="unpaid">Unpaid</option>
+                <option value="paid">Paid</option>
+                <option value="overdue">Overdue</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="draft">Draft</option>
+            </select>
+        </div>
     </div>
 
     <div class="table-responsive">
@@ -53,8 +67,20 @@ $canFinance = PermissionService::can('invoices', 'edit');
                         ?>
                         <tr style="border-bottom: 1px solid var(--border-color);">
                             <td class="font-weight-bold text-white"><?php echo htmlspecialchars($invoice->invoice_number); ?></td>
-                            <td><?php echo htmlspecialchars($invoice->company_name); ?></td>
-                            <td class="text-end font-weight-bold text-white"><?php echo ($invoice->currency === 'INR') ? '₹' : '$'; ?><?php echo number_format($invoice->amount, 2); ?></td>
+                            <td>
+                                <div class="fw-bold text-white"><?php echo htmlspecialchars($invoice->company_name); ?></div>
+                                <?php if (!empty($invoice->customer_code) || !empty($invoice->lead_code)): ?>
+                                    <div class="d-flex align-items-center gap-1 mt-1">
+                                        <?php if (!empty($invoice->customer_code)): ?>
+                                            <span class="badge bg-primary-subtle text-primary font-monospace px-1.5 py-0.5" style="font-size:0.65rem;" title="Customer ID"><?php echo htmlspecialchars($invoice->customer_code); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($invoice->lead_code)): ?>
+                                            <span class="badge bg-info-subtle text-info font-monospace px-1.5 py-0.5" style="font-size:0.65rem;" title="Originating Lead ID"><?php echo htmlspecialchars($invoice->lead_code); ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-end font-weight-bold text-white"><?php echo (($invoice->currency ?? 'USD') === 'INR') ? '₹' : '$'; ?><?php echo number_format($invoice->amount, 2); ?></td>
                             <td><?php echo htmlspecialchars($invoice->due_date); ?></td>
                             <td>
                                 <span class="badge bg-<?php echo $statusColor; ?>-subtle text-<?php echo $statusColor; ?> border border-<?php echo $statusColor; ?>-subtle">
@@ -109,6 +135,29 @@ $canFinance = PermissionService::can('invoices', 'edit');
                                         </button>
                                     <?php elseif ($isFinalised): ?>
                                         <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2">Finalised</span>
+                                        <?php if (Policy::canRequestDataEdit()): ?>
+                                            <button type="button"
+                                                class="btn btn-outline-warning btn-sm"
+                                                title="Request Payment Edit (Submit Data Edit Request to Admin)"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#requestPaymentEditModal"
+                                                data-invoice-id="<?php echo $invoice->invoice_id; ?>"
+                                                data-invoice-num="<?php echo htmlspecialchars($invoice->invoice_number); ?>">
+                                                <i class="fa-solid fa-triangle-exclamation me-1"></i>Request Edit
+                                            </button>
+                                        <?php endif; ?>
+                                        <?php if (Policy::isAdmin()): ?>
+                                            <button type="button"
+                                                class="btn btn-outline-info btn-sm"
+                                                title="Admin Direct Edit Status"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#adminStatusModal"
+                                                data-invoice-id="<?php echo $invoice->invoice_id; ?>"
+                                                data-invoice-num="<?php echo htmlspecialchars($invoice->invoice_number); ?>"
+                                                data-invoice-status="<?php echo htmlspecialchars($invoice->status); ?>">
+                                                <i class="fa-solid fa-pen-to-square me-1"></i>Edit Status
+                                            </button>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </div>
                             </td>
@@ -207,7 +256,114 @@ $canFinance = PermissionService::can('invoices', 'edit');
     </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     MANAGER REQUEST PAYMENT EDIT MODAL
+═══════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="requestPaymentEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--panel-dark); border: 1px solid var(--border-color); border-radius: 16px;">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center gap-2">
+                    <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,193,7,0.15);display:flex;align-items:center;justify-content:center;">
+                        <i class="fa-solid fa-triangle-exclamation text-warning"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title text-white mb-0">Request Payment Status Correction</h5>
+                        <small class="text-secondary" id="req-invoice-subtitle">Submit Data Edit Request to Admin</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="index.php?route=editrequests/create" method="POST">
+                <div class="modal-body pt-3">
+                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
+                    <input type="hidden" name="entity_type" value="invoice">
+                    <input type="hidden" name="entity_id" id="req-invoice-id-input" value="">
+                    <input type="hidden" name="requested_action" value="update">
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Target Corrected Status <span class="text-danger">*</span></label>
+                        <select id="req-target-status" class="form-select" onchange="updateProposedChangesJson()">
+                            <option value="unpaid">Unpaid (Revert mistaken payment)</option>
+                            <option value="pending">Pending Review</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+
+                    <input type="hidden" name="proposed_changes" id="req-proposed-changes-json" value='{"status":"unpaid"}'>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Manager Reason / Comment <span class="text-danger">*</span></label>
+                        <textarea name="manager_comment" class="form-control" rows="3" placeholder="Explain why payment status was recorded by mistake..." required></textarea>
+                    </div>
+                    <div class="alert alert-info py-2 px-3 small border-0" style="background: rgba(13,202,240,0.1); color: var(--text-primary);">
+                        <i class="fa-solid fa-circle-info me-1"></i> Submitting this request sends a governed Data Edit Request to the Admin. Once approved, the payment status will be updated.
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning"><i class="fa-solid fa-paper-plane me-1"></i>Submit Request to Admin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ADMIN DIRECT EDIT STATUS MODAL
+═══════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="adminStatusModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--panel-dark); border: 1px solid var(--border-color); border-radius: 16px;">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center gap-2">
+                    <div style="width:36px;height:36px;border-radius:10px;background:rgba(13,202,240,0.15);display:flex;align-items:center;justify-content:center;">
+                        <i class="fa-solid fa-shield-halved text-info"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title text-white mb-0">Admin Payment Status Override</h5>
+                        <small class="text-secondary" id="admin-invoice-subtitle">Directly alter invoice payment status</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="index.php?route=invoices/updateAdminStatus" method="POST">
+                <div class="modal-body pt-3">
+                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
+                    <input type="hidden" name="invoice_id" id="admin-invoice-id-input" value="">
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">New Payment Status <span class="text-danger">*</span></label>
+                        <select name="status" id="admin-status-select" class="form-select" required>
+                            <option value="unpaid">Unpaid (Revert payment)</option>
+                            <option value="pending">Pending</option>
+                            <option value="paid">Paid</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Admin Audit Note / Reason</label>
+                        <input type="text" name="reason" class="form-control" placeholder="e.g. Reverting mistaken payment per manager request">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info text-white"><i class="fa-solid fa-floppy-disk me-1"></i>Save Status Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+function updateProposedChangesJson() {
+    var selectEl = document.getElementById('req-target-status');
+    if (selectEl) {
+        document.getElementById('req-proposed-changes-json').value = JSON.stringify({ status: selectEl.value });
+    }
+}
+
 // Wire modal data when triggered
 document.addEventListener('DOMContentLoaded', function () {
     var paidModal = document.getElementById('paidModal');
@@ -233,6 +389,33 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('cancel_reason').value = '';
         });
     }
+
+    var reqModal = document.getElementById('requestPaymentEditModal');
+    if (reqModal) {
+        reqModal.addEventListener('show.bs.modal', function (e) {
+            var btn = e.relatedTarget;
+            var invId = btn.getAttribute('data-invoice-id');
+            var invNum = btn.getAttribute('data-invoice-num');
+            document.getElementById('req-invoice-id-input').value = invId;
+            document.getElementById('req-invoice-subtitle').innerText = 'Invoice: ' + invNum;
+            updateProposedChangesJson();
+        });
+    }
+
+    var adminModal = document.getElementById('adminStatusModal');
+    if (adminModal) {
+        adminModal.addEventListener('show.bs.modal', function (e) {
+            var btn = e.relatedTarget;
+            var invId = btn.getAttribute('data-invoice-id');
+            var invNum = btn.getAttribute('data-invoice-num');
+            var invSt = btn.getAttribute('data-invoice-status');
+            document.getElementById('admin-invoice-id-input').value = invId;
+            document.getElementById('admin-invoice-subtitle').innerText = 'Invoice: ' + invNum;
+            if (invSt) {
+                document.getElementById('admin-status-select').value = invSt;
+            }
+        });
+    }
 });
 </script>
 <?php endif; ?>
@@ -240,7 +423,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <script>
     $(document).ready(function() {
         if ($('#invoices-table tbody tr').length > 1 || !$('#invoices-table tbody tr td').hasClass('text-center')) {
-            $('#invoices-table').DataTable({
+            var table = $('#invoices-table').DataTable({
                 "pageLength": 10,
                 "lengthChange": false,
                 "info": false,
@@ -248,6 +431,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 "language": {
                     "search": "Filter Invoices:"
                 }
+            });
+            $('#invoice-status-filter').on('change', function() {
+                var val = $(this).val();
+                table.column(4).search(val ? val : '', false, true).draw();
             });
         }
     });

@@ -50,29 +50,34 @@ if (!empty($assignedAccounts) && isset($platforms) && isset($groupedAccounts)) {
                             <label for="platform_id" class="form-label text-secondary">Platform</label>
                             <select name="platform_id" id="platform_id" class="filter-select w-100" required <?php echo !$hasPlatforms ? 'disabled' : ''; ?> style="padding: 0.6rem 1rem;">
                                 <option value=""><?php echo $hasPlatforms ? 'Select Platform' : 'No accounts available'; ?></option>
-                                <?php if ($hasPlatforms): ?>
-                                    <?php foreach ($platforms as $plat): ?>
-                                        <?php if (isset($groupedAccounts[$plat->platform_id])): ?>
-                                            <option value="<?php echo $plat->platform_id; ?>"><?php echo htmlspecialchars($plat->name); ?></option>
-                                        <?php endif; ?>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </select>
-                        </div>
+                                 <?php if ($hasPlatforms): ?>
+                                     <?php foreach ($platforms as $plat): ?>
+                                         <?php 
+                                         $pid = $plat->platform_id;
+                                         $pkey = 'p_' . $pid;
+                                         $hasAcc = !empty($groupedAccounts[$pid]) || !empty($groupedAccounts[$pkey]);
+                                         ?>
+                                         <?php if ($hasAcc): ?>
+                                             <option value="<?php echo $plat->platform_id; ?>"><?php echo htmlspecialchars($plat->name); ?></option>
+                                         <?php endif; ?>
+                                     <?php endforeach; ?>
+                                 <?php endif; ?>
+                             </select>
+                         </div>
 
-                        <!-- Account Selection -->
-                        <div class="col-md-6">
-                            <label for="account_id" class="form-label text-secondary">Social Account</label>
-                            <select name="account_id" id="account_id" class="filter-select w-100" required disabled style="padding: 0.6rem 1rem;">
-                                <option value=""><?php echo $hasPlatforms ? 'Select Account' : 'No accounts available'; ?></option>
-                            </select>
-                        </div>
+                         <!-- Account Selection -->
+                         <div class="col-md-6">
+                             <label for="account_id" class="form-label text-secondary">Social Account</label>
+                             <select name="account_id" id="account_id" class="filter-select w-100" required disabled style="padding: 0.6rem 1rem;">
+                                 <option value=""><?php echo $hasPlatforms ? 'Select Account' : 'No accounts available'; ?></option>
+                             </select>
+                         </div>
 
-                        <!-- Post Selection -->
-                        <div class="col-12">
-                            <label for="post_id" class="form-label text-secondary">Target Post (Optional)</label>
+                        <!-- Post Selection (Optional) -->
+                        <div class="col-md-12 mt-2">
+                            <label for="post_id" class="form-label text-secondary">Target Post / Content <span class="small text-secondary">(Optional)</span></label>
                             <select name="post_id" id="post_id" class="filter-select w-100" disabled style="padding: 0.6rem 1rem;">
-                                <option value=""><?php echo $hasPlatforms ? 'Account-level metrics (No post)' : 'No accounts available'; ?></option>
+                                <option value="">Account-level metrics (No specific post)</option>
                             </select>
                         </div>
                     </div>
@@ -165,62 +170,150 @@ if (!empty($assignedAccounts) && isset($platforms) && isset($groupedAccounts)) {
             </div>
         </div>
     </div>
+
+    <!-- Employee Analytics & Lead Updates History Table -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="pulse-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="text-white mb-0"><i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>Submitted Analytics &amp; Lead History</h5>
+                    <button type="button" onclick="exportHistoryCSV()" class="btn btn-sm btn-success fw-bold">
+                        <i class="fa-solid fa-file-excel me-1"></i>Export Excel (CSV)
+                    </button>
+                </div>
+                <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                    <table class="table table-hover text-white align-middle mb-0" id="history-table" style="font-size: 0.85rem;">
+                        <thead class="bg-dark sticky-top">
+                            <tr class="text-secondary">
+                                <th>Timestamp</th>
+                                <th>Platform</th>
+                                <th>Account</th>
+                                <th>Post / Content</th>
+                                <th class="text-center">Likes</th>
+                                <th class="text-center">Comments</th>
+                                <th class="text-center">Shares</th>
+                                <th class="text-center">Views</th>
+                                <th class="text-center">Reach</th>
+                                <th class="text-center">Impressions</th>
+                                <th class="text-center">Clicks</th>
+                                <th class="text-center">Followers</th>
+                                <th class="text-center text-success">Leads</th>
+                                <th>Lead Details</th>
+                                <th class="text-center">Engagement Rate</th>
+                                <th>Updated By</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($history)): ?>
+                                <tr>
+                                    <td colspan="17" class="text-center text-secondary py-4">No social analytics logged yet.</td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($history as $h): ?>
+                                    <tr>
+                                        <td class="small text-secondary text-nowrap"><?php echo formatToLocalTime($h->created_at, 'Y-m-d H:i'); ?></td>
+                                        <td><span class="badge bg-secondary bg-opacity-20 text-white"><?php echo htmlspecialchars($h->platform_name); ?></span></td>
+                                        <td class="fw-bold" style="color: var(--text-color, #0f172a);"><?php echo htmlspecialchars($h->profile_name); ?></td>
+                                        <td class="small text-secondary"><?php echo $h->post_content ? htmlspecialchars(substr($h->post_content, 0, 30)) . '...' : 'Account-level Update'; ?></td>
+                                        <td class="text-center"><?php echo number_format($h->likes); ?></td>
+                                        <td class="text-center"><?php echo number_format($h->comments); ?></td>
+                                        <td class="text-center"><?php echo number_format($h->shares); ?></td>
+                                        <td class="text-center"><?php echo number_format($h->views); ?></td>
+                                        <td class="text-center"><?php echo number_format($h->reach ?? 0); ?></td>
+                                        <td class="text-center"><?php echo number_format($h->impressions ?? 0); ?></td>
+                                        <td class="text-center"><?php echo number_format($h->clicks ?? 0); ?></td>
+                                        <td class="text-center"><?php echo number_format($h->followers_gained ?? 0); ?></td>
+                                        <td class="text-center"><span class="badge bg-success fw-bold"><?php echo number_format($h->leads_generated ?? 0); ?></span></td>
+                                        <td class="small text-secondary"><?php echo !empty($h->lead_details) ? htmlspecialchars($h->lead_details) : '-'; ?></td>
+                                        <td class="text-center"><span class="badge bg-info text-dark fw-bold"><?php echo $h->engagement_rate; ?>%</span></td>
+                                        <td class="small text-nowrap"><?php echo htmlspecialchars($h->updated_by_name); ?></td>
+                                        <td class="small text-secondary"><?php echo !empty($h->custom_notes) ? htmlspecialchars($h->custom_notes) : '-'; ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Map account grouping in JS
-    const groupedAccounts = <?php echo json_encode((object)$groupedAccounts); ?>;
+    const groupedAccounts = <?php echo json_encode($groupedAccounts); ?>;
     
     const platformSelect = document.getElementById('platform_id');
     const accountSelect = document.getElementById('account_id');
     const postSelect = document.getElementById('post_id');
 
-    // Platform change trigger
-    platformSelect.addEventListener('change', function() {
-        const pid = this.value;
-        accountSelect.innerHTML = pid ? '<option value="">Select Account</option>' : '<option value="">No Accounts Available</option>';
-        postSelect.innerHTML = '<option value="">Account-level metrics (No post)</option>';
-        accountSelect.disabled = true;
-        postSelect.disabled = true;
+    function populateAccounts() {
+        if (!platformSelect || !accountSelect) return;
+        const pid = platformSelect.value;
+        const key = 'p_' + pid;
+        const accList = (groupedAccounts && (groupedAccounts[key] || groupedAccounts[pid])) ? (groupedAccounts[key] || groupedAccounts[pid]) : [];
 
-        if (pid && groupedAccounts[pid]) {
-            groupedAccounts[pid].forEach(acc => {
+        accountSelect.innerHTML = pid ? '<option value="">Select Account</option>' : '<option value="">No Accounts Available</option>';
+        if (postSelect) {
+            postSelect.innerHTML = '<option value="">Account-level metrics (No post)</option>';
+            postSelect.disabled = true;
+        }
+        accountSelect.disabled = true;
+
+        if (pid && accList && accList.length > 0) {
+            accList.forEach(acc => {
                 const opt = document.createElement('option');
                 opt.value = acc.account_id;
-                opt.textContent = acc.profile_name + ' (' + acc.company_name + ')';
+                opt.textContent = acc.profile_name + (acc.company_name ? ' (' + acc.company_name + ')' : '');
                 accountSelect.appendChild(opt);
             });
             accountSelect.disabled = false;
+            if (accList.length === 1) {
+                accountSelect.selectedIndex = 1;
+                accountSelect.dispatchEvent(new Event('change'));
+            }
         }
-    });
+    }
+
+    // Platform change trigger
+    if (platformSelect) {
+        platformSelect.addEventListener('change', populateAccounts);
+        if (platformSelect.value) {
+            populateAccounts();
+        }
+    }
 
     // Account change trigger
-    accountSelect.addEventListener('change', function() {
-        const aid = this.value;
-        const pid = platformSelect.value;
-        postSelect.innerHTML = '<option value="">Account-level metrics (No post)</option>';
-        postSelect.disabled = true;
+    if (accountSelect) {
+        accountSelect.addEventListener('change', function() {
+            const aid = this.value;
+            const pid = platformSelect ? platformSelect.value : '';
+            if (postSelect) {
+                postSelect.innerHTML = '<option value="">Account-level metrics (No post)</option>';
+                postSelect.disabled = true;
+            }
 
-        if (pid && aid) {
-            fetch('index.php?route=social/getPostsByAccount&accountId=' + aid)
-                .then(r => r.json())
-                .then(res => {
-                    if (res.success && res.data.length > 0 && platformSelect.value && accountSelect.value) {
-                        res.data.forEach(post => {
-                            const opt = document.createElement('option');
-                            opt.value = post.post_id;
-                            // truncate content for option text
-                            const truncated = post.content.length > 40 ? post.content.substring(0, 40) + '...' : post.content;
-                            opt.textContent = 'Post: "' + truncated + '"';
-                            postSelect.appendChild(opt);
-                        });
-                        postSelect.disabled = false;
-                    }
-                })
-                .catch(err => console.error('Error fetching posts:', err));
-        }
-    });
+            if (pid && aid && postSelect) {
+                fetch('index.php?route=social/getPostsByAccount&accountId=' + aid)
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success && res.data && res.data.length > 0 && platformSelect.value && accountSelect.value) {
+                            res.data.forEach(post => {
+                                const opt = document.createElement('option');
+                                opt.value = post.post_id;
+                                const truncated = post.content.length > 40 ? post.content.substring(0, 40) + '...' : post.content;
+                                opt.textContent = 'Post: "' + truncated + '"';
+                                postSelect.appendChild(opt);
+                            });
+                            postSelect.disabled = false;
+                        }
+                    })
+                    .catch(err => console.error('Error fetching posts:', err));
+            }
+        });
+    }
 
     // Auto-calculate engagement rate
     const likesInput = document.getElementById('likes');
@@ -244,4 +337,29 @@ document.addEventListener('DOMContentLoaded', function() {
         inp.addEventListener('input', calculateER);
     });
 });
+
+// Client-side CSV export
+function exportHistoryCSV() {
+    const table = document.getElementById('history-table');
+    if (!table) return;
+    const rows = Array.from(table.querySelectorAll('tr'));
+    
+    let csv = [];
+    rows.forEach(row => {
+        let cols = Array.from(row.querySelectorAll('th, td')).map(col => {
+            let text = col.innerText.replace(/"/g, '""').trim();
+            return `"${text}"`;
+        });
+        csv.push(cols.join(','));
+    });
+
+    const csvFile = new Blob([csv.join('\n')], {type: 'text/csv'});
+    const downloadLink = document.createElement('a');
+    downloadLink.download = 'social_analytics_history.csv';
+    downloadLink.href = window.URL.createObjectURL(csvFile);
+    downloadLink.style.display = 'none';
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+}
 </script>

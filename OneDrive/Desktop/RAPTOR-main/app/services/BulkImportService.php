@@ -53,10 +53,24 @@ class BulkImportService {
         $rows = [];
         $rowCount = 0;
 
-        // Auto-detect line endings
+        // Auto-detect line endings and CSV delimiter
         @ini_set('auto_detect_line_endings', true);
 
-        while (($data = fgetcsv($handle, 4096, ',')) !== false) {
+        $firstLine = fgets($handle);
+        rewind($handle);
+        $delimiter = ',';
+        if ($firstLine !== false) {
+            $commas = substr_count($firstLine, ',');
+            $semicolons = substr_count($firstLine, ';');
+            $tabs = substr_count($firstLine, "\t");
+            if ($semicolons > $commas && $semicolons > $tabs) {
+                $delimiter = ';';
+            } elseif ($tabs > $commas && $tabs > $semicolons) {
+                $delimiter = "\t";
+            }
+        }
+
+        while (($data = fgetcsv($handle, 4096, $delimiter)) !== false) {
             // Strip BOM from headers if present
             if ($rowCount === 0) {
                 if (!empty($data) && strpos($data[0], "\xEF\xBB\xBF") === 0) {
@@ -167,22 +181,20 @@ class BulkImportService {
 
                 // 2. Type format checks
                 if ($fieldSpec['type'] === 'email') {
-                    if (!filter_var($val, FILTER_VALIDATE_EMAIL)) {
-                        $errors[$fieldName] = "Invalid email format.";
+                    $cleanEmail = strtolower(trim($val));
+                    $mappedRow[$fieldName] = $cleanEmail;
+                    if (!filter_var($cleanEmail, FILTER_VALIDATE_EMAIL)) {
+                        $errors[$fieldName] = "Invalid email format '$val'. Expected a valid email address.";
                     }
                 } elseif ($fieldSpec['type'] === 'date') {
-                    // Expect DD-MM-YYYY
-                    if (!preg_match('/^\d{2}-\d{2}-\d{4}$/', $val)) {
-                        $errors[$fieldName] = "Invalid date format. Expected DD-MM-YYYY.";
+                    // Flexibly accept YYYY-MM-DD, DD-MM-YYYY, YYYY/MM/DD, DD/MM/YYYY
+                    $cleanDate = str_replace('/', '-', $val);
+                    $ts = strtotime($cleanDate);
+                    if (!$ts) {
+                        $errors[$fieldName] = "Invalid date format. Expected DD-MM-YYYY or YYYY-MM-DD.";
                     } else {
-                        // Check if valid date calendar-wise
-                        list($d, $m, $y) = explode('-', $val);
-                        if (!checkdate((int)$m, (int)$d, (int)$y)) {
-                            $errors[$fieldName] = "Invalid calendar date.";
-                        } else {
-                            // Normalize it to YYYY-MM-DD for database query
-                            $mappedRow[$fieldName] = sprintf('%04d-%02d-%02d', (int)$y, (int)$m, (int)$d);
-                        }
+                        // Normalize it to YYYY-MM-DD for database query
+                        $mappedRow[$fieldName] = date('Y-m-d', $ts);
                     }
                 } elseif ($fieldSpec['type'] === 'number') {
                     if (!is_numeric($val)) {

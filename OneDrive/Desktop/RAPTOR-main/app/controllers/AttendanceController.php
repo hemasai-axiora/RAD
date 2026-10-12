@@ -100,6 +100,81 @@ class AttendanceController extends Controller {
         $this->jsonOk(['worked_minutes' => $res['worked_minutes'], 'is_early' => $res['is_early']], $res['message']);
     }
 
+    /** Overtime Auto Check-out Endpoint (JSON) */
+    public function autoCheckout() {
+        $this->requireAuthApi();
+        $userId = (int) $_SESSION['user_id'];
+        $today = $this->att->getToday($userId);
+
+        if (!$today || !$today->login_at) {
+            $this->jsonError('No active check-in record found to auto check-out.');
+            return;
+        }
+
+        if ($today->logout_at) {
+            $this->jsonOk(null, 'Already checked out today.');
+            return;
+        }
+
+        $in = [
+            'selfie_key' => $today->login_selfie_url ?? 'attendance/overtime_auto_checkout.jpg',
+            'lat'        => $today->login_lat,
+            'lng'        => $today->login_lng,
+            'accuracy'   => $today->login_accuracy_m,
+            'device'     => 'Overtime Auto-Logout (' . substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 100) . ')',
+            'ip'         => $_SERVER['REMOTE_ADDR'] ?? null,
+        ];
+
+        $res = $this->att->checkOut($userId, $in);
+        if (!$res['ok']) {
+            $this->jsonError($res['message']);
+            return;
+        }
+
+        $this->audit('Overtime auto clock-out executed after 10+ hours duty', 'attendance');
+        $this->jsonOk(['worked_minutes' => $res['worked_minutes']], 'Overtime duty completed — auto clocked out successfully.');
+    }
+
+
+    /** Live status check endpoint (JSON) for real-time polling of approval status and timers. */
+    public function status() {
+        $this->requireAuthApi();
+        $userId = (int) $_SESSION['user_id'];
+        $today = $this->att->getToday($userId);
+
+        if (!$today) {
+            $this->jsonOk(['has_login' => false, 'attendance_status' => null]);
+            return;
+        }
+
+        $this->jsonOk([
+            'has_login'         => !empty($today->login_at),
+            'has_logout'        => !empty($today->logout_at),
+            'attendance_status' => $today->attendance_status,
+            'rejection_reason'  => $today->rejection_reason,
+            'approved_at'       => $today->approved_at ? formatToLocalTime($today->approved_at, 'h:i A') : null,
+            'login_at'          => $today->login_at,
+            'login_time_formatted' => formatToLocalTime($today->login_at, 'h:i A'),
+            'requested_at'      => $today->requested_at ?? $today->login_at,
+            'worked_minutes'    => (int) $today->worked_minutes,
+            'break_minutes'     => (int) $today->break_minutes,
+        ]);
+    }
+
+    /** Auto-approve endpoint (JSON) for automated approval workflow / interactive trigger. */
+    public function autoApprove() {
+        $this->requireAuthApi();
+        $userId = (int) $_SESSION['user_id'];
+        $res = $this->att->autoApproveRecord($userId);
+        if ($res) {
+            $this->audit('Automated attendance approval executed', 'attendance');
+            $this->jsonOk(null, 'Attendance status successfully auto-approved!');
+        } else {
+            $this->jsonError('No pending attendance record found to auto-approve.');
+        }
+    }
+
+
     // ================= Oversight: approvals & report =================
 
     private function requireOversight() {
@@ -128,6 +203,29 @@ class AttendanceController extends Controller {
         }
         $this->redirect('index.php?route=attendance/approvals');
     }
+
+    /** Bulk automate approval for all visible pending attendance requests. */
+    public function approveAll() {
+        $this->requireOversight();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->requireAuth();
+            $pending = $this->att->getPendingApprovals($this->visibleUserIds());
+            $count = 0;
+            $approverId = (int) $_SESSION['user_id'];
+            foreach ($pending as $p) {
+                if ($this->inScope((int) $p->attendance_id)) {
+                    $ok = $this->att->setApproval((int) $p->attendance_id, 'Approved', $approverId, 'Automated bulk approval');
+                    if ($ok) { $count++; }
+                }
+            }
+            if ($count > 0) {
+                $this->audit("Bulk automated approval of $count attendance requests", 'attendance');
+                $_SESSION['att_msg'] = "$count attendance request(s) automatically approved!";
+            }
+        }
+        $this->redirect('index.php?route=attendance/approvals');
+    }
+
 
     public function reject($id = 0) {
         $this->requireOversight();
@@ -177,22 +275,23 @@ class AttendanceController extends Controller {
             return in_array($owner->role_name, ['manager', 'team_leader', 'finance', 'analyst'], true);
         }
 
-        if ($role === 'admin') {
-            // Admin can only approve HR attendance
-            return $owner->role_name === 'hr';
+        if (in_array($role, ['admin', 'ceo', 'employer'], true)) {
+            return true;
         }
 
         return false;
     }
 
-    /** Attendance report with date range + team scoping. */
     public function report() {
         $this->requireOversight();
         [$from, $to] = $this->reportRange();
         $error = '';
         $rows = [];
+        $today = date('Y-m-d');
         if ($to < $from) {
             $error = 'To Date cannot be earlier than From Date.';
+        } elseif ($from > $today || $to > $today) {
+            $error = 'From Date and To Date cannot be in the future.';
         } else {
             $rows = $this->att->getReport(['from' => $from, 'to' => $to, 'user_ids' => $this->visibleUserIds()]);
         }
@@ -211,8 +310,14 @@ class AttendanceController extends Controller {
     public function exportReport() {
         $this->requireOversight();
         [$from, $to] = $this->reportRange();
+        $today = date('Y-m-d');
         if ($to < $from) {
             $_SESSION['report_error'] = 'To Date cannot be earlier than From Date.';
+            $this->redirect('index.php?route=attendance/report&from=' . urlencode($from) . '&to=' . urlencode($to));
+            return;
+        }
+        if ($from > $today || $to > $today) {
+            $_SESSION['report_error'] = 'From Date and To Date cannot be in the future.';
             $this->redirect('index.php?route=attendance/report&from=' . urlencode($from) . '&to=' . urlencode($to));
             return;
         }

@@ -100,18 +100,32 @@ class HrmsController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
 
+            $photoKey = null;
+            if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
+                try {
+                    $photoKey = Storage::put($_FILES['profile_photo'], 'profiles');
+                    if ($id === $userId) {
+                        $_SESSION['user_photo'] = $photoKey;
+                    }
+                } catch (Exception $e) {
+                    $_SESSION['profile_error'] = 'Photo upload failed: ' . $e->getMessage();
+                }
+            }
+
             $updateData = [
                 'blood_group'       => trim($_POST['blood_group'] ?? ''),
                 'address'           => trim($_POST['address'] ?? ''),
                 'experience_years'  => (float)($_POST['experience_years'] ?? 0.0),
                 'skills'            => trim($_POST['skills'] ?? ''),
                 'phone_number'      => trim($_POST['phone_number'] ?? ''),
-                'emergency_contact' => trim($_POST['emergency_contact'] ?? '')
+                'emergency_contact' => trim($_POST['emergency_contact'] ?? ''),
+                'date_of_birth'     => trim($_POST['date_of_birth'] ?? ''),
+                'profile_photo'     => $photoKey
             ];
 
             if ($this->hrmsModel->updateProfile($id, $updateData)) {
                 $this->audit("Updated employee profile details for user #{$id}", 'employees', $id);
-                $_SESSION['profile_success'] = 'Profile updated successfully.';
+                $_SESSION['profile_success'] = 'Profile details updated successfully.';
             } else {
                 $_SESSION['profile_error'] = 'Failed to update profile.';
             }
@@ -122,7 +136,7 @@ class HrmsController extends Controller {
     /** Display HRMS Reports interface. */
     public function reports() {
         $role = $_SESSION['user_role'];
-        if (!in_array($role, ['admin', 'hr'], true)) {
+        if (!in_array($role, ['admin', 'ceo', 'hr', 'analyst'], true)) {
             $this->redirect('index.php?route=dashboard/index');
             return;
         }
@@ -137,13 +151,31 @@ class HrmsController extends Controller {
     /** Export CSV Reports based on type. */
     public function exportReport($type = '') {
         $role = $_SESSION['user_role'];
-        if (!in_array($role, ['admin', 'hr'], true)) {
+        if (!in_array($role, ['admin', 'ceo', 'hr', 'analyst'], true)) {
             $this->redirect('index.php?route=dashboard/index');
             return;
         }
 
         $from = $_GET['from'] ?? date('Y-m-01');
         $to = $_GET['to'] ?? date('Y-m-d');
+        $today = date('Y-m-d');
+
+        if ($to < $from) {
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="error.csv"');
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Error', 'To Date cannot be earlier than From Date.']);
+            fclose($out);
+            exit();
+        }
+        if ($type !== 'employees' && ($from > $today || $to > $today)) {
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="error.csv"');
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Error', 'From Date and To Date cannot be in the future.']);
+            fclose($out);
+            exit();
+        }
         
         $db = Database::getInstance()->getConnection();
 

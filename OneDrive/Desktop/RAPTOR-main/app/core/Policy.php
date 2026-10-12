@@ -1,5 +1,9 @@
 <?php
-// Central role and governance helpers.
+// Raptor CRM Core Policy & RBAC Gate Helper
+
+if (defined('APPROOT') && file_exists(APPROOT . '/core/PermissionService.php')) {
+    require_once APPROOT . '/core/PermissionService.php';
+}
 
 class Policy {
     public static function role(): string {
@@ -31,19 +35,19 @@ class Policy {
     }
 
     public static function isSeniorStaff(): bool {
-        return in_array(self::role(), ['admin', 'hr', 'manager', 'team_leader'], true);
+        return in_array(self::role(), ['admin', 'ceo', 'employer', 'hr', 'manager', 'team_leader'], true);
     }
 
     public static function canViewLeaveApprovals(): bool {
-        return in_array(self::role(), ['admin', 'hr', 'manager', 'team_leader'], true);
+        return in_array(self::role(), ['admin', 'ceo', 'employer', 'hr', 'manager', 'team_leader'], true);
     }
 
     public static function canViewAttendanceApprovals(): bool {
-        return in_array(self::role(), ['admin', 'hr', 'manager', 'team_leader'], true);
+        return in_array(self::role(), ['admin', 'ceo', 'employer', 'hr', 'manager', 'team_leader'], true);
     }
 
     public static function canManageEmployees(): bool {
-        return self::isAdmin() || self::isHr();
+        return self::isAdmin() || self::isHr() || self::role() === 'ceo' || self::isAnalyst();
     }
 
     public static function canRequestDataEdit(): bool {
@@ -55,7 +59,7 @@ class Policy {
     }
 
     public static function canCreateDashboardTemplate(): bool {
-        return in_array(self::role(), ['admin', 'analyst'], true);
+        return !empty(self::role());
     }
 
     public static function roleLabel(?string $role = null): string {

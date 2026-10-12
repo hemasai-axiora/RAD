@@ -42,7 +42,9 @@ class Team extends Model {
     }
 
     public function deleteTeam($id) {
-        return false;
+        $this->query('DELETE FROM teams WHERE team_id = :id');
+        $this->bind(':id', $id);
+        return $this->execute();
     }
 
     private function bindTeam($d) {
@@ -98,7 +100,9 @@ class Team extends Model {
     }
 
     public function deleteBranch($id) {
-        return false;
+        $this->query('DELETE FROM branches WHERE branch_id = :id');
+        $this->bind(':id', $id);
+        return $this->execute();
     }
 
     // ---------------- Territories ----------------
@@ -118,7 +122,9 @@ class Team extends Model {
     }
 
     public function deleteTerritory($id) {
-        return false;
+        $this->query('DELETE FROM territories WHERE territory_id = :id');
+        $this->bind(':id', $id);
+        return $this->execute();
     }
 
     // ---------------- Geofences ----------------
@@ -141,7 +147,9 @@ class Team extends Model {
     }
 
     public function deleteGeofence($id) {
-        return false;
+        $this->query('DELETE FROM geofences WHERE geofence_id = :id');
+        $this->bind(':id', $id);
+        return $this->execute();
     }
 
     public function isGeofenceEnabled(): bool {
@@ -202,6 +210,17 @@ class Team extends Model {
             $this->bind(':mgr_id', (int) $managerUserId);
             $this->bind(':mgr_id2', (int) $managerUserId);
         }
+        return $this->resultSet();
+    }
+
+    /** Retrieve all active users with role and reporting manager for organization tree. */
+    public function getOrgHierarchy() {
+        $this->query("SELECT u.user_id, u.name, r.role_name, e.reporting_manager_id, e.job_title, e.department, e.employee_code, e.team_id
+                      FROM users u
+                      JOIN roles r ON u.role_id = r.role_id
+                      LEFT JOIN employees e ON u.user_id = e.user_id
+                      WHERE u.status = 'active'
+                      ORDER BY r.role_name ASC, u.name ASC");
         return $this->resultSet();
     }
 }

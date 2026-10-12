@@ -8,36 +8,81 @@
                 
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label for="client_id" class="form-label text-secondary font-weight-bold">Client Company *</label>
-                        <select name="client_id" id="client_id" class="form-select <?php echo (!empty($client_err)) ? 'is-invalid' : ''; ?>" style="background-color: rgba(0,0,0,0.2); border-color: var(--border-color); color: white;" required>
-                            <option value="">-- Select Client --</option>
-                            <?php foreach ($clients as $client): ?>
-                                <option value="<?php echo $client->client_id; ?>" 
-                                        data-address="<?php echo htmlspecialchars($client->billing_address ?? ''); ?>"
-                                        data-name="<?php echo htmlspecialchars($client->company_name); ?>"
-                                        data-email="<?php echo htmlspecialchars($client->email ?? ''); ?>"
-                                        <?php echo $client_id == $client->client_id ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($client->company_name); ?>
-                                </option>
-                            <?php endforeach; ?>
+                        <label for="customer_id" class="form-label text-secondary font-weight-bold">Client / Customer *</label>
+                        <select name="customer_id" id="customer_id" onchange="updateCustomerDetails()" class="form-select <?php echo (!empty($client_err)) ? 'is-invalid' : ''; ?>" style="background-color: rgba(0,0,0,0.2); border-color: var(--border-color); color: white;" required>
+                            <option value="">-- Select Customer --</option>
+                            <?php if (!empty($customers)): ?>
+                                <?php foreach ($customers as $cust): ?>
+                                    <?php 
+                                        $custName = $cust->company_name ?: ($cust->first_name . ' ' . ($cust->last_name ?? ''));
+                                        $displayLabel = ($cust->customer_code ? ($cust->customer_code . ' - ') : '') . $custName . ($cust->email ? ' (' . $cust->email . ')' : '');
+                                    ?>
+                                    <option value="<?php echo $cust->customer_id; ?>" 
+                                            data-customer-id="<?php echo $cust->customer_id; ?>"
+                                            data-customer-code="<?php echo htmlspecialchars($cust->customer_code ?? ''); ?>"
+                                            data-lead-id="<?php echo $cust->converted_from_lead_id ?? ''; ?>"
+                                            data-lead-code="<?php echo htmlspecialchars($cust->originating_lead_code ?? ''); ?>"
+                                            data-company-name="<?php echo htmlspecialchars($custName); ?>"
+                                            data-address="<?php echo htmlspecialchars($cust->billing_address ?? ''); ?>"
+                                            data-email="<?php echo htmlspecialchars($cust->email ?? ''); ?>"
+                                            <?php echo ($customer_id == $cust->customer_id) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($displayLabel); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </select>
+                        <div id="search_results_count" class="form-text text-info small mt-1 d-none"></div>
                         <div class="invalid-feedback"><?php echo $client_err; ?></div>
                     </div>
+
+                    <!-- Linked Customer & Lead Traceability Card -->
+                    <div id="customer-traceability-card" class="col-md-12 d-none">
+                        <div class="p-3 rounded-3 bg-dark border border-primary border-opacity-25 shadow-sm">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fa-solid fa-user-check text-primary fs-5"></i>
+                                    <div>
+                                        <span class="text-secondary small d-block">Selected Customer Record:</span>
+                                        <strong class="text-white me-2" id="traceability-customer-name">Customer Name</strong>
+                                        <span class="badge bg-primary-subtle text-primary font-monospace border border-primary-subtle" id="traceability-customer-code">CUST-2026-00001</span>
+                                    </div>
+                                </div>
+
+                                <div id="traceability-lead-block" class="d-flex align-items-center gap-2 bg-info bg-opacity-10 px-3 py-1.5 rounded border border-info border-opacity-25">
+                                    <i class="fa-solid fa-link text-info"></i>
+                                    <div class="small">
+                                        <span class="text-secondary me-1">Originating Lead:</span>
+                                        <span class="badge bg-info-subtle text-info font-monospace me-2" id="traceability-lead-code">LD-2026-00001</span>
+                                        <a href="#" id="traceability-lead-link" target="_blank" class="text-info text-decoration-none fw-bold hover-bright ms-1">
+                                            <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>View Lead
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="customer_code" id="hidden_customer_code" value="">
+                    <input type="hidden" name="lead_id" id="hidden_lead_id" value="">
+                    <input type="hidden" name="lead_code" id="hidden_lead_code" value="">
 
                     <div class="col-md-6">
                         <label for="invoice_number" class="form-label text-secondary font-weight-bold">Invoice Number *</label>
                         <input type="text" name="invoice_number" id="invoice_number" class="form-control" value="<?php echo htmlspecialchars($invoice_number); ?>" required>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="currency" class="form-label text-secondary font-weight-bold">Billing Currency *</label>
                         <select name="currency" id="currency" class="form-select" style="background-color: rgba(0,0,0,0.2); border-color: var(--border-color); color: white;">
                             <option value="USD" <?php echo $currency === 'USD' ? 'selected' : ''; ?>>USD ($)</option>
                             <option value="INR" <?php echo $currency === 'INR' ? 'selected' : ''; ?>>INR (₹)</option>
+                            <option value="EUR" <?php echo $currency === 'EUR' ? 'selected' : ''; ?>>EUR (€)</option>
+                            <option value="GBP" <?php echo $currency === 'GBP' ? 'selected' : ''; ?>>GBP (£)</option>
+                            <option value="AED" <?php echo $currency === 'AED' ? 'selected' : ''; ?>>AED (د.إ)</option>
                         </select>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="amount" class="form-label text-secondary font-weight-bold">Amount *</label>
                         <input type="number" step="0.01" name="amount" id="amount" 
                                class="form-control <?php echo (!empty($amount_err)) ? 'is-invalid' : ''; ?>" 
@@ -45,7 +90,15 @@
                         <div class="invalid-feedback"><?php echo $amount_err; ?></div>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <label for="conversion_rate_input" class="form-label text-secondary font-weight-bold">USD/INR Rate</label>
+                        <input type="number" step="0.01" name="conversion_rate" id="conversion_rate_input" 
+                               class="form-control text-white" 
+                               value="<?php echo htmlspecialchars($conversion_rate ?? 95.31); ?>" 
+                               style="background-color: rgba(0,0,0,0.2); border-color: var(--border-color); color: white;">
+                    </div>
+
+                    <div class="col-md-3">
                         <label for="due_date" class="form-label text-secondary font-weight-bold">Due Date *</label>
                         <input type="date" name="due_date" id="due_date" class="form-control <?php echo (!empty($due_date_err)) ? 'is-invalid' : ''; ?>" value="<?php echo htmlspecialchars($due_date); ?>" min="<?php echo date('Y-m-d'); ?>" required>
                         <div class="invalid-feedback"><?php echo $due_date_err ?? ''; ?></div>
@@ -59,11 +112,11 @@
                         </select>
                     </div>
 
-                    <!-- Conversion rate info -->
+                    <!-- Live Real-Time Currency Converter Banner -->
                     <div class="col-md-6 d-flex align-items-end">
-                        <div id="conversion-info" class="w-100 p-2 rounded bg-opacity-10 bg-info border border-info border-opacity-25 text-info small d-none">
-                            <i class="fa-solid fa-calculator me-1"></i> Conversion rate: <strong>1 USD = <?php echo number_format($conversion_rate, 2); ?> INR</strong>.<br>
-                            Equivalent: <span id="converted-amt-txt">0.00</span>
+                        <div id="conversion-info" class="w-100 p-2.5 rounded bg-opacity-10 bg-info border border-info border-opacity-25 text-info small">
+                            <i class="fa-solid fa-calculator me-1"></i> Live Currency Converter:<br>
+                            <span id="converted-amt-txt">Enter an amount above to see live equivalent value.</span>
                         </div>
                     </div>
 
@@ -234,6 +287,59 @@
 </div>
 
 <script>
+function updateCustomerDetails() {
+    const select = document.getElementById('customer_id');
+    if (!select || select.selectedIndex < 0) return;
+    const option = select.options[select.selectedIndex];
+    if (!option) return;
+
+    const customerId = select.value;
+    const customerCode = option.getAttribute('data-customer-code') || '';
+    const leadId = option.getAttribute('data-lead-id') || '';
+    const leadCode = option.getAttribute('data-lead-code') || '';
+    const companyName = option.getAttribute('data-company-name') || '';
+    const address = option.getAttribute('data-address') || '';
+
+    const hiddenCustCode = document.getElementById('hidden_customer_code');
+    if (hiddenCustCode) hiddenCustCode.value = customerCode;
+    const hiddenLeadId = document.getElementById('hidden_lead_id');
+    if (hiddenLeadId) hiddenLeadId.value = leadId;
+    const hiddenLeadCode = document.getElementById('hidden_lead_code');
+    if (hiddenLeadCode) hiddenLeadCode.value = leadCode;
+
+    const billingAddressElem = document.getElementById('billing_address');
+    if (billingAddressElem && billingAddressElem.getAttribute('data-user-edited') !== '1') {
+        billingAddressElem.value = address;
+    }
+
+    const card = document.getElementById('customer-traceability-card');
+    const custNameElem = document.getElementById('traceability-customer-name');
+    const custCodeElem = document.getElementById('traceability-customer-code');
+    const leadBlock = document.getElementById('traceability-lead-block');
+    const leadCodeElem = document.getElementById('traceability-lead-code');
+    const leadLinkElem = document.getElementById('traceability-lead-link');
+
+    if (card && customerId) {
+        card.classList.remove('d-none');
+        card.style.display = 'block';
+        if (custNameElem) custNameElem.textContent = companyName;
+        if (custCodeElem) custCodeElem.textContent = customerCode || ('CUST-' + customerId);
+
+        if (leadBlock && leadId && leadCode) {
+            leadBlock.classList.remove('d-none');
+            leadBlock.style.display = 'flex';
+            if (leadCodeElem) leadCodeElem.textContent = leadCode;
+            if (leadLinkElem) leadLinkElem.setAttribute('href', 'index.php?route=leads/view/' + leadId);
+        } else if (leadBlock) {
+            leadBlock.classList.add('d-none');
+            leadBlock.style.display = 'none';
+        }
+    } else if (card) {
+        card.classList.add('d-none');
+        card.style.display = 'none';
+    }
+}
+
 $(document).ready(function() {
     const conversionRate = <?php echo (float)$conversion_rate; ?>;
     const defaultSenderDetails = "Raptor Marketing Agency\n100 Creator Square, Business Bay\nbilling@raptor-agency.com\n+1 (555) 0100";
@@ -313,28 +419,88 @@ $(document).ready(function() {
         $('#hidden_email_participants').val($('#modal_email_participants').val());
     });
 
-    // Initialize Select2 search option inside the select element
-    $('#client_id').select2({
-        placeholder: "-- Select Client --",
-        allowClear: true
-    });
+function filterCustomerDropdown(query) {
+    const q = (query || '').toLowerCase().trim();
+    const select = document.getElementById('customer_id');
+    if (!select) return;
 
-    // Trigger address populate and contacts load on client change
-    $('#client_id').on('change', function() {
-        const option = $(this).find('option:selected');
-        const address = option.data('address') || '';
-        const name = option.data('name');
-        
-        originalClientAddress = address;
-        if (!billingAddressEditing) {
-            $('#billing_address').val(address);
+    const options = select.options;
+    let matchCount = 0;
+    let firstMatch = null;
+
+    for (let i = 0; i < options.length; i++) {
+        if (!options[i].value) continue; // Skip prompt option
+
+        const text = (options[i].text || '').toLowerCase();
+        const code = (options[i].getAttribute('data-customer-code') || '').toLowerCase();
+        const name = (options[i].getAttribute('data-company-name') || '').toLowerCase();
+        const email = (options[i].getAttribute('data-email') || '').toLowerCase();
+        const custId = (options[i].getAttribute('data-customer-id') || '').toLowerCase();
+
+        const matches = q === '' || text.includes(q) || code.includes(q) || name.includes(q) || email.includes(q) || custId === q;
+
+        if (matches) {
+            options[i].disabled = false;
+            options[i].hidden = false;
+            options[i].style.display = '';
+            matchCount++;
+            if (!firstMatch) firstMatch = options[i];
+        } else {
+            options[i].disabled = true;
+            options[i].hidden = true;
+            options[i].style.display = 'none';
         }
+    }
 
-        const clientId = $(this).val();
-        if (!clientId) {
-            $('#client-contacts-container').html('<p class="text-secondary small mb-0 select-prompt-txt">Select a Client Company above to view stakeholders.</p>');
+    const countElem = document.getElementById('search_results_count');
+    if (countElem) {
+        if (q !== '') {
+            countElem.textContent = `Found ${matchCount} matching customer(s).`;
+            countElem.classList.remove('d-none');
+            if (matchCount === 1 && firstMatch) {
+                select.value = firstMatch.value;
+                updateCustomerDetails();
+            }
+        } else {
+            countElem.classList.add('d-none');
+        }
+    }
+}
+
+function clearCustomerSearch() {
+    const searchInput = document.getElementById('customer_search_input');
+    if (searchInput) {
+        searchInput.value = '';
+        filterCustomerDropdown('');
+        searchInput.focus();
+    }
+}
+
+$(document).ready(function() {
+    if ($.fn.select2) {
+        $('#customer_id').select2({
+            placeholder: "-- Select Customer --",
+            allowClear: true
+        });
+    }
+
+    $('#customer_id').on('change select2:select', function() {
+        updateCustomerDetails();
+        const customerId = $(this).val();
+        if (!customerId) {
+            $('#client-contacts-container').html('<p class="text-secondary small mb-0 select-prompt-txt">Select a Customer above to view stakeholders.</p>');
             return;
         }
+    });
+
+    const custElem = document.getElementById('customer_id');
+    if (custElem) {
+        custElem.addEventListener('change', updateCustomerDetails);
+    }
+
+    if ($('#customer_id').val()) {
+        updateCustomerDetails();
+    }
 
         // Fetch client contacts via API
         $('#client-contacts-container').html('<div class="text-secondary small"><i class="fa-solid fa-spinner fa-spin me-2"></i>Loading client stakeholders...</div>');
@@ -360,36 +526,49 @@ $(document).ready(function() {
         });
     });
 
-    // Handle currency calculations live
+    // Handle currency calculations live in real-time
     function updateCurrencyCalcs() {
-        const currency = $('#currency').val();
+        const currency = $('#currency').val() || 'USD';
         const amount = parseFloat($('#amount').val()) || 0;
+        const rate = parseFloat($('#conversion_rate_input').val()) || 95.31;
 
+        let convertedTxt = '';
         if (currency === 'INR') {
-            const converted = amount / conversionRate;
-            $('#converted-amt-txt').text('$' + converted.toFixed(2) + ' USD equivalent');
-            $('#conversion-info').removeClass('d-none');
+            const usdVal = amount / rate;
+            convertedTxt = '$' + usdVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' USD equivalent (Exchange Rate: 1 USD = ' + rate + ' INR)';
+        } else if (currency === 'USD') {
+            const inrVal = amount * rate;
+            convertedTxt = '₹' + inrVal.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' INR equivalent (Exchange Rate: 1 USD = ' + rate + ' INR)';
+        } else if (currency === 'EUR') {
+            const inrVal = amount * 90.50;
+            convertedTxt = '₹' + inrVal.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' INR equivalent (Rate: 1 EUR = 90.50 INR)';
+        } else if (currency === 'GBP') {
+            const inrVal = amount * 105.20;
+            convertedTxt = '₹' + inrVal.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' INR equivalent (Rate: 1 GBP = 105.20 INR)';
+        } else if (currency === 'AED') {
+            const inrVal = amount * 22.70;
+            convertedTxt = '₹' + inrVal.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' INR equivalent (Rate: 1 AED = 22.70 INR)';
+        }
+
+        if (amount > 0) {
+            $('#converted-amt-txt').html('<strong>' + convertedTxt + '</strong>');
         } else {
-            const converted = amount * conversionRate;
-            $('#converted-amt-txt').text('₹' + converted.toFixed(2) + ' INR equivalent');
-            $('#conversion-info').removeClass('d-none');
+            $('#converted-amt-txt').text('Enter an amount above to see live equivalent value.');
         }
     }
 
-    $('#currency, #amount').on('input change', updateCurrencyCalcs);
-    if ($('#amount').val()) {
-        updateCurrencyCalcs();
-    }
+    $('#currency, #amount, #conversion_rate_input').on('input keyup change paste blur', updateCurrencyCalcs);
+    updateCurrencyCalcs();
 
     // Modal Preview rendering
     $('#btn-preview-invoice').on('click', function() {
-        const clientId = $('#client_id').val();
-        if (!clientId) {
-            alert('Please select a Client Company first.');
+        const customerId = $('#customer_id').val();
+        if (!customerId) {
+            alert('Please select a Customer first.');
             return;
         }
 
-        const clientName = $('#client_id option:selected').data('name') || 'Client Name';
+        const clientName = $('#customer_id option:selected').data('company-name') || 'Customer Name';
         const invoiceNum = $('#invoice_number').val() || 'INV-XXXXXXXX';
         const amount = parseFloat($('#amount').val()) || 0;
         const currency = $('#currency').val();

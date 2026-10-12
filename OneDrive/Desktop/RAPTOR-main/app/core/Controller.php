@@ -1,9 +1,15 @@
 <?php
 // Raptor CRM Core Base Controller
+if (defined('APPROOT') && file_exists(APPROOT . '/core/Policy.php')) {
+    require_once APPROOT . '/core/Policy.php';
+}
 
 class Controller {
     // Load model
     public function model($model) {
+        if (!class_exists('Model') && file_exists(APPROOT . '/core/Model.php')) {
+            require_once APPROOT . '/core/Model.php';
+        }
         require_once APPROOT . '/models/' . $model . '.php';
         return new $model();
     }
@@ -41,7 +47,7 @@ class Controller {
 
         // Load layout and pass content and data
         if (file_exists(APPROOT . '/views/layouts/' . $layout . '.php')) {
-            require_once APPROOT . '/views/layouts/' . $layout . '.php';
+            require APPROOT . '/views/layouts/' . $layout . '.php';
         } else {
             die("Layout does not exist: " . $layout);
         }
@@ -49,7 +55,20 @@ class Controller {
 
     // Redirect helper
     public function redirect($url) {
-        header('Location: ' . URLROOT . '/' . ltrim($url, '/'));
+        $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? $_SERVER['HTTP_HOST'] ?? null;
+        if (!empty($host)) {
+            if (strpos($host, ',') !== false) {
+                $host = trim(explode(',', $host)[0]);
+            }
+            $script_name = $_SERVER['SCRIPT_NAME'] ?? '';
+            $dir = dirname($script_name);
+            $dir = ($dir === '\\' || $dir === '/') ? '' : $dir;
+            $base = $scheme . '://' . $host . $dir;
+            header('Location: ' . $base . '/' . ltrim($url, '/'));
+        } else {
+            header('Location: ' . URLROOT . '/' . ltrim($url, '/'));
+        }
         exit();
     }
 
@@ -85,12 +104,44 @@ class Controller {
             return false;
         }
 
+        // Hard fail-safe check: session_expiry + 5 min (300s) grace period for unhandled popup
+        if (isset($_SESSION['session_expiry'])) {
+            $expiryTs = strtotime($_SESSION['session_expiry']);
+            if (time() > ($expiryTs + 300)) {
+                try {
+                    $sid = session_id();
+                    $db = Database::getInstance()->getConnection();
+                    $stmt = $db->prepare('DELETE FROM sessions WHERE session_id = :sid OR user_id = :uid');
+                    $stmt->execute([':sid' => $sid, ':uid' => (int) $_SESSION['user_id']]);
+                } catch (Exception $e) {
+                    // Fallback on transient error
+                }
+                session_unset();
+                session_destroy();
+                return false;
+            }
+        }
+
         // Check session inactivity timeout
         if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > SESSION_TIMEOUT)) {
             // Session expired
             session_unset();
             session_destroy();
             return false;
+        }
+
+        // Verify user_id exists in users table (clears stale sessions after db seed/cleanup)
+        try {
+            $db = Database::getInstance()->getConnection();
+            $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE user_id = :uid AND status = 'active'");
+            $stmt->execute([':uid' => (int) $_SESSION['user_id']]);
+            if ((int) $stmt->fetchColumn() === 0) {
+                session_unset();
+                session_destroy();
+                return false;
+            }
+        } catch (Exception $e) {
+            // Fallback on connection glitch
         }
 
         $_SESSION['last_activity'] = time(); // Refresh active timer
@@ -111,10 +162,41 @@ class Controller {
             }
         }
 
+        // Attendance check-in gate: Users must check in before accessing other portal features
+        if (isset($_SESSION['user_id'])) {
+            $userRole = $_SESSION['user_role'] ?? $_SESSION['role_name'] ?? '';
+            if (!in_array($userRole, ['admin', 'ceo'], true)) {
+                $route = $_GET['route'] ?? '';
+                $routePrefix = explode('/', trim($route, '/'))[0] ?? '';
+                $allowedBeforeCheckIn = ['attendance', 'auth', 'file', 'api'];
+
+                if (!in_array($routePrefix, $allowedBeforeCheckIn, true)) {
+                    try {
+                        $db = Database::getInstance()->getConnection();
+                        $todayStr = date('Y-m-d');
+                        $stmt = $db->prepare("SELECT COUNT(*) FROM attendance WHERE user_id = :uid AND work_date = :d AND login_at IS NOT NULL");
+                        $stmt->execute([':uid' => (int)$_SESSION['user_id'], ':d' => $todayStr]);
+                        $hasClockedIn = (int)$stmt->fetchColumn() > 0;
+
+                        if (!$hasClockedIn) {
+                            $_SESSION['attendance_notice'] = 'Please check in first to unlock portal features.';
+                            $this->redirect('index.php?route=attendance/index');
+                            return;
+                        }
+                    } catch (Throwable $e) {
+                        // Safe fallback
+                    }
+                }
+            }
+        }
+
         // Automatic CSRF token validation on all authenticated POST requests
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $csrf = $_POST['csrf_token'] ?? $_GET['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
             if (!$this->validateCsrfToken($csrf)) {
+                if ($this->isAjax()) {
+                    $this->jsonError('Security Error: CSRF token validation failed.', 403);
+                }
                 http_response_code(403);
                 die('Security Error: CSRF token validation failed.');
             }
@@ -124,48 +206,46 @@ class Controller {
                 && strpos($route, 'editrequests/') !== 0
                 && preg_match('#(^|/)edit(/|$)#', $route)
             ) {
+                if ($this->isAjax()) {
+                    $this->jsonError('Governance policy: managers must submit a data edit request with a comment for admin approval.', 403);
+                }
                 http_response_code(403);
                 die('Governance policy: managers must submit a data edit request with a comment for admin approval.');
             }
         }
     }
 
+    protected function isAjax(): bool {
+        return (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+            || (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false)
+            || (isset($_GET['route']) && strpos($_GET['route'], 'bulk') !== false);
+    }
+
     // Check RBAC permissions for current user
-    protected function hasPermission($permissionName) {
+    protected function hasPermission($permissionName, $action = 'view') {
         if (!$this->isLoggedIn()) {
             return false;
         }
-
-        // If user is Admin, they have all permissions
-        if ($_SESSION['user_role'] === 'admin') {
-            return true;
-        }
-
-        // Check permission list stored in session
-        if (isset($_SESSION['permissions']) && in_array($permissionName, $_SESSION['permissions'])) {
-            return true;
-        }
-
-        return false;
+        return PermissionService::can($permissionName, $action);
     }
 
     // Enforce role permission boundary
     protected function requirePermission($module, $action = null, $record = null) {
         $this->requireAuth();
         
-        $permitted = false;
-        if ($action === null) {
-            if (strpos($module, '.') !== false) {
-                list($mod, $act) = explode('.', $module, 2);
-                $permitted = PermissionService::can($mod, $act, $record);
-            } else {
-                $permitted = $this->hasPermission($module);
-            }
-        } else {
-            $permitted = PermissionService::can($module, $action, $record);
+        $act = $action ?? 'view';
+        $mod = $module;
+
+        if (strpos($module, '.') !== false) {
+            list($mod, $act) = explode('.', $module, 2);
         }
 
+        $permitted = PermissionService::can($mod, $act, $record);
+
         if (!$permitted) {
+            if ($this->isAjax()) {
+                $this->jsonError('You do not have permission to perform this action.', 403);
+            }
             // Render 403 Access Denied
             $this->viewWithLayout('errors/403', 'main', [
                 'title' => 'Access Denied',
@@ -291,44 +371,48 @@ class Controller {
             return [];
         }
 
-        $role = $_SESSION['user_role'];
-        $uid  = (int) $_SESSION['user_id'];
+        try {
+            $role = $_SESSION['user_role'] ?? '';
+            $uid  = (int) ($_SESSION['user_id'] ?? 0);
 
-        if ($role === 'admin') {
-            return null; // unrestricted
-        }
+            if (in_array($role, ['admin', 'ceo', 'analyst'], true)) {
+                return null; // unrestricted
+            }
 
-        if ($role === 'hr') {
-            // HR can see Managers, Team Leaders, Finance, and Analysts
+            if ($role === 'hr') {
+                // HR can see Managers, Team Leaders, Finance, and Analysts
+                $db = Database::getInstance()->getConnection();
+                $stmt = $db->query("SELECT u.user_id FROM users u 
+                                    JOIN roles r ON u.role_id = r.role_id 
+                                    WHERE r.role_name IN ('manager', 'team_leader', 'finance', 'analyst')");
+                $ids = $stmt ? array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN)) : [];
+                $ids[] = $uid; // Include self
+                return array_values(array_unique($ids));
+            }
+
+            if (Policy::isEmployee() || $role === 'employer' || $role === 'sales_person' || $role === 'employee') {
+                return [$uid]; // self only
+            }
+
+            // manager / team_leader: self + everyone in teams they own/lead,
+            // plus direct reports via employees.reporting_manager_id.
             $db = Database::getInstance()->getConnection();
-            $stmt = $db->query("SELECT u.user_id FROM users u 
-                                JOIN roles r ON u.role_id = r.role_id 
-                                WHERE r.role_name IN ('manager', 'team_leader', 'finance', 'analyst')");
-            $ids = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN)) ?: [];
-            $ids[] = $uid; // Include self
+            $sql = "SELECT DISTINCT e.user_id
+                    FROM employees e
+                    LEFT JOIN teams t ON e.team_id = t.team_id
+                    WHERE e.reporting_manager_id = :uid
+                       OR t.team_leader_user_id = :uid2
+                       OR t.manager_user_id = :uid3";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([':uid' => $uid, ':uid2' => $uid, ':uid3' => $uid]);
+
+            $ids = [$uid];
+            foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $id) {
+                $ids[] = (int) $id;
+            }
             return array_values(array_unique($ids));
+        } catch (Throwable $e) {
+            return [(int) ($_SESSION['user_id'] ?? 0)];
         }
-
-        if (Policy::isEmployee() || in_array($role, ['analyst', 'employer'], true)) {
-            return [$uid]; // self only
-        }
-
-        // manager / team_leader: self + everyone in teams they own/lead,
-        // plus direct reports via employees.reporting_manager_id.
-        $db = Database::getInstance()->getConnection();
-        $sql = "SELECT DISTINCT e.user_id
-                FROM employees e
-                LEFT JOIN teams t ON e.team_id = t.team_id
-                WHERE e.reporting_manager_id = :uid
-                   OR t.team_leader_user_id = :uid2
-                   OR t.manager_user_id = :uid3";
-        $stmt = $db->prepare($sql);
-        $stmt->execute([':uid' => $uid, ':uid2' => $uid, ':uid3' => $uid]);
-
-        $ids = [$uid];
-        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $id) {
-            $ids[] = (int) $id;
-        }
-        return array_values(array_unique($ids));
     }
 }
