@@ -4,19 +4,20 @@ $monthYearFormatted = date('F Y', strtotime($rawMonth . '-01'));
 $payPeriod = date('F Y', strtotime($rawMonth . '-01'));
 $payDate = date('j F Y', strtotime($rawMonth . '-01 +1 month'));
 
-$empName = $detail->name ?? 'Employee';
-$empCode = $detail->employee_code ?? 'EMP000';
-$doj = !empty($detail->date_of_joining) ? date('d M Y', strtotime($detail->date_of_joining)) : '02 Mar 2026';
-$rawDesig = $detail->job_title ?: 'Software Engineer - II';
+$empName = !empty($detail->name) ? $detail->name : 'Employee';
+$empCode = !empty($detail->employee_code) ? $detail->employee_code : '-';
+$dojVal = !empty($detail->date_of_joining) ? $detail->date_of_joining : (!empty($detail->hire_date) ? $detail->hire_date : '');
+$doj = !empty($dojVal) ? date('d M Y', strtotime($dojVal)) : '-';
+$rawDesig = !empty($detail->job_title) ? $detail->job_title : '-';
 $desig = str_replace(['–', '—'], '-', $rawDesig);
-$location = $detail->work_location ?: 'Hyderabad';
-$dept = $detail->department ?: 'Development';
+$location = !empty($detail->work_location) ? $detail->work_location : '-';
+$dept = !empty($detail->department) ? $detail->department : '-';
 
 $paidDays = (int)($detail->present_days ?? 30);
 $lopDays = (int)($detail->absent_days ?? 0);
-$bankAc = $detail->account_number ?: '3327101004003';
-$ifsc = $detail->ifsc_code ?: 'CNRB0003327';
-$uan = $detail->uan ?: '101825984981';
+$bankAc = !empty($detail->account_number) ? trim($detail->account_number) : '-';
+$ifsc = !empty($detail->ifsc_code) ? trim($detail->ifsc_code) : '-';
+$uan = !empty($detail->uan) ? trim($detail->uan) : '-';
 
 $basic = round((float)($detail->basic_salary ?? 0));
 $hra = round((float)($detail->hra ?? 0));
@@ -228,11 +229,13 @@ foreach ($logoCandidates as $cand) {
         }
 
         .gradient-card .amount {
-            font-size: 24px;
-            font-weight: 700;
+            font-size: 26px;
+            font-weight: 400;
             color: #0f172a;
-            letter-spacing: -0.3px;
+            letter-spacing: 0.2px;
             margin-bottom: 2px;
+            font-family: 'Times New Roman', Times, Georgia, serif;
+            line-height: 1.15;
         }
 
         .gradient-card .subtitle {
@@ -300,6 +303,8 @@ foreach ($logoCandidates as $cand) {
             text-align: right;
             font-weight: 400;
             font-variant-numeric: tabular-nums;
+            font-family: 'Times New Roman', Times, Georgia, serif;
+            font-size: 13.5px;
         }
 
         .data-table tr.total-row td {
@@ -307,6 +312,12 @@ foreach ($logoCandidates as $cand) {
             color: #0f172a;
             padding-top: 10px;
             padding-bottom: 2px;
+        }
+
+        .data-table tr.total-row td.col-num {
+            font-family: 'Times New Roman', Times, Georgia, serif;
+            font-weight: 700;
+            font-size: 14px;
         }
 
         /* Benefits & CTC */
@@ -347,11 +358,12 @@ foreach ($logoCandidates as $cand) {
             border: 1.2px solid #1c3052;
             border-radius: 8px;
             padding: 8px 30px;
-            font-size: 21px;
+            font-size: 22px;
             font-weight: 700;
             color: #0f172a;
             min-width: 250px;
             text-align: center;
+            font-family: 'Times New Roman', Times, Georgia, serif;
         }
 
         .amount-in-words {

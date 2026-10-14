@@ -19,15 +19,13 @@
         <form method="GET" action="index.php" class="row g-3 align-items-end mb-4 bg-dark bg-opacity-50 p-3 rounded border border-secondary">
             <input type="hidden" name="route" value="payroll/payslips">
             <div class="col-md-8">
-                <label for="run_id" class="form-label text-secondary font-weight-bold small text-uppercase">Select Released Payroll Period</label>
+                <label for="run_id" class="form-label text-secondary font-weight-bold small text-uppercase">Select Payroll Period</label>
                 <select name="run_id" id="run_id" class="form-select bg-dark border-secondary text-white" onchange="this.form.submit()">
-                    <option value="">-- Select Released Month --</option>
+                    <option value="">-- Select Payroll Run --</option>
                     <?php foreach ($runs as $r): ?>
-                        <?php if ($r->status === 'released'): ?>
-                            <option value="<?php echo $r->payroll_run_id; ?>" <?php echo (int)$selected_run_id === (int)$r->payroll_run_id ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars(PayslipHelper::formatMonthYear($r->month_year)); ?> (<?php echo htmlspecialchars($r->month_year); ?>)
-                            </option>
-                        <?php endif; ?>
+                        <option value="<?php echo $r->payroll_run_id; ?>" <?php echo (int)$selected_run_id === (int)$r->payroll_run_id ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars(PayslipHelper::formatMonthYear($r->month_year)); ?> (<?php echo htmlspecialchars($r->month_year); ?>) &mdash; <?php echo strtoupper($r->status); ?>
+                        </option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -126,6 +124,56 @@ accounts@axioraglobalsolutions.com</textarea>
                                 </div>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+
+            <?php 
+                $totalEmployees = count($all_payslips);
+                $totalNetPayout = 0;
+                $sentEmails = 0;
+                $pendingEmails = 0;
+                foreach ($all_payslips as $slip) {
+                    $totalNetPayout += (float)($slip->net_salary ?? 0);
+                    if (($slip->email_status ?? '') === 'sent') {
+                        $sentEmails++;
+                    } else {
+                        $pendingEmails++;
+                    }
+                }
+            ?>
+            <!-- Executive Payroll Run Summary KPI Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="card p-3 rounded-4 border" style="background: var(--surface-soft);">
+                        <span class="small text-secondary text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.5px;">Employees</span>
+                        <div class="fs-4 font-weight-bold mt-1" style="color: var(--text-primary);">
+                            <i class="fa-solid fa-users me-1 text-primary"></i> <?php echo $totalEmployees; ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card p-3 rounded-4 border" style="background: var(--surface-soft);">
+                        <span class="small text-secondary text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.5px;">Total Net Payout</span>
+                        <div class="fs-4 font-weight-bold mt-1" style="color: var(--success);">
+                            ₹<?php echo number_format($totalNetPayout, 0); ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card p-3 rounded-4 border" style="background: var(--surface-soft);">
+                        <span class="small text-secondary text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.5px;">Emails Dispatched</span>
+                        <div class="fs-4 font-weight-bold mt-1" style="color: #059669;">
+                            <i class="fa-solid fa-circle-check me-1"></i> <?php echo $sentEmails; ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card p-3 rounded-4 border" style="background: var(--surface-soft);">
+                        <span class="small text-secondary text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.5px;">Pending Emails</span>
+                        <div class="fs-4 font-weight-bold mt-1" style="color: #d97706;">
+                            <i class="fa-solid fa-clock-rotate-left me-1"></i> <?php echo $pendingEmails; ?>
+                        </div>
                     </div>
                 </div>
             </div>

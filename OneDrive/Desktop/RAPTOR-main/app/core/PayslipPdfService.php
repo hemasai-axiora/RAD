@@ -15,21 +15,22 @@ class PayslipPdfService {
         // Pay Date: 1st of following month
         $payDate = date('j F Y', strtotime($rawMonth . '-01 +1 month'));
         
-        $empName = $detail->name ?? 'Employee';
-        $empCode = $detail->employee_code ?? 'EMP000';
-        $doj = !empty($detail->date_of_joining) ? date('d M Y', strtotime($detail->date_of_joining)) : '02 Mar 2026';
+        $empName = !empty($detail->name) ? $detail->name : 'Employee';
+        $empCode = !empty($detail->employee_code) ? $detail->employee_code : '-';
+        $dojVal = !empty($detail->date_of_joining) ? $detail->date_of_joining : (!empty($detail->hire_date) ? $detail->hire_date : '');
+        $doj = !empty($dojVal) ? date('d M Y', strtotime($dojVal)) : '-';
         // Clean any non-ASCII characters from designation
-        $rawDesig = $detail->job_title ?: 'Software Engineer - II';
+        $rawDesig = !empty($detail->job_title) ? $detail->job_title : '-';
         $desig = str_replace(['–', '—'], '-', $rawDesig);
         
-        $location = $detail->work_location ?: 'Hyderabad';
-        $dept = $detail->department ?: 'Development';
+        $location = !empty($detail->work_location) ? $detail->work_location : '-';
+        $dept = !empty($detail->department) ? $detail->department : '-';
         
         $paidDays = (int)($detail->present_days ?? 30);
         $lopDays = (int)($detail->absent_days ?? 0);
-        $bankAc = $detail->account_number ?: '3327101004003';
-        $ifsc = $detail->ifsc_code ?: 'CNRB0003327';
-        $uan = $detail->uan ?: '101825984981';
+        $bankAc = !empty($detail->account_number) ? trim($detail->account_number) : '-';
+        $ifsc = !empty($detail->ifsc_code) ? trim($detail->ifsc_code) : '-';
+        $uan = !empty($detail->uan) ? trim($detail->uan) : '-';
         
         $basic = round((float)($detail->basic_salary ?? 0));
         $hra = round((float)($detail->hra ?? 0));
@@ -84,10 +85,12 @@ class PayslipPdfService {
         // 2: Pages
         $pagesId = $addObj("<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
 
-        // Font Objects (Helvetica, Helvetica-Bold, Helvetica-Oblique)
+        // Font Objects (Helvetica, Helvetica-Bold, Helvetica-Oblique, Times-Roman, Times-Bold)
         $fontRegularId = $addObj("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
         $fontBoldId = $addObj("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
         $fontObliqueId = $addObj("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>");
+        $fontTimesRegularId = $addObj("<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>");
+        $fontTimesBoldId = $addObj("<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>");
 
         // Embed Logo Image as Image XObject (JPEG)
         $logoObjId = null;
@@ -166,9 +169,12 @@ class PayslipPdfService {
             $stream .= "h f\nQ\n";
         };
 
-        // Helper to draw monetary amount with Rupee glyph
-        $drawAmount = function($x, $y, $numStr, $font = 'F1', $size = 8.5, $align = 'left', $r = 0.08, $g = 0.1, $b = 0.15) use ($drawRupee, $drawText) {
-            $charW = ($font === 'F2') ? 5.8 : 5.1;
+        // Helper to draw monetary amount with Rupee glyph and Times New Roman numbers
+        $drawAmount = function($x, $y, $numStr, $font = 'FT1', $size = 8.5, $align = 'left', $r = 0.08, $g = 0.1, $b = 0.15) use ($drawRupee, $drawText) {
+            if ($font === 'F1') $font = 'FT1';
+            if ($font === 'F2') $font = 'FT2';
+            $isBold = ($font === 'FT2' || $font === 'F2');
+            $charW = $isBold ? 5.2 : 4.6;
             $textW = strlen($numStr) * $charW * ($size / 10);
             $rupeeW = $size * 0.46;
             $gap = 1.0;
@@ -361,7 +367,7 @@ class PayslipPdfService {
         $drawGradientRoundedRect($netCardX, $netCardY, $netCardW, $netCardH, 8, 0.651, 0.757, 1.0, 0.890, 0.922, 1.0, $sR, $sG, $sB, 1.0, 0.52);
 
         // Large Net Pay amount centered without decimals or commas matching sample
-        $drawAmount($netCardX + ($netCardW / 2), $netCardY + 49, $fmt($netPay, 0), 'F2', 17.5, 'center', 0.06, 0.09, 0.16);
+        $drawAmount($netCardX + ($netCardW / 2), $netCardY + 49, $fmt($netPay, 0), 'FT1', 20, 'center', 0.06, 0.09, 0.16);
         $drawTextCenter($netCardX + ($netCardW / 2), $netCardY + 36, "Total Net Pay", 'F1', 8, 5.0, 0.25, 0.35, 0.48);
 
         // Paid Days & LOP Days stacked vertically with aligned colons inside card
@@ -496,7 +502,7 @@ class PayslipPdfService {
         $ctcCardY = $benBoxY + (($benBoxH - $ctcCardH) / 2);
         $drawGradientRoundedRect($ctcCardX, $ctcCardY, $ctcCardW, $ctcCardH, 8, 0.651, 0.757, 1.0, 0.890, 0.922, 1.0, $sR, $sG, $sB, 1.0, 0.52);
 
-        $drawAmount($ctcCardX + ($ctcCardW / 2), $ctcCardY + 31, $fmt($ctc, 0), 'F2', 17, 'center', 0.06, 0.09, 0.16);
+        $drawAmount($ctcCardX + ($ctcCardW / 2), $ctcCardY + 31, $fmt($ctc, 0), 'FT1', 19, 'center', 0.06, 0.09, 0.16);
         $drawTextCenter($ctcCardX + ($ctcCardW / 2), $ctcCardY + 16, "Effective Monthly CTC", 'F1', 8.2, 5.1, 0.25, 0.35, 0.48);
 
         // ==========================================
@@ -537,7 +543,7 @@ class PayslipPdfService {
         $contentObjId = $addObj("<< /Length {$streamLen} >>\nstream\n" . $stream . "\nendstream");
 
         $xobjEntry = ($logoObjId !== null) ? "/XObject << /ImLogo {$logoObjId} 0 R >>" : "";
-        $pageObj = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {$pageW} {$pageH}] /Contents {$contentObjId} 0 R /Resources << /Font << /F1 {$fontRegularId} 0 R /F2 {$fontBoldId} 0 R /F3 {$fontObliqueId} 0 R >> {$xobjEntry} >> >>";
+        $pageObj = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {$pageW} {$pageH}] /Contents {$contentObjId} 0 R /Resources << /Font << /F1 {$fontRegularId} 0 R /F2 {$fontBoldId} 0 R /F3 {$fontObliqueId} 0 R /FT1 {$fontTimesRegularId} 0 R /FT2 {$fontTimesBoldId} 0 R >> {$xobjEntry} >> >>";
         $objects[2] = $pageObj; // replace placeholder page object
 
         // Assemble Final PDF
