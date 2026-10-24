@@ -4,6 +4,12 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 <?php endif; ?>
+<?php if (!empty($_SESSION['user_warning'])): ?>
+    <div class="alert alert-warning alert-dismissible fade show mb-3" role="alert">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i><?php echo htmlspecialchars($_SESSION['user_warning']); unset($_SESSION['user_warning']); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<?php endif; ?>
 <?php if (!empty($_SESSION['user_success'])): ?>
     <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
         <i class="fa-solid fa-circle-check me-2"></i><?php echo htmlspecialchars($_SESSION['user_success']); unset($_SESSION['user_success']); ?>
@@ -29,22 +35,22 @@
 
     <!-- Filter Bar -->
     <div class="row g-2 mb-3 p-3 rounded-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1);">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="input-group">
                 <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="text" id="emp-search-input" class="form-control bg-dark border-secondary text-white" placeholder="Search Emp ID, Name, Email, Job Title...">
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <select id="emp-status-filter" class="form-select bg-dark border-secondary text-white">
-                <option value="">Filter by Status: All</option>
+                <option value="">Status: All</option>
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
             </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <select id="emp-location-filter" class="form-select bg-dark border-secondary text-white">
-                <option value="">Filter by Location: All</option>
+                <option value="">Location: All</option>
                 <option value="Office">Office</option>
                 <option value="Remote">Remote</option>
                 <option value="Hybrid">Hybrid</option>
@@ -53,11 +59,29 @@
         <div class="col-md-2">
             <select id="emp-dept-filter" class="form-select bg-dark border-secondary text-white">
                 <option value="">Dept: All</option>
-                <?php if (!empty($departments)): ?>
-                    <?php foreach ($departments as $dept): ?>
-                        <option value="<?php echo htmlspecialchars($dept); ?>"><?php echo htmlspecialchars($dept); ?></option>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                <?php 
+                $allDepts = !empty($departments) ? $departments : [];
+                if (!in_array('Intern', $allDepts, true)) {
+                    $allDepts[] = 'Intern';
+                    sort($allDepts);
+                }
+                ?>
+                <?php foreach ($allDepts as $dept): ?>
+                    <option value="<?php echo htmlspecialchars($dept); ?>"><?php echo htmlspecialchars($dept); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select id="emp-title-filter" class="form-select bg-dark border-secondary text-white">
+                <option value="">Job Title / Role: All</option>
+                <option value="Intern">Intern</option>
+                <?php 
+                $allTitles = !empty($job_titles) ? $job_titles : (!empty($jobTitles) ? $jobTitles : []);
+                foreach ($allTitles as $jt): 
+                    if (strtolower(trim($jt)) === 'intern') continue;
+                ?>
+                    <option value="<?php echo htmlspecialchars($jt); ?>"><?php echo htmlspecialchars($jt); ?></option>
+                <?php endforeach; ?>
             </select>
         </div>
     </div>
@@ -81,7 +105,10 @@
                     <tr style="border-bottom: 1px solid var(--border-color);"
                         data-status="<?php echo (($user->status ?? 'active') === 'active') ? 'Active' : 'Inactive'; ?>"
                         data-location="<?php echo htmlspecialchars($user->work_location ?? 'Office'); ?>"
-                        data-department="<?php echo htmlspecialchars($user->department ?? 'Sales'); ?>">
+                        data-department="<?php echo htmlspecialchars($user->department ?? 'Sales'); ?>"
+                        data-job-title="<?php echo htmlspecialchars($user->job_title ?? ''); ?>"
+                        data-employment-type="<?php echo htmlspecialchars($user->employment_type ?? ''); ?>"
+                        data-role="<?php echo htmlspecialchars($user->role_name ?? ''); ?>">
                         <td class="text-white font-monospace"><?php echo htmlspecialchars($user->employee_code ?? 'SYS-ADMIN'); ?></td>
                         <td class="font-weight-bold">
                             <a href="index.php?route=hrms/profile/<?php echo $user->user_id; ?>" 
@@ -705,7 +732,7 @@ $(document).ready(function() {
             table.search(this.value).draw();
         });
 
-        // Custom Filters for Status, Location, Department
+        // Custom Filters for Status, Location, Department, and Job Title / Role
         $.fn.dataTable.ext.search.push(
             function(settings, data, dataIndex) {
                 if (settings.nTable.id !== 'users-table') return true;
@@ -713,6 +740,7 @@ $(document).ready(function() {
                 const selectedStatus = $('#emp-status-filter').val();
                 const selectedLocation = $('#emp-location-filter').val();
                 const selectedDept = $('#emp-dept-filter').val();
+                const selectedTitle = $('#emp-title-filter').val();
 
                 const row = table.row(dataIndex).node();
                 if (!row) return true;
@@ -720,16 +748,42 @@ $(document).ready(function() {
                 const rowStatus = $(row).attr('data-status') || '';
                 const rowLocation = $(row).attr('data-location') || '';
                 const rowDept = $(row).attr('data-department') || '';
+                const rowTitle = $(row).attr('data-job-title') || '';
+                const rowEmpType = $(row).attr('data-employment-type') || '';
+                const rowRole = $(row).attr('data-role') || '';
 
                 if (selectedStatus && rowStatus !== selectedStatus) return false;
                 if (selectedLocation && rowLocation !== selectedLocation) return false;
-                if (selectedDept && rowDept.toLowerCase() !== selectedDept.toLowerCase()) return false;
+
+                if (selectedDept) {
+                    if (selectedDept.toLowerCase() === 'intern') {
+                        const isIntern = (rowDept.toLowerCase() === 'intern') || 
+                                         (rowTitle.toLowerCase().indexOf('intern') !== -1) || 
+                                         (rowEmpType.toLowerCase().indexOf('intern') !== -1) ||
+                                         (rowRole.toLowerCase().indexOf('intern') !== -1);
+                        if (!isIntern) return false;
+                    } else if (rowDept.toLowerCase() !== selectedDept.toLowerCase()) {
+                        return false;
+                    }
+                }
+
+                if (selectedTitle) {
+                    if (selectedTitle.toLowerCase() === 'intern') {
+                        const isIntern = (rowTitle.toLowerCase().indexOf('intern') !== -1) || 
+                                         (rowEmpType.toLowerCase().indexOf('intern') !== -1) || 
+                                         (rowRole.toLowerCase().indexOf('intern') !== -1) ||
+                                         (rowDept.toLowerCase() === 'intern');
+                        if (!isIntern) return false;
+                    } else if (rowTitle.toLowerCase() !== selectedTitle.toLowerCase()) {
+                        return false;
+                    }
+                }
 
                 return true;
             }
         );
 
-        $('#emp-status-filter, #emp-location-filter, #emp-dept-filter').on('change', function() {
+        $('#emp-status-filter, #emp-location-filter, #emp-dept-filter, #emp-title-filter').on('change', function() {
             table.draw();
         });
     }
@@ -951,25 +1005,52 @@ $(document).ready(function() {
     });
 
     $('#bulkUploadModal').on('hidden.bs.modal', function() {
+        if (!$('#results-step').hasClass('d-none')) {
+            window.location.reload();
+            return;
+        }
         $('#upload-step').removeClass('d-none');
         $('#preview-step').addClass('d-none');
         $('#results-step').addClass('d-none');
-        document.getElementById('csv_file').value = '';
+        clearUploadError();
+        const fileInput = document.getElementById('csv_file');
+        if (fileInput) fileInput.value = '';
     });
 });
 </script>
 
 <!-- Bulk Upload Modal -->
 <div class="modal fade" id="bulkUploadModal" tabindex="-1" aria-labelledby="bulkUploadModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-secondary shadow-lg" style="border-radius: 16px; background: var(--panel-dark);">
             <div class="modal-header border-secondary">
                 <h5 class="modal-title text-white" id="bulkUploadModalLabel"><i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i>Bulk Upload Employees</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form action="index.php?route=users/importCsv" method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
+                <!-- Error Alert Container -->
+                <div id="upload-error-container" class="alert alert-danger border-danger d-none mb-3">
+                    <div class="d-flex align-items-center mb-1">
+                        <i class="fa-solid fa-circle-exclamation me-2 fs-5"></i>
+                        <strong id="upload-error-title">Validation Error</strong>
+                    </div>
+                    <p class="small mb-2" id="upload-error-message"></p>
+                    <div id="upload-error-table-wrapper" class="table-responsive rounded border border-danger-subtle d-none" style="max-height: 200px; overflow-y: auto;">
+                        <table class="table table-dark table-hover table-sm small align-middle mb-0" style="font-size: 0.78rem;">
+                            <thead class="sticky-top bg-dark" style="z-index: 1;">
+                                <tr class="text-danger">
+                                    <th style="width: 15%;">Row</th>
+                                    <th style="width: 25%;">Field</th>
+                                    <th style="width: 60%;">Error Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody id="upload-error-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- STEP 1: Upload Form -->
+                <div id="upload-step">
                     <p class="text-secondary small mb-3">
                         Upload a CSV file containing employee details. All information including personal details, bank accounts, and payroll compliance will be imported.
                     </p>
@@ -990,25 +1071,104 @@ $(document).ready(function() {
                             </a>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="csv_file" class="form-label text-secondary small fw-semibold">Select CSV File</label>
-                        <input type="file" name="csv_file" id="csv_file" class="form-control bg-dark border-secondary text-white" accept=".csv" required>
+                    <div class="mb-4">
+                        <label for="csv_file" class="form-label text-secondary small fw-semibold">Select CSV File (Max 10MB / 5,000 rows)</label>
+                        <input type="file" id="csv_file" name="csv_file" class="form-control bg-dark border-secondary text-white" accept=".csv" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">If Employee Already Exists (Matched by Email or Emp ID):</label>
-                        <select name="duplicate_strategy" class="form-select bg-dark border-secondary text-white">
-                            <option value="update" selected>Overwrite / Update existing records with CSV data (Recommended)</option>
-                            <option value="skip">Skip existing records</option>
-                        </select>
-                        <div class="form-text text-secondary small">
-                            <i class="fa-solid fa-circle-info me-1"></i> "Update" updates personal info, bank details, and payroll compliance for existing employees.
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" id="btn-upload-preview" class="btn btn-primary px-4" style="background: var(--primary); border: none;">
+                            <i class="fa-solid fa-magnifying-glass me-1"></i>Upload & Preview
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Preview & Validation -->
+                <div id="preview-step" class="d-none">
+                    <div class="alert alert-info py-2 px-3 small border-info mb-3 d-flex align-items-center justify-content-between" style="background: rgba(13, 202, 240, 0.1); color: #0dcaf0;">
+                        <div>
+                            <i class="fa-solid fa-circle-info me-2"></i>
+                            <strong>Validation Summary:</strong> 
+                            <span id="summary-total">0</span> total rows, 
+                            <span id="summary-valid" class="text-success fw-bold">0</span> valid, 
+                            <span id="summary-errors" class="text-danger fw-bold">0</span> errors.
                         </div>
                     </div>
-                    <div class="modal-footer border-0 px-0 pb-0">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-file-import me-1"></i>Upload & Import</button>
+
+                    <div id="duplicate-warning-notice" class="alert alert-warning py-2 px-3 small border-warning mb-3 d-none" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;"></div>
+
+                    <div class="mb-3">
+                        <label for="duplicate_strategy" class="form-label text-secondary small fw-semibold">If Employee Already Exists (Matched by Email or Emp ID):</label>
+                        <select id="duplicate_strategy" name="duplicate_strategy" class="form-select bg-dark border-secondary text-white">
+                            <option value="update" selected>Overwrite / Update existing records with CSV data (Recommended)</option>
+                            <option value="skip">Skip existing records</option>
+                            <option value="create">Import anyway (Create duplicate records)</option>
+                        </select>
+                        <div class="form-text text-secondary small">
+                            <i class="fa-solid fa-circle-info me-1"></i> Note: Duplicate detection matches unique keys (Email, Employee Code).
+                        </div>
                     </div>
-                </form>
+
+                    <div class="table-responsive rounded border border-secondary mb-4" style="max-height: 320px; overflow-y: auto;">
+                        <table class="table table-dark table-hover table-sm small align-middle mb-0" style="font-size: 0.8rem;">
+                            <thead class="sticky-top bg-dark" style="z-index: 1;">
+                                <tr class="text-secondary">
+                                    <th>Row</th>
+                                    <th>Status</th>
+                                    <th>Employee ID</th>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Email</th>
+                                    <th>Department</th>
+                                    <th>Job Title</th>
+                                    <th>Errors / Warnings</th>
+                                </tr>
+                            </thead>
+                            <tbody id="preview-table-body">
+                                <!-- Dynamic rows via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" id="btn-back-upload" class="btn btn-secondary px-4">Back</button>
+                        <button type="button" id="btn-confirm-import" class="btn btn-primary px-4" style="background: var(--primary); border: none;">
+                            <i class="fa-solid fa-file-import me-1"></i>Confirm & Import
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: Results Summary -->
+                <div id="results-step" class="d-none text-center py-4">
+                    <div class="mb-3">
+                        <i class="fa-solid fa-circle-check text-success" style="font-size: 3.5rem;"></i>
+                    </div>
+                    <h4 class="fw-bold mb-3 text-white">Import Process Completed</h4>
+                    <div class="row justify-content-center mb-4">
+                        <div class="col-md-8">
+                            <div class="bg-dark rounded p-3 border border-secondary" style="background: rgba(255,255,255,0.02) !important;">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-secondary">Successfully Imported:</span>
+                                    <span class="fw-bold text-success" id="result-imported">0</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-secondary">Skipped (Duplicates):</span>
+                                    <span class="fw-bold text-warning" id="result-skipped">0</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-secondary">Failed (Database Errors):</span>
+                                    <span class="fw-bold text-danger" id="result-failed">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a id="btn-download-errors" href="index.php?route=users/downloadErrors" class="btn btn-outline-danger px-4 d-none">
+                            <i class="fa-solid fa-file-excel me-2"></i>Download Error Report
+                        </a>
+                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" onclick="window.location.reload();">Close</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
