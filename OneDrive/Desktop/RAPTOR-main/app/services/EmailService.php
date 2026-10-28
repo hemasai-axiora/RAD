@@ -606,4 +606,101 @@ class EmailService {
 
         return self::send($toEmail, 'Admin Test', $subject, $html, $text, [], $config);
     }
+
+    /**
+     * Send password reset verification OTP email with responsive branded template.
+     * 
+     * @param string $toEmail Recipient email address
+     * @param string $toName Recipient name
+     * @param string $otp 6-digit OTP code
+     * @param array|null $customConfig Optional custom mail config
+     * @return array ['success' => bool, 'error' => string|null]
+     */
+    public static function sendPasswordResetOtp(string $toEmail, string $toName, string $otp, ?array $customConfig = null): array {
+        $toEmail = trim($toEmail);
+        if (empty($toEmail) || !filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+            return ['success' => false, 'error' => 'Invalid email address: ' . htmlspecialchars($toEmail)];
+        }
+
+        $subject = "Raptor CRM - Your Password Reset Verification Code";
+        $safeName = htmlspecialchars($toName ?: 'Valued User');
+        $safeOtp = htmlspecialchars($otp);
+
+        $html = '<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Reset OTP</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0b132b; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; color: #e2e8f0;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #0b132b; padding: 40px 10px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 560px; background-color: #1c2541; border-radius: 16px; overflow: hidden; border: 1px solid #3a506b; box-shadow: 0 15px 35px rgba(0,0,0,0.4);">
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #0d1b2a 0%, #1c2541 100%); padding: 32px 36px; text-align: center; border-bottom: 1px solid #3a506b;">
+                            <div style="font-size: 24px; font-weight: 800; color: #48cae4; letter-spacing: 2px; text-transform: uppercase;">RAPTOR CRM</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px; letter-spacing: 0.5px;">Axiora Global Solutions</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 36px;">
+                            <h2 style="margin: 0 0 16px; color: #ffffff; font-size: 20px; font-weight: 700;">Password Reset Verification</h2>
+                            <p style="margin: 0 0 20px; font-size: 15px; color: #cbd5e1; line-height: 1.6;">
+                                Hello <strong>' . $safeName . '</strong>,
+                            </p>
+                            <p style="margin: 0 0 24px; font-size: 14px; color: #94a3b8; line-height: 1.6;">
+                                We received a request to reset the password for your Raptor CRM account. Please use the verification code below to authorize this request:
+                            </p>
+                            
+                            <!-- OTP Box -->
+                            <div style="background: #0b132b; border: 2px solid #00b4d8; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 28px;">
+                                <div style="font-size: 11px; font-weight: 700; color: #48cae4; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;">Your One-Time Password (OTP)</div>
+                                <div style="font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #ffffff; font-family: \'SF Mono\', Monaco, Menlo, Consolas, monospace; line-height: 1;">
+                                    ' . $safeOtp . '
+                                </div>
+                                <div style="font-size: 12px; color: #94a3b8; margin-top: 10px;">
+                                    ⏱ Valid for <strong>10 minutes</strong> only
+                                </div>
+                            </div>
+
+                            <!-- Security Notes -->
+                            <div style="background: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; padding: 14px 16px; border-radius: 4px; margin-bottom: 24px;">
+                                <div style="font-size: 12px; font-weight: 700; color: #fbbf24; margin-bottom: 4px;">Security Notice</div>
+                                <div style="font-size: 13px; color: #fde68a; line-height: 1.5;">
+                                    • Never share this OTP with anyone, including Raptor support staff.<br>
+                                    • If you did not request a password reset, please ignore this email or notify IT immediately.
+                                </div>
+                            </div>
+
+                            <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">
+                                This is an automated security dispatch. Please do not reply directly to this email.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #0d1b2a; border-top: 1px solid #3a506b; padding: 20px 36px; text-align: center;">
+                            <div style="font-size: 12px; color: #64748b;">
+                                &copy; ' . date('Y') . ' Axiora Global Solutions. All rights reserved.
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>';
+
+        $text = "Hello {$safeName},\n\n"
+              . "We received a request to reset your password for Raptor CRM.\n\n"
+              . "Your One-Time Password (OTP) is: {$otp}\n\n"
+              . "This code is valid for 10 minutes.\n"
+              . "Never share this code with anyone.\n\n"
+              . "If you did not request this, please disregard this email.\n\n"
+              . "Axiora Global Solutions - Raptor CRM Team";
+
+        return self::send($toEmail, $toName ?: 'User', $subject, $html, $text, [], $customConfig);
+    }
 }

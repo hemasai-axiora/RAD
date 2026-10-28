@@ -109,6 +109,11 @@ class AuthController extends Controller {
                     $_SESSION['forgot_otp'] = $otp;
                     $_SESSION['forgot_email'] = $user->email;
                     $_SESSION['forgot_expires'] = time() + 600; // 10 minutes
+
+                    // Dispatch OTP directly to user's registered email
+                    require_once APPROOT . '/services/EmailService.php';
+                    $recipientName = !empty($user->name) ? $user->name : 'User';
+                    EmailService::sendPasswordResetOtp($user->email, $recipientName, $otp);
                 } else {
                     // Set fake session data to prevent timing analysis & keep reset flow consistent
                     $_SESSION['forgot_otp'] = (string) random_int(100000, 999999);
@@ -116,7 +121,7 @@ class AuthController extends Controller {
                     $_SESSION['forgot_expires'] = time() - 3600; // already expired
                 }
                 
-                $_SESSION['login_success'] = 'If the Employee ID or email address is associated with an active account, an OTP has been sent.';
+                $_SESSION['login_success'] = 'If the Employee ID or email address is associated with an active account, a 6-digit OTP has been dispatched to your registered email address.';
                 $this->redirect('index.php?route=auth/reset_password&email=' . urlencode($user ? $user->email : $identifier));
             }
         }

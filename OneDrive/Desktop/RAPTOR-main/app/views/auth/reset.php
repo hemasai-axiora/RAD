@@ -183,9 +183,13 @@
             <div class="logo-sub text-secondary small">Enter OTP and your new password.</div>
         </div>
 
-        <?php if (!empty($_SESSION['forgot_otp'])): ?>
-            <div class="alert alert-info py-2 px-3 small mb-4" style="background: rgba(13, 110, 253, 0.1); border-color: rgba(13, 110, 253, 0.2); color: var(--text-primary);">
-                <i class="fa-solid fa-circle-info me-2"></i>[MOCK OTP] Your code is: <strong><?php echo $_SESSION['forgot_otp']; ?></strong>
+        <?php if (!empty($_SESSION['login_success'])): ?>
+            <div class="alert alert-success py-2 px-3 small mb-4" style="background: rgba(25, 135, 84, 0.15); border: 1px solid rgba(25, 135, 84, 0.3); color: #20c997; border-radius: 8px;">
+                <i class="fa-solid fa-circle-check me-2"></i><?php echo htmlspecialchars($_SESSION['login_success']); unset($_SESSION['login_success']); ?>
+            </div>
+        <?php else: ?>
+            <div class="alert alert-info py-2 px-3 small mb-4" style="background: rgba(13, 110, 253, 0.1); border: 1px solid rgba(13, 110, 253, 0.2); color: var(--text-primary); border-radius: 8px;">
+                <i class="fa-solid fa-envelope me-2"></i>A 6-digit OTP verification code has been sent to your registered email address.
             </div>
         <?php endif; ?>
 
