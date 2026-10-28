@@ -2,6 +2,11 @@
 require_once dirname(__DIR__) . '/app/config/config.php';
 require_once dirname(__DIR__) . '/app/core/Database.php';
 
+// Strict Production Protection Guard: Never allow wiping data in production
+if ((defined('APP_ENV') && APP_ENV === 'production') || getenv('APP_ENV') === 'production') {
+    die("FATAL: clean_and_seed.php is destructive and cannot be executed in production environment!\n");
+}
+
 $db = Database::getInstance()->getConnection();
 
 echo "Starting database cleanup...\n";

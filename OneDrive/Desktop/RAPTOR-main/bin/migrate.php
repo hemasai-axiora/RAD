@@ -81,21 +81,23 @@ if (is_file($bootstrap)) {
 }
 
 // A brand-new install also needs the legacy base schema before incremental
-// migrations can add later CRM modules. Only run it when the core RBAC table is
-// absent because dashboard_schema.sql intentionally rebuilds base tables.
+// migrations can add later CRM modules. ONLY run it when the database is completely empty
+// (excluding schema_migrations) because dashboard_schema.sql intentionally rebuilds base tables.
 $baseSchema = dirname(__DIR__) . '/dashboard_schema.sql';
 if (is_file($baseSchema)) {
-    $stmt = $db->prepare(
-        'SELECT COUNT(*)
+    $stmt = $db->query(
+        "SELECT COUNT(*)
            FROM information_schema.TABLES
           WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = :table_name'
+            AND TABLE_NAME NOT IN ('schema_migrations')"
     );
-    $stmt->execute([':table_name' => 'roles']);
-    if ((int) $stmt->fetchColumn() === 0) {
-        echo "Bootstrapping base schema from dashboard_schema.sql ...\n";
+    $existingTableCount = (int) $stmt->fetchColumn();
+    if ($existingTableCount === 0) {
+        echo "Bootstrapping base schema from dashboard_schema.sql on fresh database ...\n";
         $db->exec(file_get_contents($baseSchema));
         echo "  [OK] Base schema applied.\n";
+    } else {
+        echo "Database already contains {$existingTableCount} table(s). Skipping base schema bootstrap to protect existing data.\n";
     }
 }
 

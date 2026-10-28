@@ -19,6 +19,12 @@ REPO_URL="https://github.com/hemasai-axiora/RAPTOR.git"
 
 echo "=== Starting Production Release Deployment: ${TIMESTAMP} ==="
 
+# 1. Automated Pre-Deployment Database Snapshot
+echo "[1/7] Creating pre-deployment database backup snapshot..."
+if [ -f "${BASE_DIR}/deploy/db-backup.sh" ]; then
+  bash "${BASE_DIR}/deploy/db-backup.sh" || echo "Warning: Pre-deployment backup script skipped."
+fi
+
 # 2. Clone Latest Release
 echo "[2/7] Cloning latest application release into ${RELEASE_DIR}..."
 git clone --depth 1 --branch main "${REPO_URL}" "${RELEASE_DIR}"
