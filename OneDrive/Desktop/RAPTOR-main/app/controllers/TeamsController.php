@@ -65,7 +65,7 @@ class TeamsController extends Controller {
                 return;
             }
             $this->teamModel->addTeam($_POST);
-            $this->audit('Created team: ' . $_POST['name'], 'team');
+            $this->audit('Created team: ' . $name, 'team');
             $_SESSION['team_success'] = 'Team created successfully.';
         }
         $this->redirect('index.php?route=teams/index');
@@ -141,7 +141,7 @@ class TeamsController extends Controller {
             }
 
             $this->teamModel->addBranch($_POST);
-            $this->audit('Created branch: ' . $_POST['name'], 'branch');
+            $this->audit('Created branch: ' . $name, 'branch');
             $_SESSION['team_success'] = 'Branch created successfully.';
         }
         $this->redirect('index.php?route=teams/index');

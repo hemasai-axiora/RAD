@@ -16,8 +16,8 @@ class HrmsController extends Controller {
 
     /** Display dynamic HRMS Dashboards. */
     public function dashboard() {
-        $userId = (int) $_SESSION['user_id'];
-        $role = $_SESSION['user_role'];
+        $userId = (int) ($_SESSION['user_id'] ?? 0);
+        $role = $_SESSION['user_role'] ?? '';
 
         // Get role-specific dashboard metrics
         $stats = $this->hrmsModel->getHRMSDashboardStats($role, $userId);
@@ -44,9 +44,9 @@ class HrmsController extends Controller {
 
     /** Display Employee Profile. */
     public function profile($id = null) {
-        $id = $id ? (int)$id : (int)$_SESSION['user_id'];
-        $userId = (int)$_SESSION['user_id'];
-        $role = $_SESSION['user_role'];
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        $id = $id ? (int)$id : $userId;
+        $role = $_SESSION['user_role'] ?? '';
 
         // Security boundary: Non-admin/non-hr users can only view their own profile
         if ($id !== $userId && !in_array($role, ['admin', 'hr'], true)) {
@@ -54,42 +54,59 @@ class HrmsController extends Controller {
             return;
         }
 
-        $profile = $this->hrmsModel->getProfileByUserId($id);
-        if (!$profile) {
-            $_SESSION['user_error'] = 'Employee profile not found.';
+        try {
+            $profile = $this->hrmsModel->getProfileByUserId($id);
+            if (!$profile) {
+                $_SESSION['user_error'] = 'Employee profile not found.';
+                $this->redirect('index.php?route=dashboard/index');
+                return;
+            }
+
+            // Calculate attendance percentage (mocked or actual)
+            $totalAtt = 0;
+            $presentAtt = 0;
+            try {
+                $db = Database::getInstance()->getConnection();
+                $stmt = $db->prepare("SELECT COUNT(*) FROM attendance WHERE user_id = :uid");
+                $stmt->execute([':uid' => $id]);
+                $totalAtt = (int) $stmt->fetchColumn();
+
+                $stmt2 = $db->prepare("SELECT COUNT(*) FROM attendance WHERE user_id = :uid AND status = 'present'");
+                $stmt2->execute([':uid' => $id]);
+                $presentAtt = (int) $stmt2->fetchColumn();
+            } catch (Throwable $attErr) {
+                error_log("[Profile Attendance Error] " . $attErr->getMessage());
+            }
+
+            $attPercent = ($totalAtt > 0) ? round(($presentAtt / $totalAtt) * 100, 2) : 100.00;
+
+            $balances = [];
+            try {
+                $balances = $this->leaveModel->getLeaveBalances($id);
+            } catch (Throwable $leaveErr) {
+                error_log("[Profile Leave Balances Error] " . $leaveErr->getMessage());
+            }
+
+            $displayName = htmlspecialchars($profile->name ?? 'Employee');
+            $data = [
+                'title'        => $displayName . '\'s Profile | Raptor CRM',
+                'active_tab'   => 'profile',
+                'profile'      => $profile,
+                'att_percent'  => $attPercent,
+                'balances'     => $balances
+            ];
+            $this->viewWithLayout('hrms/profile', 'main', $data);
+        } catch (Throwable $e) {
+            $_SESSION['user_error'] = 'Failed to load employee profile: ' . $e->getMessage();
             $this->redirect('index.php?route=dashboard/index');
-            return;
         }
-
-        // Calculate attendance percentage (mocked or actual)
-        $db = Database::getInstance()->getConnection();
-        $stmt = $db->prepare("SELECT COUNT(*) FROM attendance WHERE user_id = :uid");
-        $stmt->execute([':uid' => $id]);
-        $totalAtt = (int) $stmt->fetchColumn();
-
-        $stmt2 = $db->prepare("SELECT COUNT(*) FROM attendance WHERE user_id = :uid AND status = 'present'");
-        $stmt2->execute([':uid' => $id]);
-        $presentAtt = (int) $stmt2->fetchColumn();
-
-        $attPercent = ($totalAtt > 0) ? round(($presentAtt / $totalAtt) * 100, 2) : 100.00;
-
-        $balances = $this->leaveModel->getLeaveBalances($id);
-
-        $data = [
-            'title'        => $profile->name . '\'s Profile | Raptor CRM',
-            'active_tab'   => 'profile',
-            'profile'      => $profile,
-            'att_percent'  => $attPercent,
-            'balances'     => $balances
-        ];
-        $this->viewWithLayout('hrms/profile', 'main', $data);
     }
 
     /** Edit Profile Details (POST). */
     public function editProfile($id = null) {
         $id = $id ? (int)$id : (int)$_SESSION['user_id'];
         $userId = (int)$_SESSION['user_id'];
-        $role = $_SESSION['user_role'];
+        $role = $_SESSION['user_role'] ?? '';
 
         // Security boundary: Non-admin/non-hr users can only edit their own profile
         if ($id !== $userId && !in_array($role, ['admin', 'hr'], true)) {
@@ -107,27 +124,49 @@ class HrmsController extends Controller {
                     if ($id === $userId) {
                         $_SESSION['user_photo'] = $photoKey;
                     }
-                } catch (Exception $e) {
+                } catch (Throwable $e) {
                     $_SESSION['profile_error'] = 'Photo upload failed: ' . $e->getMessage();
+                    $this->redirect('index.php?route=hrms/profile/' . $id);
+                    return;
                 }
             }
 
             $updateData = [
-                'blood_group'       => trim($_POST['blood_group'] ?? ''),
-                'address'           => trim($_POST['address'] ?? ''),
+                'blood_group'       => trim((string)($_POST['blood_group'] ?? '')),
+                'address'           => trim((string)($_POST['address'] ?? '')),
                 'experience_years'  => (float)($_POST['experience_years'] ?? 0.0),
-                'skills'            => trim($_POST['skills'] ?? ''),
-                'phone_number'      => trim($_POST['phone_number'] ?? ''),
-                'emergency_contact' => trim($_POST['emergency_contact'] ?? ''),
-                'date_of_birth'     => trim($_POST['date_of_birth'] ?? ''),
+                'skills'            => trim((string)($_POST['skills'] ?? '')),
+                'phone_number'      => trim((string)($_POST['phone_number'] ?? '')),
+                'emergency_contact' => trim((string)($_POST['emergency_contact'] ?? '')),
+                'date_of_birth'     => trim((string)($_POST['date_of_birth'] ?? '')),
                 'profile_photo'     => $photoKey
             ];
 
-            if ($this->hrmsModel->updateProfile($id, $updateData)) {
-                $this->audit("Updated employee profile details for user #{$id}", 'employees', $id);
-                $_SESSION['profile_success'] = 'Profile details updated successfully.';
-            } else {
-                $_SESSION['profile_error'] = 'Failed to update profile.';
+            if (!empty($updateData['phone_number']) && !Validation::validatePhoneNumber($updateData['phone_number'])) {
+                $_SESSION['profile_error'] = "Please enter a valid 10-digit phone number.";
+                $this->redirect('index.php?route=hrms/profile/' . $id);
+                return;
+            }
+            if (!empty($updateData['emergency_contact']) && !Validation::validatePhoneNumber($updateData['emergency_contact'])) {
+                $_SESSION['profile_error'] = "Emergency contact must be a valid 10-digit phone number.";
+                $this->redirect('index.php?route=hrms/profile/' . $id);
+                return;
+            }
+            if (!empty($updateData['date_of_birth']) && !Validation::validateDob($updateData['date_of_birth'])) {
+                $_SESSION['profile_error'] = "DOB must be in the past and employee must be at least 18 years old.";
+                $this->redirect('index.php?route=hrms/profile/' . $id);
+                return;
+            }
+
+            try {
+                if ($this->hrmsModel->updateProfile($id, $updateData)) {
+                    $this->audit("Updated employee profile details for user #{$id}", 'employees', $id);
+                    $_SESSION['profile_success'] = 'Profile details updated successfully.';
+                } else {
+                    $_SESSION['profile_error'] = 'Failed to update profile. Please verify your employee record.';
+                }
+            } catch (Throwable $e) {
+                $_SESSION['profile_error'] = 'Error updating profile: ' . $e->getMessage();
             }
         }
         $this->redirect('index.php?route=hrms/profile/' . $id);
@@ -150,7 +189,7 @@ class HrmsController extends Controller {
 
     /** Export CSV Reports based on type. */
     public function exportReport($type = '') {
-        $role = $_SESSION['user_role'];
+        $role = $_SESSION['user_role'] ?? '';
         if (!in_array($role, ['admin', 'ceo', 'hr', 'analyst'], true)) {
             $this->redirect('index.php?route=dashboard/index');
             return;
@@ -161,6 +200,9 @@ class HrmsController extends Controller {
         $today = date('Y-m-d');
 
         if ($to < $from) {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename="error.csv"');
             $out = fopen('php://output', 'w');
@@ -169,6 +211,9 @@ class HrmsController extends Controller {
             exit();
         }
         if ($type !== 'employees' && ($from > $today || $to > $today)) {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename="error.csv"');
             $out = fopen('php://output', 'w');
@@ -179,6 +224,9 @@ class HrmsController extends Controller {
         
         $db = Database::getInstance()->getConnection();
 
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="hrms_' . $type . '_' . $from . '_to_' . $to . '.csv"');
         

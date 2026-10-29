@@ -62,39 +62,39 @@ class UsersController extends Controller {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
 
             $data = [
-                'role_id' => (int)trim($_POST['role_id']),
-                'name' => trim($_POST['name']),
-                'email' => trim($_POST['email']),
-                'password' => trim($_POST['password']),
-                'status' => trim($_POST['status']),
+                'role_id' => (int)trim((string)($_POST['role_id'] ?? 0)),
+                'name' => trim((string)($_POST['name'] ?? '')),
+                'email' => trim((string)($_POST['email'] ?? '')),
+                'password' => trim((string)($_POST['password'] ?? '')),
+                'status' => trim((string)($_POST['status'] ?? 'Active')),
                 
                 // New employee fields
-                'employee_code' => trim($_POST['employee_code']),
-                'phone_number' => trim($_POST['phone_number']),
-                'salary' => trim($_POST['salary']),
-                'date_of_joining' => trim($_POST['date_of_joining']),
-                'date_of_birth' => trim($_POST['date_of_birth']),
-                'job_title' => trim($_POST['job_title']),
-                'department' => trim($_POST['department'] ?? 'Sales'),
-                'employment_type' => trim($_POST['employment_type']),
-                'work_location' => trim($_POST['work_location']),
-                'bio' => trim($_POST['bio']),
-                'emergency_contact' => trim($_POST['emergency_contact']),
-                'pan_number' => trim($_POST['pan_number']),
-                'aadhaar_number' => trim($_POST['aadhaar_number']),
-                'uan' => trim($_POST['uan']),
+                'employee_code' => trim((string)($_POST['employee_code'] ?? '')),
+                'phone_number' => trim((string)($_POST['phone_number'] ?? '')),
+                'salary' => trim((string)($_POST['salary'] ?? '')),
+                'date_of_joining' => trim((string)($_POST['date_of_joining'] ?? '')),
+                'date_of_birth' => trim((string)($_POST['date_of_birth'] ?? '')),
+                'job_title' => trim((string)($_POST['job_title'] ?? '')),
+                'department' => trim((string)($_POST['department'] ?? 'Sales')),
+                'employment_type' => trim((string)($_POST['employment_type'] ?? 'Full-time')),
+                'work_location' => trim((string)($_POST['work_location'] ?? 'Office')),
+                'bio' => trim((string)($_POST['bio'] ?? '')),
+                'emergency_contact' => trim((string)($_POST['emergency_contact'] ?? '')),
+                'pan_number' => trim((string)($_POST['pan_number'] ?? '')),
+                'aadhaar_number' => trim((string)($_POST['aadhaar_number'] ?? '')),
+                'uan' => trim((string)($_POST['uan'] ?? '')),
                 'pf_applicable' => isset($_POST['pf_applicable']) ? 1 : 0,
-                'esic_number' => trim($_POST['esic_number']),
-                'pay_grade' => trim($_POST['pay_grade']),
+                'esic_number' => trim((string)($_POST['esic_number'] ?? '')),
+                'pay_grade' => trim((string)($_POST['pay_grade'] ?? '')),
                 'force_password_reset' => isset($_POST['force_password_reset']) ? 1 : 0,
 
                 // Bank details
-                'account_holder_name' => trim($_POST['account_holder_name']),
-                'bank_name' => trim($_POST['bank_name']),
-                'account_number' => trim($_POST['account_number']),
-                'ifsc_code' => trim($_POST['ifsc_code']),
-                'branch_name' => trim($_POST['branch_name']),
-                'account_type' => trim($_POST['account_type'])
+                'account_holder_name' => trim((string)($_POST['account_holder_name'] ?? '')),
+                'bank_name' => trim((string)($_POST['bank_name'] ?? '')),
+                'account_number' => trim((string)($_POST['account_number'] ?? '')),
+                'ifsc_code' => trim((string)($_POST['ifsc_code'] ?? '')),
+                'branch_name' => trim((string)($_POST['branch_name'] ?? '')),
+                'account_type' => trim((string)($_POST['account_type'] ?? 'Savings'))
             ];
 
             if ($this->userModel->isEmployeeCodeExists($data['employee_code'])) {
@@ -231,16 +231,29 @@ class UsersController extends Controller {
 
             if (!empty($data['name']) && !empty($data['email']) && !empty($data['password']) && $data['role_id'] > 0) {
                 if (Policy::isHr() && $this->userModel->getRoleNameById($data['role_id']) === 'admin') {
+                    $_SESSION['user_error'] = 'Access denied: HR cannot create an Admin account.';
                     $this->redirect('index.php?route=users/index');
                     return;
                 }
-                if ($this->userModel->addUser($data)) {
-                    $_SESSION['user_success'] = 'Employee added successfully.';
+                try {
+                    if ($this->userModel->addUser($data)) {
+                        $_SESSION['user_success'] = 'Employee added successfully.';
+                        $this->redirect('index.php?route=users/index');
+                        return;
+                    } else {
+                        $_SESSION['user_error'] = 'Failed to add employee. Please ensure employee ID and email address are not already registered.';
+                        $this->redirect('index.php?route=users/index');
+                        return;
+                    }
+                } catch (Throwable $e) {
+                    $_SESSION['user_error'] = 'Error adding employee: ' . $e->getMessage();
                     $this->redirect('index.php?route=users/index');
                     return;
-                } else {
-                    die('Something went wrong.');
                 }
+            } else {
+                $_SESSION['user_error'] = 'Please fill in all required fields (Full Name, Email, Initial Password, and System Role).';
+                $this->redirect('index.php?route=users/index');
+                return;
             }
         }
         $this->redirect('index.php?route=users/index');
@@ -253,40 +266,40 @@ class UsersController extends Controller {
             $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
 
             $data = [
-                'user_id' => (int)trim($_POST['user_id']),
-                'role_id' => (int)trim($_POST['role_id']),
-                'name' => trim($_POST['name']),
-                'email' => trim($_POST['email']),
-                'password' => trim($_POST['password']), // optional password override
-                'status' => trim($_POST['status']),
+                'user_id' => (int)trim((string)($_POST['user_id'] ?? 0)),
+                'role_id' => (int)trim((string)($_POST['role_id'] ?? 0)),
+                'name' => trim((string)($_POST['name'] ?? '')),
+                'email' => trim((string)($_POST['email'] ?? '')),
+                'password' => trim((string)($_POST['password'] ?? '')), // optional password override
+                'status' => trim((string)($_POST['status'] ?? 'Active')),
 
                 // New employee fields
-                'employee_code' => trim($_POST['employee_code']),
-                'phone_number' => trim($_POST['phone_number']),
-                'salary' => trim($_POST['salary']),
-                'date_of_joining' => trim($_POST['date_of_joining']),
-                'date_of_birth' => trim($_POST['date_of_birth']),
-                'job_title' => trim($_POST['job_title']),
-                'department' => trim($_POST['department'] ?? 'Sales'),
-                'employment_type' => trim($_POST['employment_type']),
-                'work_location' => trim($_POST['work_location']),
-                'bio' => trim($_POST['bio']),
-                'emergency_contact' => trim($_POST['emergency_contact']),
-                'pan_number' => trim($_POST['pan_number']),
-                'aadhaar_number' => trim($_POST['aadhaar_number']),
-                'uan' => trim($_POST['uan']),
+                'employee_code' => trim((string)($_POST['employee_code'] ?? '')),
+                'phone_number' => trim((string)($_POST['phone_number'] ?? '')),
+                'salary' => trim((string)($_POST['salary'] ?? '')),
+                'date_of_joining' => trim((string)($_POST['date_of_joining'] ?? '')),
+                'date_of_birth' => trim((string)($_POST['date_of_birth'] ?? '')),
+                'job_title' => trim((string)($_POST['job_title'] ?? '')),
+                'department' => trim((string)($_POST['department'] ?? 'Sales')),
+                'employment_type' => trim((string)($_POST['employment_type'] ?? 'Full-time')),
+                'work_location' => trim((string)($_POST['work_location'] ?? 'Office')),
+                'bio' => trim((string)($_POST['bio'] ?? '')),
+                'emergency_contact' => trim((string)($_POST['emergency_contact'] ?? '')),
+                'pan_number' => trim((string)($_POST['pan_number'] ?? '')),
+                'aadhaar_number' => trim((string)($_POST['aadhaar_number'] ?? '')),
+                'uan' => trim((string)($_POST['uan'] ?? '')),
                 'pf_applicable' => isset($_POST['pf_applicable']) ? 1 : 0,
-                'esic_number' => trim($_POST['esic_number']),
-                'pay_grade' => trim($_POST['pay_grade']),
+                'esic_number' => trim((string)($_POST['esic_number'] ?? '')),
+                'pay_grade' => trim((string)($_POST['pay_grade'] ?? '')),
                 'force_password_reset' => isset($_POST['force_password_reset']) ? 1 : 0,
 
                 // Bank details
-                'account_holder_name' => trim($_POST['account_holder_name']),
-                'bank_name' => trim($_POST['bank_name']),
-                'account_number' => trim($_POST['account_number']),
-                'ifsc_code' => trim($_POST['ifsc_code']),
-                'branch_name' => trim($_POST['branch_name']),
-                'account_type' => trim($_POST['account_type'])
+                'account_holder_name' => trim((string)($_POST['account_holder_name'] ?? '')),
+                'bank_name' => trim((string)($_POST['bank_name'] ?? '')),
+                'account_number' => trim((string)($_POST['account_number'] ?? '')),
+                'ifsc_code' => trim((string)($_POST['ifsc_code'] ?? '')),
+                'branch_name' => trim((string)($_POST['branch_name'] ?? '')),
+                'account_type' => trim((string)($_POST['account_type'] ?? 'Savings'))
             ];
 
             if ($this->userModel->isEmployeeCodeExists($data['employee_code'], $data['user_id'])) {
@@ -419,18 +432,29 @@ class UsersController extends Controller {
 
             if ($data['user_id'] > 0 && !empty($data['name']) && !empty($data['email']) && $data['role_id'] > 0) {
                 if (Policy::isHr() && $this->userModel->getRoleNameById($data['role_id']) === 'admin') {
+                    $_SESSION['user_error'] = 'Access denied: HR cannot assign Admin role.';
                     $this->redirect('index.php?route=users/index');
                     return;
                 }
-                if ($this->userModel->updateUser($data)) {
-                    $_SESSION['user_success'] = 'Employee details updated successfully.';
-                    $this->redirect('index.php?route=users/index');
-                    return;
-                } else {
-                    $_SESSION['user_error'] = 'Failed to update employee details. Please ensure the email address is not already registered.';
+                try {
+                    if ($this->userModel->updateUser($data)) {
+                        $_SESSION['user_success'] = 'Employee details updated successfully.';
+                        $this->redirect('index.php?route=users/index');
+                        return;
+                    } else {
+                        $_SESSION['user_error'] = 'Failed to update employee details. Please ensure the email address is not already registered.';
+                        $this->redirect('index.php?route=users/index');
+                        return;
+                    }
+                } catch (Throwable $e) {
+                    $_SESSION['user_error'] = 'Error updating employee: ' . $e->getMessage();
                     $this->redirect('index.php?route=users/index');
                     return;
                 }
+            } else {
+                $_SESSION['user_error'] = 'Invalid request or missing required fields: Name, Email, and System Role are required.';
+                $this->redirect('index.php?route=users/index');
+                return;
             }
         }
         $this->redirect('index.php?route=users/index');
@@ -439,9 +463,20 @@ class UsersController extends Controller {
     // Deactivate user action; physical deletion is disabled by policy.
     public function deactivate($id) {
         $this->requirePermission('employees', 'delete');
+        $id = (int)$id;
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->userModel->deactivateUser((int) $id);
-            $this->audit('Deactivated employee account', 'users', (int) $id);
+            if ($id === (int)($_SESSION['user_id'] ?? 0)) {
+                $_SESSION['user_error'] = 'You cannot deactivate your own account.';
+                $this->redirect('index.php?route=users/index');
+                return;
+            }
+            try {
+                $this->userModel->deactivateUser($id);
+                $this->audit('Deactivated employee account', 'users', $id);
+                $_SESSION['user_success'] = 'Employee account deactivated successfully.';
+            } catch (Throwable $e) {
+                $_SESSION['user_error'] = 'Error deactivating employee account: ' . $e->getMessage();
+            }
         }
         $this->redirect('index.php?route=users/index');
     }
@@ -454,6 +489,9 @@ class UsersController extends Controller {
         $users = $this->userModel->getUsers();
 
         $filename = 'employee_details_' . date('Y-m-d_His') . '.csv';
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
 
@@ -533,6 +571,9 @@ class UsersController extends Controller {
      */
     public function downloadTemplate() {
         $this->requirePermission('employees', 'view');
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=employee_bulk_upload_template.csv');
 
@@ -1070,11 +1111,16 @@ class UsersController extends Controller {
      */
     public function downloadErrors() {
         if (empty($_SESSION['bulk_import_errors'])) {
-            die("No error report available.");
+            $_SESSION['user_error'] = 'No error report available.';
+            $this->redirect('index.php?route=users/index');
+            return;
         }
 
         $errors = $_SESSION['bulk_import_errors'];
 
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=employee_import_error_report.csv');
 

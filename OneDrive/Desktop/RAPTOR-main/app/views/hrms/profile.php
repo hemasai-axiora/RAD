@@ -1,12 +1,12 @@
 <?php
-$p          = $data['profile'];
-$role       = $_SESSION['user_role'];
+$p          = $data['profile'] ?? (object)[];
+$role       = $_SESSION['user_role'] ?? '';
 $isHrOrAdmin = in_array($role, ['admin', 'hr'], true);
-$initials   = '';
-$words      = explode(' ', $p->name);
+$pName      = trim((string)($p->name ?? 'User'));
+$words      = !empty($pName) ? explode(' ', $pName) : ['U'];
 $initials   = count($words) > 1
-    ? strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1))
-    : strtoupper(substr($p->name, 0, 2));
+    ? strtoupper(substr((string)$words[0], 0, 1) . substr((string)$words[1], 0, 1))
+    : strtoupper(substr($pName, 0, 2));
 ?>
 
 <style>
@@ -125,7 +125,7 @@ $initials   = count($words) > 1
                 <div class="row g-3">
                     <?php
                     $fields = [
-                        ['Email Address',     $p->email],
+                        ['Email Address',     $p->email             ?? null],
                         ['Phone Number',      $p->phone_number      ?? null],
                         ['Reporting Manager', $p->manager_name      ?? null],
                         ['Date of Joining',   $p->date_of_joining   ?? null],
@@ -156,7 +156,7 @@ $initials   = count($words) > 1
                         <span class="profile-field-label">Skills</span>
                         <?php if (!empty($p->skills)): ?>
                             <div class="d-flex flex-wrap gap-1 mt-1">
-                                <?php foreach (explode(',', $p->skills) as $skill): ?>
+                                <?php foreach (explode(',', (string)($p->skills ?? '')) as $skill): ?>
                                     <span style="background:var(--primary-soft); color:var(--primary); border:1px solid var(--primary-soft); border-radius:20px; font-size:0.75rem; font-weight:600; padding:0.15rem 0.55rem;">
                                         <?php echo htmlspecialchars(trim($skill)); ?>
                                     </span>
@@ -252,7 +252,7 @@ $initials   = count($words) > 1
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="index.php?route=hrms/editProfile/<?php echo $p->user_id; ?>" method="POST" enctype="multipart/form-data">
+            <form action="index.php?route=hrms/editProfile/<?php echo (int)($p->user_id ?? ($data['profile']->user_id ?? ($_SESSION['user_id'] ?? 0))); ?>" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
                 <div class="modal-body" style="padding:1.5rem;">
                     <div class="mb-3">

@@ -8,7 +8,7 @@
             👤 Employee Performance Profile
         </h3>
         <div class="text-secondary small">
-            <?php echo $score ? htmlspecialchars($score->user_name . ' — ' . strtoupper($score->period) . ' Evaluation') : 'No evaluation data available'; ?>
+            <?php echo $score ? htmlspecialchars(($score->user_name ?? 'User') . ' — ' . strtoupper((string)($score->period ?? 'weekly')) . ' Evaluation') : 'No evaluation data available'; ?>
         </div>
     </div>
     <a href="index.php?route=performance/index&period=<?php echo urlencode($period); ?>" class="btn btn-outline-secondary btn-sm px-3 py-2 fw-semibold" style="border-radius: 10px;">
@@ -24,19 +24,19 @@
 <?php else: ?>
 <?php
 $components = [
-    'Attendance' => ['score' => $score->attendance_score, 'icon' => '📅', 'desc' => 'Days Present vs Total Workdays'],
-    'Punctuality' => ['score' => $score->punctuality_score, 'icon' => '⏰', 'desc' => 'On-Time Check-ins vs Days Present'],
-    'Activity Volume' => ['score' => $score->activity_score, 'icon' => '⚡', 'desc' => 'Logged Comms, Tasks, Follow-ups & Lead Actions'],
-    'Target Achievement' => ['score' => $score->target_score, 'icon' => '🎯', 'desc' => 'Average Target Completion Progress'],
-    'Lead Generation' => ['score' => $score->lead_score, 'icon' => '🧲', 'desc' => 'New Leads Acquired in Period'],
-    'Follow-up Discipline' => ['score' => $score->followup_score, 'icon' => '📞', 'desc' => 'Completed/Scheduled Follow-ups Ratio'],
-    'Conversions' => ['score' => $score->conversion_score, 'icon' => '🚀', 'desc' => 'Converted Leads Count'],
-    'Revenue' => ['score' => $score->revenue_score, 'icon' => '💰', 'desc' => 'Converted Lead Value Generated'],
-    'Meetings' => ['score' => $score->meeting_score, 'icon' => '🤝', 'desc' => 'Completed Client Meetings'],
-    'Demos' => ['score' => $score->demo_score, 'icon' => '💻', 'desc' => 'Completed Product Demos'],
+    'Attendance' => ['score' => (float)($score->attendance_score ?? 0), 'icon' => '📅', 'desc' => 'Days Present vs Total Workdays'],
+    'Punctuality' => ['score' => (float)($score->punctuality_score ?? 0), 'icon' => '⏰', 'desc' => 'On-Time Check-ins vs Days Present'],
+    'Activity Volume' => ['score' => (float)($score->activity_score ?? 0), 'icon' => '⚡', 'desc' => 'Logged Comms, Tasks, Follow-ups & Lead Actions'],
+    'Target Achievement' => ['score' => (float)($score->target_score ?? 0), 'icon' => '🎯', 'desc' => 'Average Target Completion Progress'],
+    'Lead Generation' => ['score' => (float)($score->lead_score ?? 0), 'icon' => '🧲', 'desc' => 'New Leads Acquired in Period'],
+    'Follow-up Discipline' => ['score' => (float)($score->followup_score ?? 0), 'icon' => '📞', 'desc' => 'Completed/Scheduled Follow-ups Ratio'],
+    'Conversions' => ['score' => (float)($score->conversion_score ?? 0), 'icon' => '🚀', 'desc' => 'Converted Leads Count'],
+    'Revenue' => ['score' => (float)($score->revenue_score ?? 0), 'icon' => '💰', 'desc' => 'Converted Lead Value Generated'],
+    'Meetings' => ['score' => (float)($score->meeting_score ?? 0), 'icon' => '🤝', 'desc' => 'Completed Client Meetings'],
+    'Demos' => ['score' => (float)($score->demo_score ?? 0), 'icon' => '💻', 'desc' => 'Completed Product Demos'],
 ];
 
-$bandStyle = match($score->performance_band) {
+$bandStyle = match(strtolower((string)($score->performance_band ?? ''))) {
     'excellent' => 'background: #10b981; color: #ffffff !important;',
     'good' => 'background: #06b6d4; color: #ffffff !important;',
     'average' => 'background: #f59e0b; color: #ffffff !important;',
@@ -52,25 +52,25 @@ $bandStyle = match($score->performance_band) {
                 <div>
                     <div class="d-flex align-items-center gap-2 mb-2">
                         <span class="fs-4">👤</span>
-                        <h4 class="fw-bold mb-0" style="color: var(--text-primary, #0f172a);"><?php echo htmlspecialchars($score->user_name); ?></h4>
+                        <h4 class="fw-bold mb-0" style="color: var(--text-primary, #0f172a);"><?php echo htmlspecialchars($score->user_name ?? 'User'); ?></h4>
                         <span class="badge" style="background: #2563eb; color: #ffffff !important; font-weight: 600; font-size: 0.85rem; padding: 0.35rem 0.65rem; border-radius: 6px;">
                             👥 <?php echo htmlspecialchars($score->team_name ?? 'Unassigned'); ?>
                         </span>
                     </div>
                     <div class="text-secondary small">
-                        Evaluation Window: <span class="font-monospace fw-semibold" style="color: var(--text-primary, #0f172a);"><?php echo htmlspecialchars($score->start_date . ' to ' . $score->end_date); ?></span>
+                        Evaluation Window: <span class="font-monospace fw-semibold" style="color: var(--text-primary, #0f172a);"><?php echo htmlspecialchars(($score->start_date ?? '') . ' to ' . ($score->end_date ?? '')); ?></span>
                     </div>
                 </div>
                 <div class="text-end">
                     <div class="text-secondary small fw-semibold">Overall Rating</div>
                     <div class="display-6 fw-extrabold font-monospace my-1" style="color: var(--text-primary, #0f172a);">
-                        <?php echo number_format((float)$score->overall_score, 1); ?> <small style="font-size:1rem;" class="text-secondary">/ 100</small>
+                        <?php echo number_format((float)($score->overall_score ?? 0), 1); ?> <small style="font-size:1rem;" class="text-secondary">/ 100</small>
                     </div>
                     <span class="badge px-3 py-1 fw-bold fs-6" style="<?php echo $bandStyle; ?> border-radius: 6px;">
-                        <?php echo strtoupper(str_replace('_', ' ', $score->performance_band)); ?>
+                        <?php echo strtoupper(str_replace('_', ' ', (string)($score->performance_band ?? ''))); ?>
                     </span>
                     <div class="text-secondary small mt-2">
-                        🏆 Team Rank <strong style="color: var(--text-primary, #0f172a);">#<?php echo htmlspecialchars($score->team_rank ?: '-'); ?></strong>
+                        🏆 Team Rank <strong style="color: var(--text-primary, #0f172a);">#<?php echo htmlspecialchars((string)($score->team_rank ?? '-')); ?></strong>
                     </div>
                 </div>
             </div>
@@ -117,9 +117,9 @@ $bandStyle = match($score->performance_band) {
             </h5>
             <form action="index.php?route=performance/review/<?php echo $user_id; ?>" method="POST">
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
-                <input type="hidden" name="period" value="<?php echo htmlspecialchars($score->period); ?>">
-                <input type="hidden" name="start_date" value="<?php echo htmlspecialchars($score->start_date); ?>">
-                <input type="hidden" name="end_date" value="<?php echo htmlspecialchars($score->end_date); ?>">
+                <input type="hidden" name="period" value="<?php echo htmlspecialchars((string)($score->period ?? 'weekly')); ?>">
+                <input type="hidden" name="start_date" value="<?php echo htmlspecialchars((string)($score->start_date ?? date('Y-m-d'))); ?>">
+                <input type="hidden" name="end_date" value="<?php echo htmlspecialchars((string)($score->end_date ?? date('Y-m-d'))); ?>">
                 <div class="mb-3">
                     <label class="form-label text-secondary small fw-semibold">Rating (1 to 5 Stars) *</label>
                     <select name="rating" class="form-select" required>

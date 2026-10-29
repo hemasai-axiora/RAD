@@ -65,10 +65,28 @@ class Controller {
             $dir = dirname($script_name);
             $dir = ($dir === '\\' || $dir === '/') ? '' : $dir;
             $base = $scheme . '://' . $host . $dir;
-            header('Location: ' . $base . '/' . ltrim($url, '/'));
+            $targetUrl = $base . '/' . ltrim($url, '/');
         } else {
-            header('Location: ' . URLROOT . '/' . ltrim($url, '/'));
+            $targetUrl = URLROOT . '/' . ltrim($url, '/');
         }
+
+        // Clean any active output buffer before setting redirect header
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        if (!headers_sent()) {
+            header('Location: ' . $targetUrl);
+            exit();
+        }
+
+        // Resilient fallback if output was already flushed: redirect via Meta refresh & JavaScript
+        echo '<!DOCTYPE html><html><head>';
+        echo '<meta http-equiv="refresh" content="0;url=' . htmlspecialchars($targetUrl, ENT_QUOTES, 'UTF-8') . '">';
+        echo '<script>window.location.replace(' . json_encode($targetUrl) . ');</script>';
+        echo '</head><body>';
+        echo '<p>Redirecting to <a href="' . htmlspecialchars($targetUrl, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($targetUrl, ENT_QUOTES, 'UTF-8') . '</a>...</p>';
+        echo '</body></html>';
         exit();
     }
 

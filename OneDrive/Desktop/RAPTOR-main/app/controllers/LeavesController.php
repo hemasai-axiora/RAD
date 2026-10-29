@@ -435,7 +435,7 @@ class LeavesController extends Controller {
 
     /** Export Leave Balances CSV */
     public function exportBalancesCsv() {
-        $role = $_SESSION['user_role'];
+        $role = $_SESSION['user_role'] ?? '';
         if (!in_array($role, ['admin', 'hr', 'manager'], true)) {
             $this->redirect('index.php?route=leaves/index');
             return;
@@ -451,6 +451,9 @@ class LeavesController extends Controller {
 
         $balances = $this->leaveModel->getAllDetailedLeaveBalances($filters);
 
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=employee_leave_balances_2026.csv');
 

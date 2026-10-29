@@ -323,6 +323,9 @@ class AttendanceController extends Controller {
         }
         $rows = $this->att->getReport(['from' => $from, 'to' => $to, 'user_ids' => $this->visibleUserIds()]);
 
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="attendance_' . $from . '_to_' . $to . '.csv"');
         $out = fopen('php://output', 'w');

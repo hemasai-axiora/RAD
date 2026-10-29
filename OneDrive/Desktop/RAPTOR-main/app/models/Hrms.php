@@ -25,34 +25,42 @@ class Hrms extends Model {
         try { $this->db->exec("ALTER TABLE employees ADD COLUMN date_of_birth DATE NULL"); } catch (Throwable $e) {}
         try { $this->db->exec("ALTER TABLE employees ADD COLUMN profile_photo VARCHAR(255) NULL"); } catch (Throwable $e) {}
 
-        // First check if employee record exists
+        // First check if employee record exists; self-heal if missing so profile update never fails
         $this->query('SELECT employee_id FROM employees WHERE user_id = :uid');
         $this->bind(':uid', $userId);
         $emp = $this->single();
 
-        if ($emp) {
-            $this->query('UPDATE employees SET 
-                            blood_group = :bg,
-                            address = :addr,
-                            experience_years = :exp,
-                            skills = :skills,
-                            phone_number = :phone,
-                            emergency_contact = :emer,
-                            date_of_birth = :dob,
-                            profile_photo = COALESCE(:photo, profile_photo)
-                          WHERE user_id = :uid');
-            $this->bind(':bg', $data['blood_group']);
-            $this->bind(':addr', $data['address']);
-            $this->bind(':exp', $data['experience_years']);
-            $this->bind(':skills', $data['skills']);
-            $this->bind(':phone', $data['phone_number']);
-            $this->bind(':emer', $data['emergency_contact']);
-            $this->bind(':dob', !empty($data['date_of_birth']) ? $data['date_of_birth'] : null);
-            $this->bind(':photo', !empty($data['profile_photo']) ? $data['profile_photo'] : null);
-            $this->bind(':uid', $userId);
-            return $this->execute();
+        if (!$emp) {
+            try {
+                $code = 'EMP' . rand(10000, 99999);
+                $this->query('INSERT INTO employees (user_id, employee_code, hire_date, date_of_joining, status) 
+                              VALUES (:uid, :code, CURDATE(), CURDATE(), \'active\')');
+                $this->bind(':uid', $userId);
+                $this->bind(':code', $code);
+                $this->execute();
+            } catch (Throwable $e) {}
         }
-        return false;
+
+        $this->query('UPDATE employees SET 
+                        blood_group = :bg,
+                        address = :addr,
+                        experience_years = :exp,
+                        skills = :skills,
+                        phone_number = :phone,
+                        emergency_contact = :emer,
+                        date_of_birth = :dob,
+                        profile_photo = COALESCE(:photo, profile_photo)
+                      WHERE user_id = :uid');
+        $this->bind(':bg', !empty($data['blood_group']) ? $data['blood_group'] : null);
+        $this->bind(':addr', !empty($data['address']) ? $data['address'] : null);
+        $this->bind(':exp', !empty($data['experience_years']) ? (float)$data['experience_years'] : 0.0);
+        $this->bind(':skills', !empty($data['skills']) ? $data['skills'] : null);
+        $this->bind(':phone', !empty($data['phone_number']) ? $data['phone_number'] : null);
+        $this->bind(':emer', !empty($data['emergency_contact']) ? $data['emergency_contact'] : null);
+        $this->bind(':dob', !empty($data['date_of_birth']) ? $data['date_of_birth'] : null);
+        $this->bind(':photo', !empty($data['profile_photo']) ? $data['profile_photo'] : null);
+        $this->bind(':uid', $userId);
+        return $this->execute();
     }
 
     public function getActiveEmployeesCount(): int {

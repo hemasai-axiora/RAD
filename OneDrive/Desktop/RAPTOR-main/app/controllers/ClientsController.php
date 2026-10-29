@@ -48,16 +48,16 @@ class ClientsController extends Controller {
         ];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS);
+            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
 
-            $data['company_name'] = trim($_POST['company_name']);
-            $data['email'] = trim($_POST['email']);
-            $data['phone'] = trim($_POST['phone']);
-            $data['status'] = trim($_POST['status']);
-            $data['contract_start'] = trim($_POST['contract_start']);
-            $data['contract_end'] = trim($_POST['contract_end']);
-            $data['package_details'] = trim($_POST['package_details']);
-            $data['billing_address'] = trim($_POST['billing_address']);
+            $data['company_name'] = trim((string)($_POST['company_name'] ?? ''));
+            $data['email'] = trim((string)($_POST['email'] ?? ''));
+            $data['phone'] = trim((string)($_POST['phone'] ?? ''));
+            $data['status'] = trim((string)($_POST['status'] ?? 'Active'));
+            $data['contract_start'] = trim((string)($_POST['contract_start'] ?? ''));
+            $data['contract_end'] = trim((string)($_POST['contract_end'] ?? ''));
+            $data['package_details'] = trim((string)($_POST['package_details'] ?? ''));
+            $data['billing_address'] = trim((string)($_POST['billing_address'] ?? ''));
 
             // Validate
             if (empty($data['company_name'])) {
@@ -113,16 +113,16 @@ class ClientsController extends Controller {
         ];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS);
+            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
 
-            $data['company_name'] = trim($_POST['company_name']);
-            $data['email'] = trim($_POST['email']);
-            $data['phone'] = trim($_POST['phone']);
-            $data['status'] = trim($_POST['status']);
-            $data['contract_start'] = trim($_POST['contract_start']);
-            $data['contract_end'] = trim($_POST['contract_end']);
-            $data['package_details'] = trim($_POST['package_details']);
-            $data['billing_address'] = trim($_POST['billing_address']);
+            $data['company_name'] = trim((string)($_POST['company_name'] ?? ''));
+            $data['email'] = trim((string)($_POST['email'] ?? ''));
+            $data['phone'] = trim((string)($_POST['phone'] ?? ''));
+            $data['status'] = trim((string)($_POST['status'] ?? 'Active'));
+            $data['contract_start'] = trim((string)($_POST['contract_start'] ?? ''));
+            $data['contract_end'] = trim((string)($_POST['contract_end'] ?? ''));
+            $data['package_details'] = trim((string)($_POST['package_details'] ?? ''));
+            $data['billing_address'] = trim((string)($_POST['billing_address'] ?? ''));
 
             if (empty($data['company_name'])) {
                 $data['company_name_err'] = 'Company name is required';

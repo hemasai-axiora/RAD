@@ -143,7 +143,7 @@
                                         data-status="<?php echo $user->status; ?>"
                                         data-employee-code="<?php echo htmlspecialchars($user->employee_code ?? ''); ?>"
                                         data-phone-number="<?php echo htmlspecialchars($user->phone_number ?? ''); ?>"
-                                        data-salary="<?php echo (in_array($_SESSION['user_role'], ['admin', 'hr', 'finance'], true)) ? htmlspecialchars($user->salary ?? '') : ''; ?>"
+                                        data-salary="<?php echo (in_array($_SESSION['user_role'] ?? '', ['admin', 'hr', 'finance'], true)) ? htmlspecialchars($user->salary ?? '') : ''; ?>"
                                         data-date-of-joining="<?php echo htmlspecialchars($user->date_of_joining ?? $user->hire_date ?? ''); ?>"
                                         data-date-of-birth="<?php echo htmlspecialchars($user->date_of_birth ?? ''); ?>"
                                         data-job-title="<?php echo htmlspecialchars($user->job_title ?? ''); ?>"
@@ -152,8 +152,8 @@
                                         data-work-location="<?php echo htmlspecialchars($user->work_location ?? 'Office'); ?>"
                                         data-bio="<?php echo htmlspecialchars($user->bio ?? ''); ?>"
                                         data-emergency-contact="<?php echo htmlspecialchars($user->emergency_contact ?? ''); ?>"
-                                        data-pan-number="<?php echo (in_array($_SESSION['user_role'], ['admin', 'hr', 'finance'], true)) ? htmlspecialchars($user->pan_number ?? '') : ''; ?>"
-                                        data-aadhaar-number="<?php echo (in_array($_SESSION['user_role'], ['admin', 'hr', 'finance'], true)) ? htmlspecialchars($user->aadhaar_number ?? '') : ''; ?>"
+                                        data-pan-number="<?php echo (in_array($_SESSION['user_role'] ?? '', ['admin', 'hr', 'finance'], true)) ? htmlspecialchars($user->pan_number ?? '') : ''; ?>"
+                                        data-aadhaar-number="<?php echo (in_array($_SESSION['user_role'] ?? '', ['admin', 'hr', 'finance'], true)) ? htmlspecialchars($user->aadhaar_number ?? '') : ''; ?>"
                                         data-uan="<?php echo htmlspecialchars($user->uan ?? ''); ?>"
                                         data-pf-applicable="<?php echo htmlspecialchars($user->pf_applicable ?? 0); ?>"
                                         data-esic-number="<?php echo htmlspecialchars($user->esic_number ?? ''); ?>"
@@ -186,7 +186,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="index.php?route=users/add" method="POST" enctype="multipart/form-data" class="needs-validation-account">
-                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
                 <div class="modal-body">
                     <!-- Nav tabs -->
                     <ul class="nav nav-tabs border-secondary mb-3" role="tablist">
@@ -405,7 +405,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="index.php?route=users/edit" method="POST" enctype="multipart/form-data" class="needs-validation-account">
-                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
                 <input type="hidden" name="user_id" id="edit_id">
                 
                 <div class="modal-body">
@@ -566,7 +566,7 @@
                         <!-- Payroll & Compliance Tab -->
                         <div class="tab-pane fade" id="edit-payroll" role="tabpanel" aria-labelledby="edit-payroll-tab">
                             <div class="row g-3">
-                                <?php if (in_array($_SESSION['user_role'], ['admin', 'hr', 'finance'], true)): ?>
+                                <?php if (in_array($_SESSION['user_role'] ?? '', ['admin', 'hr', 'finance'], true)): ?>
                                     <div class="col-md-6">
                                         <label class="form-label text-secondary">PAN Number</label>
                                         <input type="text" name="pan_number" id="edit_pan_number" class="form-control bg-dark border-secondary text-white" pattern="^[A-Z]{5}[0-9]{4}[A-Z]$" title="Please enter a valid 10-character PAN number (e.g. ABCDE1234F)." oninput="this.value = this.value.toUpperCase()">
@@ -635,7 +635,7 @@
 
 <!-- Deactivate User Hidden Form -->
 <form id="deactivate-user-form" action="" method="POST" style="display: none;">
-    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
 </form>
 
 <script>
@@ -840,15 +840,15 @@ $(document).ready(function() {
 
         const formData = new FormData();
         formData.append('csv_file', file);
-        formData.append('csrf_token', '<?php echo $_SESSION['csrf_token']; ?>');
+        formData.append('csrf_token', '<?php echo $_SESSION['csrf_token'] ?? ''; ?>');
 
         $('#btn-upload-preview').html('<span class="spinner-border spinner-border-sm me-2"></span>Validating...').prop('disabled', true);
 
         $.ajax({
-            url: 'index.php?route=users/bulkUpload&csrf_token=<?php echo $_SESSION['csrf_token']; ?>',
+            url: 'index.php?route=users/bulkUpload&csrf_token=<?php echo $_SESSION['csrf_token'] ?? ''; ?>',
             type: 'POST',
             headers: {
-                'X-CSRF-TOKEN': '<?php echo $_SESSION['csrf_token']; ?>'
+                'X-CSRF-TOKEN': '<?php echo $_SESSION['csrf_token'] ?? ''; ?>'
             },
             data: formData,
             contentType: false,
@@ -960,16 +960,16 @@ $(document).ready(function() {
         const strategy = $('#duplicate_strategy').val();
         const payload = {
             duplicate_strategy: strategy,
-            csrf_token: '<?php echo $_SESSION['csrf_token']; ?>'
+            csrf_token: '<?php echo $_SESSION['csrf_token'] ?? ''; ?>'
         };
 
         $('#btn-confirm-import').html('<span class="spinner-border spinner-border-sm me-2"></span>Importing...').prop('disabled', true);
 
         $.ajax({
-            url: 'index.php?route=users/bulkImport&csrf_token=<?php echo $_SESSION['csrf_token']; ?>',
+            url: 'index.php?route=users/bulkImport&csrf_token=<?php echo $_SESSION['csrf_token'] ?? ''; ?>',
             type: 'POST',
             headers: {
-                'X-CSRF-TOKEN': '<?php echo $_SESSION['csrf_token']; ?>'
+                'X-CSRF-TOKEN': '<?php echo $_SESSION['csrf_token'] ?? ''; ?>'
             },
             data: JSON.stringify(payload),
             contentType: 'application/json',

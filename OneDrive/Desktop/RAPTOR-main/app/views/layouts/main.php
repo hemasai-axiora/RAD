@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <?php
+        $data = is_array($data ?? null) ? $data : [];
+        $data['title'] = $data['title'] ?? ($title ?? 'RAPTOR');
         $role = $_SESSION['user_role'] ?? $_SESSION['role_name'] ?? '';
-        $page_title = isset($title) ? htmlspecialchars($title) : 'RAPTOR';
+        $page_title = htmlspecialchars((string)$data['title']);
         $page_title = str_ireplace('Raptor CRM', 'RAPTOR', $page_title);
     ?>
     <title><?php echo $page_title; ?></title>
@@ -1420,8 +1422,8 @@
                         <i class="fa-solid fa-chevron-right section-arrow"></i>
                     </div>
                     <ul class="menu-section-items">
-                        <li class="menu-item <?php echo (isset($_GET['route']) && $_GET['route'] === 'hrms/profile/' . $_SESSION['user_id']) ? 'active' : ''; ?>">
-                            <a href="index.php?route=hrms/profile/<?php echo $_SESSION['user_id']; ?>">
+                        <li class="menu-item <?php echo (isset($_GET['route']) && $_GET['route'] === 'hrms/profile/' . ($_SESSION['user_id'] ?? '')) ? 'active' : ''; ?>">
+                            <a href="index.php?route=hrms/profile/<?php echo $_SESSION['user_id'] ?? ''; ?>">
                                 <i class="fa-solid fa-address-card"></i><span>My Profile</span>
                             </a>
                         </li>
@@ -1477,15 +1479,16 @@
                         }
                     }
                     ?>
+                    <?php $uName = (string)($_SESSION['user_name'] ?? 'User'); ?>
                     <?php if (!empty($userPhoto)): ?>
-                        <img src="index.php?route=file/show&key=<?php echo urlencode($userPhoto); ?>" class="user-avatar" style="object-fit: cover; width: 38px; height: 38px; border-radius: 50%;" alt="<?php echo htmlspecialchars($_SESSION['user_name']); ?>">
+                        <img src="index.php?route=file/show&key=<?php echo urlencode($userPhoto); ?>" class="user-avatar" style="object-fit: cover; width: 38px; height: 38px; border-radius: 50%;" alt="<?php echo htmlspecialchars($uName); ?>">
                     <?php else: ?>
                         <div class="user-avatar">
-                            <?php echo strtoupper(substr($_SESSION['user_name'], 0, 2)); ?>
+                            <?php echo strtoupper(substr($uName, 0, 2)); ?>
                         </div>
                     <?php endif; ?>
                     <div class="flex-grow-1 overflow-hidden" style="margin-right: 0.5rem;">
-                        <div class="user-name"><?php echo htmlspecialchars($_SESSION['user_name']); ?></div>
+                        <div class="user-name"><?php echo htmlspecialchars($uName); ?></div>
                         <div class="user-role"><?php echo htmlspecialchars(Policy::roleLabel()); ?></div>
                     </div>
                     <a href="index.php?route=auth/logout" class="text-danger" title="Logout" style="font-size: 1.1rem;">
@@ -1597,6 +1600,28 @@
 
             <!-- Inner View Content -->
             <main class="main-content flex-grow-1">
+                <?php if (!empty($_SESSION['flash_error'])): ?>
+                    <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i><?php echo htmlspecialchars($_SESSION['flash_error']); unset($_SESSION['flash_error']); ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php elseif (!empty($_SESSION['error'])): ?>
+                    <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i><?php echo htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
+                <?php if (!empty($_SESSION['flash_success'])): ?>
+                    <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+                        <i class="fa-solid fa-circle-check me-2"></i><?php echo htmlspecialchars($_SESSION['flash_success']); unset($_SESSION['flash_success']); ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php elseif (!empty($_SESSION['success'])): ?>
+                    <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+                        <i class="fa-solid fa-circle-check me-2"></i><?php echo htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
                 <?php echo $content; ?>
             </main>
         </div>

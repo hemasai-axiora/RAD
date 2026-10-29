@@ -1,5 +1,5 @@
 <?php
-$role = $_SESSION['user_role'];
+$role = $_SESSION['user_role'] ?? '';
 $stats = $data['stats'] ?? [];
 $personal = $data['personal'] ?? [];
 ?>
