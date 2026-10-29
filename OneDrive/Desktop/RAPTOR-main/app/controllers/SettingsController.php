@@ -116,15 +116,28 @@ class SettingsController extends Controller {
                                             ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)');
 
                 foreach ($settingKeys as $key) {
+                    $altKey = str_replace('.', '_', $key);
+
                     if ($key === 'attendance.week_off_days') {
                         $weekOffArr = $_POST['attendance_week_off_days'] ?? [];
                         $value = is_array($weekOffArr) ? implode(',', array_map('trim', $weekOffArr)) : '';
                     } else {
-                        $value = isset($_POST[$key]) ? trim($_POST[$key]) : '';
+                        if (isset($_POST[$key])) {
+                            $value = trim((string)$_POST[$key]);
+                        } elseif (isset($_POST[$altKey])) {
+                            $value = trim((string)$_POST[$altKey]);
+                        } else {
+                            $value = '';
+                        }
                     }
 
                     if (in_array($key, ['attendance.geofence_enabled', 'location.tracking_enabled', 'alerts.cron_enabled', 'alerts.web_push_enabled', 'alerts.email_enabled', 'reports.email_enabled', 'attendance.allow_week_off_override', 'mail.auto_send_on_generation'], true)) {
-                        $value = isset($_POST[$key]) ? '1' : '0';
+                        $value = (isset($_POST[$key]) || isset($_POST[$altKey])) ? '1' : '0';
+                    }
+
+                    // Preserve existing password if field is left blank on save
+                    if ($key === 'mail.password' && $value === '') {
+                        continue;
                     }
 
                     $stmt->execute([
