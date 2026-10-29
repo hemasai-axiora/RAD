@@ -214,22 +214,39 @@ class PayrollController extends Controller {
         $this->redirect('index.php?route=payroll/checklist');
     }
 
-    // Add Salary Hold
+    // Add Salary Hold (Supports multiple accounts)
     public function add_salary_hold() {
         $this->requirePermission('payroll', 'create');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_SPECIAL_CHARS) ?: [];
-            $empId = (int)($_POST['employee_id'] ?? 0);
             $monthYear = trim($_POST['month_year'] ?? date('Y-m'));
-            $reason = trim($_POST['reason'] ?? 'Salary placed on hold');
+            $reason = trim(strip_tags((string)($_POST['reason'] ?? 'Salary placed on hold')));
 
-            if ($empId > 0 && !empty($reason)) {
-                $this->payrollModel->saveSalaryHold($monthYear, $empId, $reason, $_SESSION['user_id']);
-                $this->recalculateRunForMonth($monthYear, $empId);
-                $_SESSION['payroll_success'] = 'Salary hold recorded successfully and payroll run synchronized.';
+            $empIds = [];
+            if (!empty($_POST['employee_ids']) && is_array($_POST['employee_ids'])) {
+                foreach ($_POST['employee_ids'] as $eid) {
+                    $eid = (int)$eid;
+                    if ($eid > 0) {
+                        $empIds[] = $eid;
+                    }
+                }
+            } elseif (!empty($_POST['employee_id'])) {
+                $eid = (int)$_POST['employee_id'];
+                if ($eid > 0) {
+                    $empIds[] = $eid;
+                }
+            }
+
+            if (!empty($empIds) && !empty($reason)) {
+                $count = 0;
+                foreach ($empIds as $eid) {
+                    $this->payrollModel->saveSalaryHold($monthYear, $eid, $reason, $_SESSION['user_id']);
+                    $this->recalculateRunForMonth($monthYear, $eid);
+                    $count++;
+                }
+                $_SESSION['payroll_success'] = "Successfully placed {$count} employee account(s) on salary hold and synchronized payroll.";
             } else {
-                $_SESSION['payroll_error'] = 'Invalid employee or hold reason.';
+                $_SESSION['payroll_error'] = 'Please select at least one employee account and provide a reason for holding salary.';
             }
             $this->redirect('index.php?route=payroll/checklist&month_year=' . $monthYear . '#salary_hold');
             return;
@@ -1427,31 +1444,81 @@ class PayrollController extends Controller {
                 continue;
             }
 
+            // Primary source of truth: Payroll & Compliance tab on Employee profile (employees.salary)
+            $empSalary = (float)($emp->salary ?? 0);
+            $struct = $this->payrollModel->getSalaryStructureByEmployeeId($emp->employee_id);
+
             // Exclude Interns with salary 0 or employees with 0 salary from payroll processing
             $isIntern = (stripos($emp->job_title ?? '', 'intern') !== false) || 
                         (stripos($emp->employment_type ?? '', 'intern') !== false) || 
                         (stripos($emp->role_name ?? '', 'intern') !== false);
 
-            $struct = $this->payrollModel->getSalaryStructureByEmployeeId($emp->employee_id);
-            $empSalary = (float)($emp->salary ?? 0);
-            $basicSalaryVal = $struct ? (float)$struct->basic_salary : $empSalary;
-
-            // Business rule: Intern role with salary 0 must not process in payroll
-            if ($isIntern && $basicSalaryVal <= 0) {
-                continue;
-            }
-            // Skip any employee with 0 salary and no positive salary structure
-            if ($basicSalaryVal <= 0 && (!$struct || ((float)($struct->gross_salary ?? 0) <= 0))) {
-                continue;
+            if ($empSalary <= 0) {
+                // If intern with 0 salary, exclude from payroll run
+                if ($isIntern) {
+                    continue;
+                }
+                // Skip if no structure or if structure is empty or dummy 12500 basic
+                if (!$struct || (float)($struct->basic_salary ?? 0) <= 0 || (float)($struct->basic_salary ?? 0) == 12500) {
+                    continue;
+                }
             }
 
-            // Base structure components
-            $actualBasic = $basicSalaryVal > 0 ? $basicSalaryVal : 25000.00;
-            $actualHra = $struct ? (float)$struct->hra : round($actualBasic * 0.50);
-            $actualSpecial = $struct ? (float)$struct->special_allowance : 1600.00;
-            $actualOther = $struct ? (float)($struct->other_allowance ?? 0.00) : 0.00;
-            $med = $struct ? (float)$struct->medical_allowance : 0.00;
-            $travel = $struct ? (float)$struct->travel_allowance : 0.00;
+            // Derive earnings structure directly from Payroll & Compliance ($empSalary)
+            if ($empSalary > 0) {
+                // Check if existing custom structure matches this salary exactly
+                $structTotalGross = $struct ? ((float)$struct->basic_salary + (float)$struct->hra + (float)$struct->special_allowance + (float)($struct->other_allowance ?? 0) + (float)$struct->medical_allowance + (float)$struct->travel_allowance) : 0;
+                
+                if ($struct && abs($structTotalGross - $empSalary) < 1.0) {
+                    $actualBasic = (float)$struct->basic_salary;
+                    $actualHra = (float)$struct->hra;
+                    $actualSpecial = (float)$struct->special_allowance;
+                    $actualOther = (float)($struct->other_allowance ?? 0.00);
+                    $med = (float)$struct->medical_allowance;
+                    $travel = (float)$struct->travel_allowance;
+                } else {
+                    // Standard statutory breakdown: 50% Basic, 25% HRA, 25% Special Allowance
+                    $actualBasic = round($empSalary * 0.50);
+                    $actualHra = round($actualBasic * 0.50);
+                    $actualSpecial = max(0, round($empSalary - $actualBasic - $actualHra));
+                    $actualOther = 0.00;
+                    $med = 0.00;
+                    $travel = 0.00;
+
+                    // Synchronize salary_structures table so it reflects Payroll & Compliance
+                    $isPfVal = !empty($emp->pf_applicable) && (int)$emp->pf_applicable === 1;
+                    $pfVal = $isPfVal ? (($actualBasic >= 15000) ? 1800 : round($actualBasic * 0.12)) : 0;
+                    $ptVal = ($empSalary > 20000) ? 200 : (($empSalary > 15000) ? 150 : 0);
+                    $gratVal = round($actualBasic * 0.0481);
+
+                    $this->payrollModel->saveSalaryStructure([
+                        'employee_id' => $emp->employee_id,
+                        'salary_type' => 'Monthly',
+                        'basic_salary' => $actualBasic,
+                        'hra' => $actualHra,
+                        'special_allowance' => $actualSpecial,
+                        'other_allowance' => 0,
+                        'medical_allowance' => 0,
+                        'travel_allowance' => 0,
+                        'bonus' => 0,
+                        'other_earnings' => 0,
+                        'pf' => $pfVal,
+                        'employer_pf' => $pfVal,
+                        'gratuity' => $gratVal,
+                        'esic' => 0,
+                        'professional_tax' => $ptVal,
+                        'tds' => (float)($struct->tds ?? 0)
+                    ], $_SESSION['user_id'] ?? null, 'Synced from Payroll & Compliance', date('Y-m-d'));
+                }
+            } else {
+                $actualBasic = (float)$struct->basic_salary;
+                $actualHra = (float)$struct->hra;
+                $actualSpecial = (float)$struct->special_allowance;
+                $actualOther = (float)($struct->other_allowance ?? 0.00);
+                $med = (float)$struct->medical_allowance;
+                $travel = (float)$struct->travel_allowance;
+            }
+
             $bonus = $struct ? (float)$struct->bonus : 0.00;
             $otherEarn = $struct ? (float)$struct->other_earnings : 0.00;
 
@@ -1506,12 +1573,14 @@ class PayrollController extends Controller {
             $med = round($med * $proRateFactor);
             $travel = round($travel * $proRateFactor);
 
-            // Statutory & Other Deductions
-            $pf = $struct ? round((float)$struct->pf) : (($basic >= 15000) ? 1800 : round($basic * 0.12));
-            $employerPf = $struct ? round((float)($struct->employer_pf ?? $pf)) : (($actualBasic >= 15000) ? 1800 : round($actualBasic * 0.12));
-            $gratuity = $struct ? round((float)($struct->gratuity ?? round($actualBasic * 0.0481))) : round($actualBasic * 0.0481);
-            $esic = $struct ? round((float)$struct->esic) : 0;
-            $pt = $struct ? round((float)$struct->professional_tax) : (($actualBasic + $actualHra + $actualSpecial + $actualOther > 20000) ? 200 : 150);
+            // Statutory Deductions directly based on employee's Payroll & Compliance settings
+            $isPfApplicable = !empty($emp->pf_applicable) && (int)$emp->pf_applicable === 1;
+            $pf = $isPfApplicable ? (($basic >= 15000) ? 1800 : round($basic * 0.12)) : 0;
+            $employerPf = $isPfApplicable ? (($actualBasic >= 15000) ? 1800 : round($actualBasic * 0.12)) : 0;
+            $gratuity = round($actualBasic * 0.0481);
+            $baseMonthlyGross = $actualBasic + $actualHra + $actualSpecial + $actualOther + $med + $travel;
+            $pt = ($baseMonthlyGross > 20000) ? 200 : (($baseMonthlyGross > 15000) ? 150 : 0);
+            $esic = (!empty($emp->esic_number) && $baseMonthlyGross <= 21000) ? round($baseMonthlyGross * 0.0075) : 0;
             $tds = $struct ? round((float)$struct->tds) : 0;
             $empOtherDeduct = round((float)($otherDeductionsByEmp[$emp->employee_id] ?? 0.00));
 
@@ -1659,13 +1728,44 @@ class PayrollController extends Controller {
 
     // Lock payroll run
     public function run_lock($runId) {
-        $this->requirePermission('payroll', 'approve');
+        $this->requirePermission('payroll', 'create');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($this->payrollModel->updateRunStatus($runId, 'locked')) {
-                $_SESSION['payroll_success'] = 'Payroll run locked. Ready to process bank transfers.';
+                $_SESSION['payroll_success'] = 'Payroll run locked successfully. Run calculations are now frozen.';
             } else {
                 $_SESSION['payroll_error'] = 'Failed to lock payroll run.';
+            }
+        }
+        $this->redirect('index.php?route=payroll/processing&run_id=' . $runId);
+    }
+
+    // Unlock payroll run
+    public function run_unlock($runId) {
+        $this->requirePermission('payroll', 'create');
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if ($this->payrollModel->updateRunStatus($runId, 'generated')) {
+                $_SESSION['payroll_success'] = 'Payroll run unlocked successfully. Calculations can now be updated and resynchronized.';
+            } else {
+                $_SESSION['payroll_error'] = 'Failed to unlock payroll run.';
+            }
+        }
+        $this->redirect('index.php?route=payroll/processing&run_id=' . $runId);
+    }
+
+    // Delete / Reset payroll run
+    public function run_delete($runId) {
+        $this->requirePermission('payroll', 'create');
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $runId = (int)$runId;
+            if ($this->payrollModel->deletePayrollRun($runId)) {
+                $_SESSION['payroll_success'] = 'Payroll run and all associated calculations have been deleted successfully.';
+                $this->redirect('index.php?route=payroll/processing');
+                return;
+            } else {
+                $_SESSION['payroll_error'] = 'Failed to delete payroll run.';
             }
         }
         $this->redirect('index.php?route=payroll/processing&run_id=' . $runId);

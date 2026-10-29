@@ -86,26 +86,39 @@
                             </form>
                         <?php endif; ?>
 
-                        <?php if ($selected_run->status === 'generated' && in_array($role, ['admin', 'hr'], true)): ?>
-                            <form action="index.php?route=payroll/run_approve/<?php echo $selected_run->payroll_run_id; ?>" method="POST" class="d-inline">
+                        <?php if (in_array($selected_run->status, ['generated', 'approved'], true) && in_array($role, ['admin', 'hr', 'finance'], true)): ?>
+                            <form action="index.php?route=payroll/run_lock/<?php echo $selected_run->payroll_run_id; ?>" method="POST" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
-                                <button type="submit" class="btn btn-warning btn-sm"><i class="fa-solid fa-check-double me-1"></i>Approve Run</button>
+                                <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Lock this payroll run? This will finalize calculations and lock the payroll.');">
+                                    <i class="fa-solid fa-lock me-1"></i>Lock Payroll
+                                </button>
                             </form>
                         <?php endif; ?>
 
-                        <?php if ($selected_run->status === 'approved' && in_array($role, ['admin', 'finance'], true)): ?>
-                            <form action="index.php?route=payroll/run_lock/<?php echo $selected_run->payroll_run_id; ?>" method="POST">
+                        <?php if ($selected_run->status === 'locked' && in_array($role, ['admin', 'finance', 'hr'], true)): ?>
+                            <span class="badge bg-warning text-dark d-inline-flex align-items-center px-2 py-1" style="font-size: 0.75rem;">
+                                <i class="fa-solid fa-lock me-1"></i>Locked
+                            </span>
+                            <form action="index.php?route=payroll/run_unlock/<?php echo $selected_run->payroll_run_id; ?>" method="POST" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
-                                <button type="submit" class="btn btn-info btn-sm"><i class="fa-solid fa-lock me-1"></i>Lock Payroll</button>
+                                <button type="submit" class="btn btn-outline-warning btn-sm" onclick="return confirm('Unlock this payroll run to allow recalculations?');">
+                                    <i class="fa-solid fa-lock-open me-1"></i>Unlock
+                                </button>
                             </form>
-                        <?php endif; ?>
-
-                        <?php if ($selected_run->status === 'locked' && in_array($role, ['admin', 'finance'], true)): ?>
                             <form action="index.php?route=payroll/run_release/<?php echo $selected_run->payroll_run_id; ?>" method="POST" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
                                 <input type="hidden" name="send_email_on_release" value="1">
                                 <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Release payslips and email PDF copies to all employees?');">
                                     <i class="fa-solid fa-circle-check me-1"></i>Release &amp; Email Payslips
+                                </button>
+                            </form>
+                        <?php endif; ?>
+
+                        <?php if (in_array($role, ['admin', 'finance'], true)): ?>
+                            <form action="index.php?route=payroll/run_delete/<?php echo $selected_run->payroll_run_id; ?>" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete/reset this payroll run? All calculations for this run will be permanently removed so you can re-run.');">
+                                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
+                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete and reset this payroll run">
+                                    <i class="fa-solid fa-trash me-1"></i>Delete Run
                                 </button>
                             </form>
                         <?php endif; ?>

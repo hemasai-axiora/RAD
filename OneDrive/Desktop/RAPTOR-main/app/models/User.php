@@ -368,6 +368,39 @@ class User extends Model {
                 }
             }
 
+            // Sync salary structure when salary is updated in Payroll & Compliance
+            if ($employeeId && !empty($data['salary']) && (float)$data['salary'] > 0) {
+                $salVal = (float)$data['salary'];
+                $bSal = round($salVal * 0.50);
+                $hSal = round($bSal * 0.50);
+                $sSal = max(0, round($salVal - $bSal - $hSal));
+                $isPf = !empty($data['pf_applicable']) && (int)$data['pf_applicable'] === 1;
+                $pfVal = $isPf ? (($bSal >= 15000) ? 1800 : round($bSal * 0.12)) : 0;
+                $ptVal = ($salVal > 20000) ? 200 : (($salVal > 15000) ? 150 : 0);
+                $gratVal = round($bSal * 0.0481);
+
+                $this->query('INSERT INTO salary_structures (employee_id, salary_type, basic_salary, hra, special_allowance, other_allowance, medical_allowance, travel_allowance, bonus, other_earnings, pf, employer_pf, gratuity, esic, professional_tax, tds)
+                              VALUES (:eid, "Monthly", :basic, :hra, :special, 0, 0, 0, 0, 0, :pf, :emp_pf, :gratuity, 0, :pt, 0)
+                              ON DUPLICATE KEY UPDATE 
+                                basic_salary = VALUES(basic_salary),
+                                hra = VALUES(hra),
+                                special_allowance = VALUES(special_allowance),
+                                pf = VALUES(pf),
+                                employer_pf = VALUES(employer_pf),
+                                gratuity = VALUES(gratuity),
+                                professional_tax = VALUES(professional_tax),
+                                updated_at = CURRENT_TIMESTAMP');
+                $this->bind(':eid', $employeeId);
+                $this->bind(':basic', $bSal);
+                $this->bind(':hra', $hSal);
+                $this->bind(':special', $sSal);
+                $this->bind(':pf', $pfVal);
+                $this->bind(':emp_pf', $pfVal);
+                $this->bind(':gratuity', $gratVal);
+                $this->bind(':pt', $ptVal);
+                $this->execute();
+            }
+
             // Update bank details safely (never overwrite with blank strings if CSV omitted bank columns)
             $hasIncomingBank = (!empty($data['bank_name']) && !empty($data['account_number']));
             if ($employeeId && $hasIncomingBank) {

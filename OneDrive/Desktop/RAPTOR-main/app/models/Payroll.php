@@ -584,6 +584,16 @@ class Payroll extends Model {
         return $this->execute();
     }
 
+    public function deletePayrollRun($runId) {
+        $this->query('DELETE FROM payroll_details WHERE payroll_run_id = :id');
+        $this->bind(':id', $runId);
+        $this->execute();
+
+        $this->query('DELETE FROM payroll_runs WHERE payroll_run_id = :id');
+        $this->bind(':id', $runId);
+        return $this->execute();
+    }
+
     // ---------------- Payroll Details ----------------
 
     public function getPayrollDetailsByRunId($runId) {

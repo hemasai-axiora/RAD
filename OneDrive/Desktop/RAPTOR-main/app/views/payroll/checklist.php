@@ -682,15 +682,28 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label small font-weight-bold" style="color: var(--text-secondary);">Select Employee *</label>
-                        <select name="employee_id" class="form-select" required style="background-color: var(--surface-soft); color: var(--text-primary);">
-                            <option value="">-- Choose Employee --</option>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small font-weight-bold mb-0" style="color: var(--text-secondary);">Select Employee Accounts (Multi-Select) *</label>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-info btn-sm py-0 px-2" style="font-size:0.75rem;" onclick="selectAllHoldEmployees(true)">
+                                    <i class="fa-solid fa-check-double me-1"></i>Select All
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:0.75rem;" onclick="selectAllHoldEmployees(false)">
+                                    <i class="fa-solid fa-xmark me-1"></i>Clear
+                                </button>
+                            </div>
+                        </div>
+                        <input type="text" id="hold_emp_search" class="form-control form-control-sm mb-2" placeholder="Search employee name or code..." style="background-color: var(--surface-soft); color: var(--text-primary); font-size: 0.8rem;" oninput="filterHoldEmployees(this.value)">
+                        <select name="employee_ids[]" id="hold_employee_ids" class="form-select font-monospace" multiple size="8" required style="background-color: var(--surface-soft); color: var(--text-primary); font-size: 0.85rem; line-height: 1.6;">
                             <?php foreach ($active_employees as $emp): ?>
                                 <option value="<?php echo $emp->employee_id; ?>">
-                                    <?php echo htmlspecialchars($emp->name) . " (" . htmlspecialchars($emp->employee_code) . ")"; ?>
+                                    <?php echo htmlspecialchars($emp->name) . " (" . htmlspecialchars($emp->employee_code) . ")" . (!empty($emp->job_title) ? " — " . htmlspecialchars($emp->job_title) : ""); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                        <div class="form-text text-secondary mt-1" style="font-size: 0.75rem;">
+                            <i class="fa-solid fa-circle-info me-1 text-info"></i>Hold <kbd>Ctrl</kbd> (Windows) or <kbd>Cmd</kbd> (Mac) to select multiple accounts simultaneously, or click <strong>Select All</strong>.
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small font-weight-bold" style="color: var(--text-secondary);">Reason for Holding Salary *</label>
@@ -705,6 +718,27 @@
         </div>
     </div>
 </div>
+
+<script>
+function selectAllHoldEmployees(selectState) {
+    var sel = document.getElementById('hold_employee_ids');
+    if (!sel) return;
+    for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].style.display !== 'none') {
+            sel.options[i].selected = selectState;
+        }
+    }
+}
+function filterHoldEmployees(query) {
+    var q = (query || '').toLowerCase().trim();
+    var sel = document.getElementById('hold_employee_ids');
+    if (!sel) return;
+    for (var i = 0; i < sel.options.length; i++) {
+        var text = sel.options[i].text.toLowerCase();
+        sel.options[i].style.display = (q === '' || text.indexOf(q) !== -1) ? '' : 'none';
+    }
+}
+</script>
 
 <!-- Modal 2: Add Arrear -->
 <div class="modal fade" id="arrearModal" tabindex="-1" aria-labelledby="arrearModalLabel" aria-hidden="true">
