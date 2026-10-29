@@ -193,7 +193,24 @@ class EmailService {
         if (!empty($username)) {
             $sendCommand("AUTH LOGIN", [334]);
             $sendCommand(base64_encode($username), [334]);
-            $sendCommand(base64_encode($password), [235]);
+            try {
+                $sendCommand(base64_encode($password), [235]);
+            } catch (Throwable $authEx) {
+                // If password was copied from markdown table with leading pipe or space, try stripped version
+                $altPass = null;
+                if (str_starts_with($password, '|')) {
+                    $altPass = substr($password, 1);
+                } elseif (str_starts_with($password, ' ')) {
+                    $altPass = trim($password);
+                }
+                if ($altPass !== null && $altPass !== '') {
+                    $sendCommand("AUTH LOGIN", [334]);
+                    $sendCommand(base64_encode($username), [334]);
+                    $sendCommand(base64_encode($altPass), [235]);
+                } else {
+                    throw $authEx;
+                }
+            }
         }
 
         // 5. MAIL FROM
